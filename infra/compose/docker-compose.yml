@@ -1,0 +1,107 @@
+name: devpulse
+
+x-api-env: &api-env
+  APP_ENV: ${APP_ENV:-local}
+  LOG_LEVEL: ${LOG_LEVEL:-INFO}
+  DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-devpulse}:${POSTGRES_PASSWORD:-devpulse}@postgres:5432/${POSTGRES_DB:-devpulse}
+  REDIS_URL: redis://redis:6379/0
+  JWT_SIGNING_KEY: ${JWT_SIGNING_KEY:?set JWT_SIGNING_KEY in .env}
+  CORS_ORIGINS: ${CORS_ORIGINS:-[]}
+  SENTRY_DSN: ${SENTRY_DSN:-}
+
+# One image for api/worker/beat/migrate. Only `migrate` declares the build so the image is
+# built once; the others reuse it (pull_policy: never avoids registry lookups).
+x-api-image: &api-image
+  image: devpulse-api:local
+  pull_policy: never
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-devpulse}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-devpulse}
+      POSTGRES_DB: ${POSTGRES_DB:-devpulse}
+    ports: ["${POSTGRES_PORT:-55432}:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports: ["${REDIS_PORT:-56379}:6379"]
+    volumes: [redisdata:/data]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  migrate:
+    image: devpulse-api:local
+    build:
+      context: ../..
+      dockerfile: infra/docker/api.Dockerfile
+    command: ["alembic", "upgrade", "head"]
+    environment: *api-env
+    depends_on:
+      postgres: { condition: service_healthy }
+    restart: "no"
+
+  api:
+    <<: *api-image
+    environment: *api-env
+    ports: ["${API_PORT:-8000}:8000"]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      redis: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/readyz"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+
+  worker:
+    <<: *api-image
+    command: ["celery", "-A", "app.workers.celery_app:celery", "worker", "--loglevel=INFO", "--concurrency=2"]
+    environment: *api-env
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      redis: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A app.workers.celery_app:celery inspect ping -d celery@$$HOSTNAME --timeout 5"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  beat:
+    <<: *api-image
+    command: ["celery", "-A", "app.workers.celery_app:celery", "beat", "--loglevel=INFO", "--schedule=/tmp/celerybeat-schedule"]
+    environment: *api-env
+    depends_on:
+      redis: { condition: service_healthy }
+
+  web:
+    build:
+      context: ../..
+      dockerfile: infra/docker/web.Dockerfile
+    image: devpulse-web:local
+    environment:
+      API_INTERNAL_URL: http://api:8000
+      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
+    ports: ["${WEB_PORT:-3000}:3000"]
+    depends_on:
+      api: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/login"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+
+volumes:
+  pgdata:
+  redisdata:

@@ -1,0 +1,70 @@
+[project]
+name = "devpulse-api"
+version = "0.1.0"
+description = "DevPulse API (modular monolith) and workers"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  "fastapi>=0.162,<0.163",
+  "uvicorn[standard]>=0.54,<0.55",
+  "sqlalchemy[asyncio]>=2.1,<2.2",
+  "asyncpg>=0.32,<0.33",
+  "alembic>=1.20,<1.21",
+  "pydantic>=2.14,<2.15",
+  "pydantic-settings>=2.16,<2.17",
+  "email-validator>=2.3,<2.4",
+  "structlog>=26.1,<26.2",
+  "argon2-cffi>=25.1,<25.2",
+  "pyjwt>=2.15,<2.16",
+  "redis>=8.1,<8.2",
+  "celery[redis]>=5.7,<5.8",
+  "packaging>=24",  # required by kombu's redis transport, not declared by it
+  "sentry-sdk>=2.74,<2.75",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=9.2,<9.3",
+  "pytest-asyncio>=1.4,<1.5",
+  "httpx>=0.28,<0.29",
+  "ruff>=0.17,<0.18",
+  "mypy>=2.4,<2.5",
+]
+
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S", "ASYNC", "RUF", "SIM"]
+ignore = ["B008"]  # FastAPI Depends() in defaults
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "S105", "S106"]
+"migrations/**" = ["E501"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+plugins = ["pydantic.mypy"]
+exclude = ["migrations/", "tests/"]
+
+[[tool.mypy.overrides]]
+module = ["celery", "celery.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["app.workers.*"]
+disallow_untyped_decorators = false
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
+testpaths = ["tests"]

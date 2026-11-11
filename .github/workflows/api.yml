@@ -1,0 +1,66 @@
+name: api
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - "services/api/**"
+      - "packages/api-contract/**"
+      - ".github/workflows/api.yml"
+
+concurrency:
+  group: api-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: services/api
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: devpulse
+          POSTGRES_PASSWORD: devpulse
+          POSTGRES_DB: devpulse
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U devpulse" --health-interval 5s --health-timeout 3s --health-retries 20
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 3s --health-retries 20
+    env:
+      DATABASE_URL: postgresql+asyncpg://devpulse:devpulse@localhost:5432/devpulse
+      REDIS_URL: redis://localhost:6379/0
+      JWT_SIGNING_KEY: ci-only-signing-key-0123456789abcdefghijklmnop
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: services/api/pyproject.toml
+      - run: pip install -e ".[dev]"
+      - name: Lint
+        run: ruff check . && ruff format --check .
+      - name: Type check
+        run: mypy app
+      - name: Migrations round-trip and drift check
+        run: |
+          alembic upgrade head
+          alembic downgrade base
+          alembic upgrade head
+          alembic check
+      - name: Tests
+        run: pytest -q
+      - name: OpenAPI contract is up to date
+        run: |
+          python -m app.scripts.export_openapi ../../packages/api-contract/openapi.json
+          git diff --exit-code -- ../../packages/api-contract/openapi.json \
+            || (echo "::error::openapi.json is stale — run 'make openapi' and commit" && exit 1)

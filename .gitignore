@@ -1,0 +1,29 @@
+# env / secrets
+.env
+.env.*
+!.env.example
+# python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+# node
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+coverage/
+playwright-report/
+test-results/
+# flutter
+apps/mobile/build/
+apps/mobile/.dart_tool/
+# os / editors
+.DS_Store
+.idea/
+.vscode/
+*.iml

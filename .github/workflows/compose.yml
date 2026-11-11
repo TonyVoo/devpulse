@@ -1,0 +1,32 @@
+name: compose
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - "infra/**"
+      - "services/api/**"
+      - "apps/web/**"
+      - ".env.example"
+      - ".github/workflows/compose.yml"
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Boot full stack
+        run: |
+          cp .env.example .env
+          docker compose --env-file .env -f infra/compose/docker-compose.yml up -d --build --wait
+      - name: Readiness and auth smoke test
+        run: |
+          curl -fsS http://localhost:8000/readyz
+          curl -fsS -X POST http://localhost:8000/api/v1/auth/register \
+            -H 'content-type: application/json' \
+            -d '{"email":"ci-smoke@example.com","password":"ci-smoke-password","display_name":"CI"}' > /dev/null
+          curl -fsS -o /dev/null http://localhost:3000/login
+      - if: always()
+        run: docker compose --env-file .env -f infra/compose/docker-compose.yml ps -a
