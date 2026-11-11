@@ -4,7 +4,7 @@ COMPOSE := docker compose --env-file .env -f infra/compose/docker-compose.yml
 API := services/api
 PY := $(API)/.venv/bin
 
-.PHONY: help env up down logs ps migrate api-venv api-test api-lint api-typecheck api-check openapi web-install web-dev web-check
+.PHONY: help env up down logs ps migrate seed-demo loadgen api-venv api-test api-lint api-typecheck api-check openapi web-install web-dev web-check
 
 help: ## Show targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-16s %s\n", $$1, $$2}'
@@ -28,6 +28,14 @@ ps: ## Service status
 
 migrate: ## Apply migrations inside the stack
 	$(COMPOSE) run --rm migrate
+
+seed-demo: ## Create the demo org for an existing user: make seed-demo OWNER=you@example.com
+	@test -n "$(OWNER)" || (echo "usage: make seed-demo OWNER=you@example.com" && exit 1)
+	$(COMPOSE) run --rm --no-deps api python -m app.scripts.seed_demo --owner-email $(OWNER)
+
+loadgen: ## Synthetic telemetry via the ingest API: make loadgen KEY=dp_ingest_... [INCIDENT_AFTER=120]
+	@test -n "$(KEY)" || (echo "usage: make loadgen KEY=dp_ingest_... [INCIDENT_AFTER=120]" && exit 1)
+	$(COMPOSE) run --rm --no-deps api python -m app.scripts.loadgen --api http://api:8000 --key $(KEY) $(if $(INCIDENT_AFTER),--incident-after $(INCIDENT_AFTER),)
 
 api-venv: ## Create backend virtualenv with dev deps
 	test -d $(API)/.venv || python3.12 -m venv $(API)/.venv

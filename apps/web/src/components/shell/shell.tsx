@@ -12,6 +12,9 @@ type Org = { id: string; slug: string; name: string; role: string };
 
 const ORG_NAV = [
   { href: "", label: "Overview" },
+  { href: "/services", label: "Services" },
+  { href: "/incidents", label: "Incidents" },
+  { href: "/ingest-keys", label: "Ingest keys" },
   { href: "/members", label: "Members" },
 ] as const;
 

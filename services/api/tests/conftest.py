@@ -48,6 +48,7 @@ os.environ.update(
     LOG_JSON="false",
     LOG_LEVEL="WARNING",
     LOGIN_RATE_LIMIT="5",
+    ENCRYPTION_KEY="m3mGd7cAtQyb3H2Z0Gx2mQwqVxWm1n8b4oL9yZ6pT0A=",  # test-only Fernet key
     REFRESH_REUSE_GRACE_S="0",  # strict by default; grace covered by a dedicated test
 )
 
@@ -85,14 +86,23 @@ async def _database() -> AsyncIterator[None]:
     yield
 
 
-TABLES = "audit_logs, invitations, memberships, refresh_tokens, devices, organizations, users"
+# DELETE (not TRUNCATE): with partitioned tables TRUNCATE CASCADE costs ~1.5s per test.
+# Deleting organizations cascades to every tenant-owned row (audit logs included) before
+# users are removed, so the audit table's no-UPDATE trigger is never hit by SET NULL.
+CLEANUP_SQL = """
+    DELETE FROM metric_points;
+    DELETE FROM log_events;
+    DELETE FROM metric_rollups_1m;
+    DELETE FROM organizations;
+    DELETE FROM users;
+"""
 
 
 @pytest.fixture(autouse=True)
 async def _clean() -> AsyncIterator[None]:
     conn = await asyncpg.connect(_raw_dsn(TEST_DATABASE_URL))
     try:
-        await conn.execute(f"TRUNCATE {TABLES} RESTART IDENTITY CASCADE")
+        await conn.execute(CLEANUP_SQL)
     finally:
         await conn.close()
     await get_redis().flushdb()

@@ -148,30 +148,33 @@ Tenant = **Organization**. Every tenant-owned row has `org_id NOT NULL`.
 | read everything in org | ✓ | ✓ | ✓ | ✓ |
 | audit.read | ✓ | ✓ | | |
 
-## 6. Telemetry pipeline
+## 6. Telemetry pipeline (as built in Phase 2)
 
 ```mermaid
 sequenceDiagram
   participant Src as Service / CI
   participant API as Ingest API
-  participant R as Redis stream
-  participant W as Ingest worker
   participant PG as Postgres
-  participant B as Beat: rollup + alert eval
-  Src->>API: POST /ingest/v1/metrics (ingest key, batch ≤ 1000)
-  API->>API: auth key → org, validate, size limits, rate limit
-  API->>R: XADD (202 Accepted)
-  W->>R: XREADGROUP batch
-  W->>PG: COPY into metric_points (partitioned by day)
-  B->>PG: every 60s aggregate → metric_rollups_1m
-  B->>PG: every 30s evaluate alert_rules over rollups
-  B-->>API: AlertFired → incident opened/updated (outbox)
+  participant R as Redis
+  participant B as Celery beat + worker
+  Src->>API: POST /ingest/v1/metrics (ingest key, ≤ 1000 points)
+  API->>API: key → org (+ optional bound service), scope, rate limit, validate timestamps
+  API->>PG: bulk INSERT into metric_points (daily partition)
+  API->>R: SADD rollup:dirty "org|service|minute"
+  API-->>Src: 202 Accepted
+  B->>R: every 20s SPOP dirty minutes
+  B->>PG: re-aggregate those minutes → metric_rollups_1m (+ 2-min safety sweep)
+  B->>PG: every 30s evaluate alert rules over RAW points (exact percentiles)
+  B->>PG: open / attach incident, correlate deployments, recompute service health
+  B->>PG: hourly: create partitions 7 days ahead, drop raw partitions > 7 days
 ```
 
-- Ingestion is accepted fast (202) and written asynchronously; backpressure via Redis stream length cap → `429` with `Retry-After`.
-- An OTLP/HTTP-compatible endpoint (`/ingest/otlp/v1/metrics`, `/logs`) is planned for Phase 2b so standard OTel SDKs work unchanged.
+- Ingestion writes synchronously in one batch insert (ADR-016). The Redis-stream buffer from the original plan is deferred until a load test shows the database is the bottleneck.
+- A late point (allowed up to 1 h old) marks its own minute dirty, so its rollup is recomputed; if Redis loses the marker, the sweep re-rolls the last 2 minutes of every active service.
+- Alerts read raw points (exact p95/p99, error ratio over the window); charts read 1-minute rollups (percentiles over >1 min are count-weighted approximations and labelled as such).
+- An OTLP/HTTP-compatible endpoint remains planned (not built) so standard OTel SDKs can send directly.
 - Logs are stored with short retention for incident evidence only; DevPulse is not a log search product (ADR-006).
-- DevPulse's **own** observability (Prometheus/Grafana/Sentry) is separate from customer telemetry.
+- DevPulse's **own** observability (Prometheus/Grafana) is not built yet; Sentry is wired but optional.
 
 ## 7. Alert → incident lifecycle
 

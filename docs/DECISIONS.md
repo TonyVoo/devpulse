@@ -73,8 +73,24 @@ Format: Context → Decision → Consequences. Status: **Accepted** unless noted
 - **iOS ATS:** `NSAllowsLocalNetworking` allows plain HTTP to local/LAN addresses only (development API). Public hosts still require HTTPS.
 - **Haptics never awaited.** Found in testing: awaiting `HapticFeedback` can hang if the platform call doesn't return, freezing the form in its loading state.
 
+### ADR-016 Synchronous batch ingestion (Phase 2)
+**Context:** The plan put a Redis stream between the ingest API and Postgres.
+**Decision:** The API validates and bulk-inserts each batch directly into the daily partition, then marks touched minutes in a Redis set for the rollup worker.
+**Consequences:** One fewer moving part and no "accepted but lost" window; ingestion latency includes a DB write. The demo load (≈ 2.5k points/min) is far below Postgres limits. Revisit with the Phase 6 load test; the stream can be introduced behind the same endpoint.
+
+### ADR-017 Alert evaluation semantics (Phase 2)
+- Evaluated every 30 s over **raw** points for the rule's window (exact percentiles); one evaluator at a time via a transaction-scoped advisory lock.
+- **No data keeps the current state** (neither fires nor resolves). A firing alert whose service stops sending stays firing and the service stays critical until data returns or the rule is disabled. Chosen so a crashed service never "recovers" by going silent; a dedicated no-data rule type is future work.
+- **Dedup is per rule:** a rule that fires again while its previous incident is open attaches to it. Two different rules on the same service (e.g. latency and error rate) open two incidents — grouping related incidents is future work (AI phase is a natural place).
+- Alert recovery adds a timeline event but never resolves the incident; people resolve incidents.
+- Deployment correlation is a timing heuristic (same service, ≤ 2 h before start, linear decay, +0.15 for failed/rolled-back deploys) and is always labelled "suspected".
+
+### ADR-018 Demo data path (Phase 2)
+**Decision:** `make seed-demo` creates only an org, services, alert rules and a demo ingest key (all flagged `is_demo`); all telemetry, deployments and incidents come from `make loadgen` through the real ingest API. Seeding refuses `APP_ENV=production`.
+**Consequences:** Demos exercise the exact production code paths; demo rows are always tagged in UIs.
+
 ### Resolved open questions
 - Python dependency tool: **pip + pyproject with pinned compatible ranges** for Phase 1 (uv was not installed; avoided adding system tools). A lockfile (uv or pip-tools) should be added before Phase 6.
 - Node version: `.nvmrc` pins **24 LTS**; Docker and CI use Node 24. Local development was verified on Node 25.
 - shadcn/ui: components follow shadcn conventions (`cva` + `tailwind-merge`, owned in `src/components/ui`) but were written by hand rather than via the shadcn CLI, so they use DevPulse tokens directly.
-- Charts on mobile: still **fl_chart** (default), decided when charts land in Phase 2.
+- Charts on mobile: **fl_chart 1.3** (Phase 2). Gaps (`null`) are rendered as breaks, never as zero.

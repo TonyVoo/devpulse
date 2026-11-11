@@ -18,6 +18,7 @@ dependencies = [
   "redis>=8.1,<8.2",
   "celery[redis]>=5.7,<5.8",
   "packaging>=24",  # required by kombu's redis transport, not declared by it
+  "cryptography>=46,<51",  # Fernet encryption of integration secrets
   "sentry-sdk>=2.74,<2.75",
 ]
 
@@ -43,11 +44,16 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "S", "ASYNC", "RUF", "SIM"]
-ignore = ["B008"]  # FastAPI Depends() in defaults
+ignore = [
+  "B008",  # FastAPI Depends() in defaults
+  "E501",  # the formatter owns line length; long literals/comments are allowed
+]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S101", "S105", "S106"]
 "migrations/**" = ["E501"]
+# Demo tooling: non-crypto randomness and a CLI-supplied http(s) URL are intended.
+"app/scripts/loadgen.py" = ["S310", "S311"]
 
 [tool.mypy]
 python_version = "3.12"

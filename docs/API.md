@@ -1,6 +1,6 @@
 # DevPulse — API Contract (v1)
 
-**Implemented in Phase 1:** §2 (auth, `/me`, sessions, devices; `/me/notification-preferences` not yet), §3 (orgs, members, invitations, audit logs) and §9 (health). Everything else is the target contract. The live schema is `packages/api-contract/openapi.json` (CI fails if it is stale).
+**Implemented:** Phase 1 — §2 (auth, `/me`, sessions, devices; `/me/notification-preferences` not yet), §3, §9. Phase 2 — §4 (overview, services + `PATCH`/`If-Match`, ingest keys, service metrics, incidents with commands/timeline/comments/correlation, deployments, alert rules + preview, GitHub integration), §5 (metrics, logs, deployments ingestion). Not yet: §6 sync, §7 realtime, §8 AI, `/me/notification-preferences`. Everything else is the target contract. The live schema is `packages/api-contract/openapi.json` (CI fails if it is stale).
 
 **Web BFF routes** (Next.js, same origin as the dashboard — browser never sees tokens):
 `POST /api/auth/login|register` (JSON only → sets httpOnly cookies, returns `{user}`), `POST /api/auth/logout` (CSRF header required), `GET|POST|PATCH|PUT|DELETE /api/v1/*` (proxy to the API with the session; `x-csrf-token` required on mutations; `auth/*` and `me/password` blocked because their responses carry tokens).
@@ -83,6 +83,13 @@ OIDC (`/auth/oidc/{provider}/start|callback`) is a Phase 6 addition behind the s
 **Alert rules** — `GET|POST /alert-rules`, `GET|PATCH|DELETE /alert-rules/{id}`, `POST /alert-rules/{id}/preview` (evaluates against last 24h, returns would-have-fired windows).
 
 **Integrations** — `GET|POST /integrations`, `PATCH|DELETE /integrations/{id}`, `POST /integrations/{id}/test`. GitHub webhook: `POST /webhooks/github/{integration_id}` verified with `X-Hub-Signature-256` HMAC (constant-time compare), deduped on `X-GitHub-Delivery`. Handles `deployment`, `deployment_status`, `workflow_run`, `push`.
+
+### Phase 2 behaviour notes
+- `GET …/services/{id}/metrics?names=<metric>:<agg>&from=&to=&step=` — aggregations `avg|sum|min|max|count|p50|p95|p99`; `http.server.error_rate` is derived (errors ÷ requests, aggregation `ratio`). Step is chosen automatically (≤ 250 points) unless given; percentiles for steps > 1 min are approximate (`approximate_percentiles: true`). Missing buckets are omitted — clients draw gaps, never zeros (the mobile app inserts explicit breaks where buckets are more than 1.5 steps apart and draws isolated points as dots). Series end at the last complete minute so a half-filled current minute never looks like a drop; `to` later than that is clamped.
+- `GET …/overview?window=1h|24h|7d` — service health counts, open incidents by severity, request/error/latency totals (null = no data), a request-volume series, 5 recent incidents and deployments.
+- Incident commands (`acknowledge|resolve|reopen|assign|escalate|severity`) accept `If-Match: "<version>"` (409 `conflict.version_mismatch` with `current_version`) and `Idempotency-Key` (replays return the stored response with `Idempotent-Replayed: true`; reusing a key for a different request → 422 `idempotency.key_reused`). Invalid transitions → 409 `incident.invalid_transition`.
+- Comments are idempotent on `client_id` (201 first time, 200 with the original on retry).
+- `POST /webhooks/github/{integration_id}` handles `ping`, `deployment`, `deployment_status`; signature failure and unknown integration both return 401 `webhook.invalid_signature`.
 
 ## 5. Telemetry ingestion
 

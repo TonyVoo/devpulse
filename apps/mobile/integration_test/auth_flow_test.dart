@@ -58,7 +58,7 @@ void main() {
 
     // Shell with five tabs and the honest empty state.
     await _waitFor(tester, find.byType(NavigationBar));
-    expect(find.text('No services connected yet'), findsOneWidget);
+    await _waitFor(tester, find.text('No services connected yet')); // overview loads from the API
     expect(find.text('Mobile E2E Org'), findsWidgets);
 
     for (final tab in ['Services', 'Incidents', 'Copilot']) {

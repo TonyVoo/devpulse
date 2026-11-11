@@ -1,6 +1,8 @@
 # DevPulse — Database Schema (PostgreSQL 16)
 
-Implementation status: tables marked ✅ exist in Alembic migration `0f5be392b9a7` (Phase 1). Everything else is the target design for later phases.
+Implementation status: tables marked ✅ exist in Alembic migration `0f5be392b9a7` (Phase 1). Phase 2 (`ffc45990221d`) adds: services, ingest_keys, metric_points + log_events (daily RANGE partitions + DEFAULT partition, managed by `devpulse_ensure_partitions()`), metric_rollups_1m (not yet partitioned), alert_rules, alert_instances, incidents, incident_events, incident_comments, incident_deployments, idempotency_keys, deployments, integrations, webhook_deliveries. Not yet built: metric_rollups_1h, outbox, change_seq sync columns, notifications, notification_preferences, AI tables, identity_links.
+
+Phase 2 differences from the design below: alert rules target exactly one service (`service_id` NOT NULL; selectors later); `alert_instances` is unique per open episode per rule; ingest keys carry `is_demo` (telemetry from a demo key is flagged demo); integration secrets are a Fernet ciphertext column (`secret_encrypted`).
 
 Conventions
 - Primary keys: `uuid` (UUIDv7, time-ordered → good index locality, safe to expose).

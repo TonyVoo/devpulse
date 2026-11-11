@@ -15,7 +15,9 @@ Requires-Dist: structlog<26.2,>=26.1
 Requires-Dist: argon2-cffi<25.2,>=25.1
 Requires-Dist: pyjwt<2.16,>=2.15
 Requires-Dist: redis<8.2,>=8.1
-Requires-Dist: celery<5.8,>=5.7
+Requires-Dist: celery[redis]<5.8,>=5.7
+Requires-Dist: packaging>=24
+Requires-Dist: cryptography<51,>=46
 Requires-Dist: sentry-sdk<2.75,>=2.74
 Provides-Extra: dev
 Requires-Dist: pytest<9.3,>=9.2; extra == "dev"

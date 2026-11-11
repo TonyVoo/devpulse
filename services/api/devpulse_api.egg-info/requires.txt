@@ -10,7 +10,9 @@ structlog<26.2,>=26.1
 argon2-cffi<25.2,>=25.1
 pyjwt<2.16,>=2.15
 redis<8.2,>=8.1
-celery<5.8,>=5.7
+celery[redis]<5.8,>=5.7
+packaging>=24
+cryptography<51,>=46
 sentry-sdk<2.75,>=2.74
 
 [dev]

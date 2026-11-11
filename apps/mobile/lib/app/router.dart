@@ -8,7 +8,12 @@ import '../features/auth/presentation/auth_screens.dart';
 import '../features/auth/presentation/org_select_screen.dart';
 import '../features/auth/presentation/session_controller.dart';
 import '../features/auth/presentation/splash_screen.dart';
+import '../features/deployments/presentation/deployments_screen.dart';
+import '../features/incidents/presentation/incident_detail.dart';
+import '../features/incidents/presentation/incidents_list.dart';
+import '../features/overview/presentation/overview_screen.dart';
 import '../features/placeholders.dart';
+import '../features/services/presentation/services_screens.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/shell/app_shell.dart';
 
@@ -87,13 +92,42 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, _, shell) => AppShell(shell: shell),
         branches: [
           StatefulShellBranch(
-            routes: [GoRoute(path: Routes.overview, builder: (_, _) => const OverviewScreen())],
+            routes: [
+              GoRoute(
+                path: Routes.overview,
+                builder: (_, _) => const OverviewScreen(),
+                routes: [GoRoute(path: 'deployments', builder: (_, _) => const DeploymentsScreen())],
+              ),
+            ],
           ),
           StatefulShellBranch(
-            routes: [GoRoute(path: Routes.services, builder: (_, _) => const ServicesScreen())],
+            routes: [
+              GoRoute(
+                path: Routes.services,
+                builder: (_, _) => const ServicesScreen(),
+                routes: [
+                  GoRoute(
+                    path: ':id',
+                    builder: (_, s) => ServiceDetailScreen(serviceId: s.pathParameters['id']!),
+                  ),
+                ],
+              ),
+            ],
           ),
           StatefulShellBranch(
-            routes: [GoRoute(path: Routes.incidents, builder: (_, _) => const IncidentsScreen())],
+            routes: [
+              GoRoute(
+                path: Routes.incidents,
+                builder: (_, _) => const IncidentsScreen(),
+                routes: [
+                  // Deep links / push: /incidents/INC-1024
+                  GoRoute(
+                    path: ':ref',
+                    builder: (_, s) => IncidentDetailScreen(incidentRef: s.pathParameters['ref']!),
+                  ),
+                ],
+              ),
+            ],
           ),
           StatefulShellBranch(
             routes: [GoRoute(path: Routes.copilot, builder: (_, _) => const CopilotScreen())],

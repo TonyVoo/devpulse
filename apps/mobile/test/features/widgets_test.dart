@@ -1,6 +1,7 @@
 import 'package:devpulse_mobile/app/providers.dart';
 import 'package:devpulse_mobile/core/database/app_database.dart';
 import 'package:devpulse_mobile/core/result/failure.dart';
+import 'package:devpulse_mobile/features/ops_repositories.dart';
 import 'package:devpulse_mobile/main.dart';
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
@@ -9,7 +10,12 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../helpers.dart';
 
-Future<FakeAuthRepository> pumpApp(WidgetTester tester, FakeAuthRepository repo, {Size? size}) async {
+Future<FakeAuthRepository> pumpApp(
+  WidgetTester tester,
+  FakeAuthRepository repo, {
+  Size? size,
+  FakeOpsRepository? ops,
+}) async {
   if (size != null) {
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1;
@@ -19,7 +25,11 @@ Future<FakeAuthRepository> pumpApp(WidgetTester tester, FakeAuthRepository repo,
   addTearDown(db.close);
   await tester.pumpWidget(
     ProviderScope(
-      overrides: [authRepositoryProvider.overrideWithValue(repo), databaseProvider.overrideWithValue(db)],
+      overrides: [
+        authRepositoryProvider.overrideWithValue(repo),
+        databaseProvider.overrideWithValue(db),
+        opsRepositoryProvider.overrideWithValue(ops ?? FakeOpsRepository()),
+      ],
       child: const DevPulseApp(),
     ),
   );

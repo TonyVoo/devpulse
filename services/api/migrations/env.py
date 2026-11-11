@@ -13,6 +13,14 @@ if config.config_file_name:
 
 target_metadata = Base.metadata
 
+# Daily partitions (metric_points_p20261111, …_default) are managed at runtime by the
+# partition maintenance task, not by migrations; autogenerate must not try to drop them.
+_PARTITION_PREFIXES = ("metric_points_p", "log_events_p")
+
+
+def include_object(obj, name, type_, reflected, compare_to):  # type: ignore[no-untyped-def]
+    return not (type_ == "table" and name and name.startswith(_PARTITION_PREFIXES))
+
 
 def _url() -> str:
     return config.get_main_option("sqlalchemy.url") or get_settings().database_url
@@ -20,14 +28,23 @@ def _url() -> str:
 
 def run_offline() -> None:
     context.configure(
-        url=_url(), target_metadata=target_metadata, literal_binds=True, compare_type=True
+        url=_url(),
+        target_metadata=target_metadata,
+        literal_binds=True,
+        compare_type=True,
+        include_object=include_object,
     )
     with context.begin_transaction():
         context.run_migrations()
 
 
 def _do_run(connection) -> None:  # type: ignore[no-untyped-def]
-    context.configure(connection=connection, target_metadata=target_metadata, compare_type=True)
+    context.configure(
+        connection=connection,
+        target_metadata=target_metadata,
+        compare_type=True,
+        include_object=include_object,
+    )
     with context.begin_transaction():
         context.run_migrations()
 

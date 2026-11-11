@@ -5,8 +5,8 @@
 | Phase | Scope | Exit criteria (verified, not claimed) |
 |---|---|---|
 | **0 Planning** ✅ | Docs in `docs/` | Architecture, schema, API, mobile, AI, deployment, ADRs reviewed |
-| **1 Foundation** | Monorepo scaffold, Compose (pg, redis, api, worker, web), config validation, auth (register/login/refresh/logout), orgs, memberships, RBAC, audit log core, error model, logging, CI; Flutter app shell (theme, router, auth flow, org select, secure storage); Next.js shell (BFF auth, org switch) | `make up` healthy; auth + RBAC + tenant-isolation tests green; mobile logs in against local API; CI green |
-| **2 Core product** | Services CRUD, ingest keys, metrics ingestion + rollups, overview endpoint, alert rules + evaluation, incident lifecycle/timeline/comments, deployments + GitHub webhooks, correlation; mobile Overview/Services/Incidents/Deployments screens (online) | Synthetic load generator drives an alert → incident end-to-end; lifecycle tests green |
+| **1 Foundation** ✅ | Monorepo scaffold, Compose (pg, redis, api, worker, web), config validation, auth (register/login/refresh/logout), orgs, memberships, RBAC, audit log core, error model, logging, CI; Flutter app shell (theme, router, auth flow, org select, secure storage); Next.js shell (BFF auth, org switch) | `make up` healthy; auth + RBAC + tenant-isolation tests green; mobile logs in against local API; CI green |
+| **2 Core product** ✅ | Services CRUD, ingest keys, metrics ingestion + rollups, overview endpoint, alert rules + evaluation, incident lifecycle/timeline/comments, deployments + GitHub webhooks, correlation; mobile Overview/Services/Incidents/Deployments screens (online) | Synthetic load generator drives an alert → incident end-to-end; lifecycle tests green |
 | **3 Realtime & mobile excellence** | Outbox relay, WS gateway, sync feed, Drift offline model, outbox writes, backoff, conflict handling, FCM, deep links, lifecycle, tablet layouts, integration tests | Airplane-mode ack replays correctly; WS drop → no lost/duplicate items; push tap cold-start opens incident |
 | **4 AI** | Provider port + Anthropic/OpenAI/Fake adapters, context collector, evidence registry, investigation task, validation/repair, usage & budget, Copilot UI (mobile + web), follow-up chat with read-only tools, proposals/approval | Golden scenarios pass with FakeProvider in CI; schema/grounding tests green; manual eval run documented |
 | **5 Web & polish** | Members/RBAC admin, alert rule builder with preview, integrations, AI config, audit log viewer, advanced charts & correlation timeline; accessibility & motion pass on mobile | Playwright critical flows green; a11y audit fixes landed |
@@ -85,3 +85,34 @@ Legend: ✅ done and verified · ⏳ not done (reason given)
 
 **Docs**
 - ✅ README run commands, DECISIONS (ADR-003 refinements, ADR-013, ADR-014), schema/API/deployment status notes
+
+## 4. Phase 2 checklist
+
+Legend: ✅ done and verified · ⏳ not done (reason given)
+
+**Backend**
+- ✅ Services CRUD (soft delete, `If-Match`), ingest keys (scoped, optionally bound to a service, shown once, revocable, rate-limited)
+- ✅ Metrics and logs ingestion with validation (timestamp window, label limits, NaN rejected), daily partitions + maintenance task, log fingerprints
+- ✅ 1-minute rollups (dirty-minute set + safety sweep), metrics query API, org overview
+- ✅ Alert rules CRUD + 24 h preview; evaluator with pending/firing/resolved, dedup, service health (ADR-017)
+- ✅ Incidents: manual + alert-opened, per-org numbering (`INC-1001`), commands with state machine, `If-Match`, `Idempotency-Key`; timeline; idempotent comments; deployment correlation (system + user)
+- ✅ Deployments: CI ingest (idempotent on `external_id`), list/detail, GitHub integration (Fernet-encrypted secret, HMAC verification, delivery dedup, repo → service mapping)
+- ✅ Demo seed + synthetic load generator (ADR-018)
+- ✅ 76 tests (incl. the generated tenant-isolation suite now covering every Phase 2 org route); ruff + mypy `--strict`; migration round-trip + `alembic check`
+- ✅ Exit criterion verified in the running stack: load generator's bad release → worker opened INC-1001 (SEV2 latency) and INC-1002 (SEV1 error rate), checkout-api critical, both correlated to the deploy
+- ⏳ OTLP-compatible ingest endpoint, `metric_rollups_1h`, DevPulse self-monitoring stack — not built
+- ⏳ Grouping incidents across rules — future (ADR-017)
+
+**Mobile** (online; offline sync is Phase 3)
+- ✅ Overview (window switch, KPIs, health strip, request chart, critical banner, recent incidents/deployments)
+- ✅ Services list (search, health filters kept across navigation) and detail (latency/error/requests/CPU charts with range picker, open incidents, deployments)
+- ✅ Incidents list (status/severity/mine filters, cursor pagination with id de-duplication, pull-to-refresh) and detail (acknowledge/resolve/reopen/assign-to-me/escalate with `If-Match` + idempotency, conflict → reload + explanation, timeline, optimistic comments, suspected deployments)
+- ✅ Deployments list; deep link `/incidents/INC-1042`
+- ✅ 49 unit/widget tests; analyzer clean
+- ✅ Real-API integration test (`integration_test/auth_flow_test.dart`) passes on the iPhone 17 Pro simulator
+- ✅ Visual check on the simulator (dark mode) with live demo data: Overview, Services, service detail (1h and 24h), Incidents, incident detail. Fixed from it: overlapping/wrapping chart axis labels, charts bridging no-data periods with a straight line, invisible isolated points, a half-filled current minute looking like a traffic drop, default-purple filter chips, an unreadable error-rate alert summary
+
+**Web**
+- ✅ Overview with real data, Services (list + create), Ingest keys (create shown-once with curl example, revoke), Incidents (read-only list); checked in the browser against the demo org
+- ✅ 25 vitest tests; lint, typecheck clean
+- ⏳ Alert rule builder, GitHub integration UI, incident actions on web — Phase 5 (APIs exist)

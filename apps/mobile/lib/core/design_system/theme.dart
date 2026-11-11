@@ -121,6 +121,24 @@ ThemeData buildTheme(Brightness brightness) {
       unselectedIconTheme: IconThemeData(color: p.fgMuted),
     ),
     listTileTheme: ListTileThemeData(iconColor: p.fgMuted, minVerticalPadding: DpSpace.md),
+    // Filter chips use the DevPulse accent, not Material's default secondary container.
+    chipTheme: ChipThemeData(
+      backgroundColor: p.surface,
+      selectedColor: p.cyan.withValues(alpha: 0.18),
+      checkmarkColor: p.cyan,
+      side: BorderSide(color: p.line),
+      labelStyle: TextStyle(color: p.fg, fontSize: 13),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(DpRadius.sm)),
+    ),
+    segmentedButtonTheme: SegmentedButtonThemeData(
+      style: ButtonStyle(
+        backgroundColor: WidgetStateProperty.resolveWith(
+          (s) => s.contains(WidgetState.selected) ? p.cyan.withValues(alpha: 0.18) : Colors.transparent,
+        ),
+        foregroundColor: WidgetStateProperty.all(p.fg),
+        side: WidgetStateProperty.all(BorderSide(color: p.line)),
+      ),
+    ),
     snackBarTheme: SnackBarThemeData(
       behavior: SnackBarBehavior.floating,
       backgroundColor: p.raised,

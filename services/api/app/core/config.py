@@ -37,6 +37,15 @@ class Settings(BaseSettings):
 
     sentry_dsn: str | None = None
 
+    # Fernet key for integration secrets (`python -c "from cryptography.fernet import
+    # Fernet; print(Fernet.generate_key().decode())"`). Integrations are disabled without it.
+    encryption_key: SecretStr | None = None
+
+    ingest_rate_limit_per_min: int = Field(1200, ge=1)
+    ingest_max_points: int = Field(1000, ge=1, le=10000)
+    ingest_max_past_s: int = Field(3600, ge=60)
+    ingest_max_future_s: int = Field(300, ge=0)
+
     @field_validator("database_url")
     @classmethod
     def _async_driver(cls, v: str) -> str:

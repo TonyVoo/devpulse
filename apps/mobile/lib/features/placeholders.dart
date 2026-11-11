@@ -43,49 +43,6 @@ class _TabScaffold extends ConsumerWidget {
   }
 }
 
-class OverviewScreen extends StatelessWidget {
-  const OverviewScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) => const _TabScaffold(
-    title: 'Overview',
-    empty: DpEmptyState(
-      icon: Icons.space_dashboard_outlined,
-      title: 'No services connected yet',
-      description:
-          'Service health, error rate, latency and recent incidents will appear here once services send telemetry.',
-    ),
-  );
-}
-
-class ServicesScreen extends StatelessWidget {
-  const ServicesScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) => const _TabScaffold(
-    title: 'Services',
-    empty: DpEmptyState(
-      icon: Icons.dns_outlined,
-      title: 'No services yet',
-      description: 'Add a service and an ingest key from the web dashboard, then its health shows up here.',
-    ),
-  );
-}
-
-class IncidentsScreen extends StatelessWidget {
-  const IncidentsScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) => const _TabScaffold(
-    title: 'Incidents',
-    empty: DpEmptyState(
-      icon: Icons.verified_outlined,
-      title: 'No incidents',
-      description: 'Incidents opened by alert rules or by your team will be listed here, newest first.',
-    ),
-  );
-}
-
 class CopilotScreen extends StatelessWidget {
   const CopilotScreen({super.key});
 

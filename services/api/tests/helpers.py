@@ -57,3 +57,39 @@ def problem(r: httpx.Response) -> dict[str, Any]:
     assert r.headers["content-type"].startswith("application/problem+json"), r.text
     body: dict[str, Any] = r.json()
     return body
+
+
+# ----------------------------------------------------------------------------- phase 2
+
+
+async def create_service(
+    client: httpx.AsyncClient, org_id: str, owner: Account, name: str = "Checkout API", **extra: Any
+) -> dict[str, Any]:
+    r = await client.post(f"/orgs/{org_id}/services", json={"name": name, **extra}, headers=owner.h)
+    assert r.status_code == 201, r.text
+    body: dict[str, Any] = r.json()
+    return body
+
+
+async def create_ingest_key(
+    client: httpx.AsyncClient, org_id: str, owner: Account, **extra: Any
+) -> str:
+    r = await client.post(
+        f"/orgs/{org_id}/ingest-keys", json={"name": "ci", **extra}, headers=owner.h
+    )
+    assert r.status_code == 201, r.text
+    return str(r.json()["key"])
+
+
+def ingest_h(key: str) -> dict[str, str]:
+    return {"Authorization": f"Bearer {key}"}
+
+
+async def ingest_points(
+    client: httpx.AsyncClient, key: str, service: str, points: list[dict[str, Any]]
+) -> httpx.Response:
+    return await client.post(
+        "http://test/ingest/v1/metrics",
+        json={"service": service, "points": points},
+        headers=ingest_h(key),
+    )
