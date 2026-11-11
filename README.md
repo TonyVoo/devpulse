@@ -6,17 +6,17 @@ DevPulse is an AI-native engineering observability platform. Engineers monitor s
 track deployments, run incidents and get evidence-based AI root-cause analysis — first-class
 on mobile, with a web dashboard for administration and deep analysis.
 
-**Status: Phase 2 (core product) — telemetry, alerting, incidents and deployments across API, mobile and web.**
+**Status: Phase 3 (realtime & offline) — live updates over WebSockets and an offline-first mobile app; push delivery awaits a Firebase project.**
 Exact status per item: [docs/ROADMAP.md §3](docs/ROADMAP.md).
 
 ## Components
 
 | Component | Path | Stack | Status |
 |---|---|---|---|
-| Mobile app (iOS/Android) | `apps/mobile` | Flutter 3.47, Riverpod 3, go_router 18, Dio, Drift, fl_chart | Auth, overview, services, incidents (actions, timeline, comments), deployments |
+| Mobile app (iOS/Android) | `apps/mobile` | Flutter 3.47, Riverpod 3, go_router 18, Dio, Drift, fl_chart | Offline-first: local cache, delta sync, offline actions with replay, realtime updates |
 | Web dashboard | `apps/web` | Next.js 16 (App Router), TypeScript, Tailwind 4, TanStack Query | Auth, orgs, members, overview, services, ingest keys, incidents (read) |
 | API (modular monolith) | `services/api` | FastAPI, SQLAlchemy 2.1, Alembic, Pydantic v2, PostgreSQL 16, Redis 7 | Auth, RBAC, telemetry, alerting, incidents, deployments, GitHub |
-| Workers | `services/api` (same codebase, `worker` entrypoint) | Celery + Redis | Rollups, alert evaluation, partitions, cleanup |
+| Workers | `services/api` (same codebase, `worker` + `relay` entrypoints) | Celery + Redis | Rollups, alert evaluation, partitions, cleanup; outbox relay → realtime + push |
 | Infra / observability | `infra/` | Docker Compose; OTel/Prometheus/Grafana planned | Compose stack; Sentry hook (optional DSN) |
 | API contract | `packages/api-contract` | OpenAPI generated from FastAPI → TS types (Dart later) | Generated, drift-checked in CI |
 

@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
 import '../helpers.dart';
+import '../support/fake_server.dart';
 import 'widgets_test.dart' show pumpApp;
 
 Overview _busyOverview(List<Incident> incidents) => Overview.fromJson({
@@ -39,23 +40,16 @@ void main() {
     expect(find.bySemanticsLabel(RegExp('Request volume chart')), findsOneWidget);
   });
 
-  testWidgets('incident list → detail → acknowledge → back keeps the filter', (tester) async {
-    final ops = FakeOpsRepository(
-      incidents: [
-        incidentFixture(id: 'a', number: 1001, title: 'Checkout latency'),
-        incidentFixture(id: 'b', number: 1002, title: 'Search errors', status: IncidentStatus.resolved),
-      ],
-    );
-    await pumpApp(tester, FakeAuthRepository(session: true, remote: me()), ops: ops);
+  testWidgets('incident list → detail → acknowledge (via outbox) → back keeps the filter', (tester) async {
+    final server = FakeServer()
+      ..putIncident(incidentJson('a', number: 1001, title: 'Checkout latency', minute: 2))
+      ..putIncident(incidentJson('b', number: 1002, title: 'Search errors', status: 'resolved', minute: 1));
+    await pumpApp(tester, FakeAuthRepository(session: true, remote: me()), server: server);
     await _tapTab(tester, 'Incidents');
 
-    expect(find.text('Checkout latency'), findsOneWidget);
+    expect(find.text('Checkout latency'), findsOneWidget); // synced into the local cache
     expect(find.text('Search errors'), findsNothing); // default filter: open
 
-    await tester.tap(find.text('Mine'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Mine')); // toggle back off
-    await tester.pumpAndSettle();
     await tester.tap(find.text('All'));
     await tester.pumpAndSettle();
     expect(find.text('Search errors'), findsOneWidget);
@@ -67,16 +61,36 @@ void main() {
 
     await tester.tap(find.widgetWithText(FilledButton, 'Acknowledge'));
     await tester.pumpAndSettle();
-    expect(ops.actions, ['acknowledge']);
+    expect(server.appliedCommands, ['acknowledge:a']);
     expect(find.widgetWithText(FilledButton, 'Acknowledge'), findsNothing);
-    expect(find.text('Acknowledged'), findsWidgets);
 
     await tester.pageBack();
     await tester.pumpAndSettle();
-    // Back on the list: the "All" filter is still applied and the row shows the new status.
-    expect(find.text('Search errors'), findsOneWidget);
+    expect(find.text('Search errors'), findsOneWidget); // "All" filter kept
     final row = find.ancestor(of: find.text('Checkout latency'), matching: find.byType(IncidentTile));
     expect(find.descendant(of: row, matching: find.text('Acknowledged')), findsOneWidget);
+  });
+
+  testWidgets('offline: the action is queued, shown as pending, and sent when back online', (tester) async {
+    final server = FakeServer()..putIncident(incidentJson('a', number: 1001, title: 'Checkout latency'));
+    await pumpApp(tester, FakeAuthRepository(session: true, remote: me()), server: server);
+    await _tapTab(tester, 'Incidents');
+    await tester.tap(find.text('Checkout latency'));
+    await tester.pumpAndSettle();
+
+    server.online = false;
+    await tester.tap(find.widgetWithText(FilledButton, 'Acknowledge'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('waiting to be sent'), findsOneWidget);
+    expect(find.textContaining('1 change waiting to sync'), findsOneWidget);
+    expect(server.appliedCommands, isEmpty);
+
+    server.online = true;
+    await tester.tap(find.widgetWithText(TextButton, 'Retry'));
+    await tester.pumpAndSettle();
+    expect(server.appliedCommands, ['acknowledge:a']);
+    expect(find.textContaining('waiting to be sent'), findsNothing);
+    expect(find.textContaining('waiting to sync'), findsNothing);
   });
 
   testWidgets('deep link opens an incident directly', (tester) async {

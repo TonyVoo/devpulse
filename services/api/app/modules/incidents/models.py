@@ -77,6 +77,7 @@ class Incident(UUIDPk, Timestamps, Base):
         UniqueConstraint("org_id", "number"),
         Index("ix_incidents_org_status_started", "org_id", "status", "started_at"),
         Index("ix_incidents_org_started", "org_id", "started_at", "id"),
+        Index("ix_incidents_sync", "org_id", "change_seq"),
     )
 
     org_id: Mapped[UUID] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"))
@@ -99,6 +100,8 @@ class Incident(UUIDPk, Timestamps, Base):
     root_cause_confirmed: Mapped[str | None] = mapped_column(Text)
     is_demo: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     version: Mapped[int] = mapped_column(Integer, default=1, server_default="1")
+    # Set by the sync trigger (ADR-019); never written by the application.
+    change_seq: Mapped[int] = mapped_column(BigInteger, server_default="0", index=False)
 
     @property
     def key(self) -> str:

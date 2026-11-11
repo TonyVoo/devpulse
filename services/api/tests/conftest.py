@@ -93,6 +93,7 @@ CLEANUP_SQL = """
     DELETE FROM metric_points;
     DELETE FROM log_events;
     DELETE FROM metric_rollups_1m;
+    DELETE FROM outbox;
     DELETE FROM organizations;
     DELETE FROM users;
 """

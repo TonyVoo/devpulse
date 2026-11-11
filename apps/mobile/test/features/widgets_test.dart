@@ -1,27 +1,35 @@
 import 'package:devpulse_mobile/app/providers.dart';
+import 'package:devpulse_mobile/core/config/app_config.dart';
 import 'package:devpulse_mobile/core/database/app_database.dart';
 import 'package:devpulse_mobile/core/result/failure.dart';
+import 'package:devpulse_mobile/features/auth/domain/models.dart';
+import 'package:devpulse_mobile/features/auth/presentation/session_controller.dart';
+import 'package:devpulse_mobile/features/offline/live_sync.dart';
 import 'package:devpulse_mobile/features/ops_repositories.dart';
 import 'package:devpulse_mobile/main.dart';
+import 'package:drift/drift.dart' show DatabaseConnection;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../helpers.dart';
+import '../support/fake_server.dart';
 
 Future<FakeAuthRepository> pumpApp(
   WidgetTester tester,
   FakeAuthRepository repo, {
   Size? size,
   FakeOpsRepository? ops,
+  FakeServer? server,
 }) async {
+  final srv = server ?? FakeServer();
   if (size != null) {
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
   }
-  final db = AppDatabase(NativeDatabase.memory());
+  final db = AppDatabase(DatabaseConnection(NativeDatabase.memory(), closeStreamsSynchronously: true));
   addTearDown(db.close);
   await tester.pumpWidget(
     ProviderScope(
@@ -29,6 +37,22 @@ Future<FakeAuthRepository> pumpApp(
         authRepositoryProvider.overrideWithValue(repo),
         databaseProvider.overrideWithValue(db),
         opsRepositoryProvider.overrideWithValue(ops ?? FakeOpsRepository()),
+        // Offline sync against the in-memory API; no OS connectivity plugin in tests.
+        liveSyncProvider.overrideWith((ref) {
+          final session = ref.watch(sessionControllerProvider).value;
+          final orgId = session is SignedIn ? session.currentOrgId : null;
+          if (orgId == null) return null;
+          final live = LiveSync(
+            db: ref.watch(databaseProvider),
+            api: srv.api(),
+            dio: srv.dio(),
+            config: const AppConfig(apiBaseUrl: 'http://api.test'),
+            orgId: orgId,
+            connectivity: const Stream.empty(),
+          );
+          ref.onDispose(live.dispose);
+          return live;
+        }),
       ],
       child: const DevPulseApp(),
     ),

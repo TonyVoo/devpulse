@@ -1,12 +1,15 @@
-/// Data access for the Phase 2 product screens (online). Offline caching + delta sync
-/// replace the direct reads in Phase 3 behind the same interfaces.
+/// Online reads that are not part of the offline cache: overview, metrics, timeline,
+/// comments, correlations and older pages. Lists come from the local database
+/// (features/offline); incident commands go through the offline outbox.
 library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../app/providers.dart';
+import '../core/database/app_database.dart';
 import '../core/design_system/widgets/status_widgets.dart';
 import '../core/network/org_api.dart';
+import '../core/result/failure.dart';
 import 'auth/domain/models.dart';
 import 'auth/presentation/session_controller.dart';
 import 'deployments/domain/deployment.dart';
@@ -34,8 +37,6 @@ abstract interface class OpsRepository {
   Future<List<TimelineEvent>> timeline(String ref);
   Future<List<IncidentComment>> comments(String ref);
   Future<List<CorrelatedDeployment>> correlated(String ref);
-  Future<Incident> act(Incident incident, IncidentAction action);
-  Future<IncidentComment> comment(String ref, String body, String clientId);
 
   Future<Paged<Deployment>> deployments({String? serviceId, String? cursor});
 }
@@ -83,13 +84,26 @@ class AssignTo extends IncidentAction {
 }
 
 class ApiOpsRepository implements OpsRepository {
-  ApiOpsRepository(this._api);
+  ApiOpsRepository(this._api, [this._db]);
 
   final OrgApi _api;
+  final AppDatabase? _db;
 
+  /// Network first; the last response per window is kept on the device so the home screen
+  /// still shows something (marked stale) when opened offline.
   @override
-  Future<Overview> overview(OverviewWindow window) async =>
-      Overview.fromJson(await _api.get('overview', query: {'window': window.label}), step: window.step);
+  Future<Overview> overview(OverviewWindow window) async {
+    final key = KvKeys.overview(_api.orgId, window.label);
+    try {
+      final json = await _api.get('overview', query: {'window': window.label});
+      await _db?.writeJson(key, json);
+      return Overview.fromJson(json, step: window.step);
+    } on NetworkFailure {
+      final cached = await _db?.readJson(key);
+      if (cached == null) rethrow;
+      return Overview.fromJson(cached, step: window.step, stale: true);
+    }
+  }
 
   @override
   Future<Paged<MonitoredService>> services({String? query, Set<Health> health = const {}, String? cursor}) => _api.page(
@@ -149,19 +163,10 @@ class ApiOpsRepository implements OpsRepository {
   ];
 
   @override
-  Future<Incident> act(Incident incident, IncidentAction action) async => Incident.fromJson(
-    await _api.command('incidents/${incident.id}/${action.path}', body: action.body, ifMatchVersion: incident.version),
-  );
-
-  @override
-  Future<IncidentComment> comment(String ref, String body, String clientId) async {
-    final r = await _api.command('incidents/$ref/comments', body: {'body': body, 'client_id': clientId});
-    return IncidentComment.fromJson(r);
-  }
-
-  @override
   Future<Paged<Deployment>> deployments({String? serviceId, String? cursor}) =>
       _api.page('deployments', Deployment.fromJson, cursor: cursor, query: {'service_id': ?serviceId, 'limit': 30});
 }
 
-final opsRepositoryProvider = Provider<OpsRepository>((ref) => ApiOpsRepository(ref.watch(orgApiProvider)));
+final opsRepositoryProvider = Provider<OpsRepository>(
+  (ref) => ApiOpsRepository(ref.watch(orgApiProvider), ref.watch(databaseProvider)),
+);

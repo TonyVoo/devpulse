@@ -192,13 +192,34 @@ stateDiagram-v2
 
 Every transition writes an `incident_events` row (the timeline) and bumps `incidents.version`. Alerts dedupe by `dedup_key = rule_id + service_id`: a refiring alert attaches to the open incident instead of creating a new one.
 
-## 8. Realtime
+## 8. Realtime and offline sync (as built in Phase 3)
 
-- Client calls `POST /api/v1/realtime/ticket` → 30-second single-use ticket (avoids long-lived JWTs in URLs/logs), then connects `wss://…/ws?ticket=…`.
-- Gateway subscribes to Redis channels `org:{org_id}` for each org the user belongs to; events are published by the outbox relay after commit (never before — no phantom events).
-- Event envelope: `{type, org_id, entity, id, version, occurred_at, data}`. Clients upsert by `id` and drop events whose `version` ≤ the cached one → idempotent and duplicate-safe.
-- WebSocket delivery is best-effort; correctness comes from the **sync feed** (see API.md §6). On reconnect clients run an incremental sync from their last cursor.
-- Heartbeat: server ping every 25s; client treats 2 missed pongs as disconnect.
+```mermaid
+sequenceDiagram
+  participant App as Mobile app
+  participant API as API (REST + /ws)
+  participant PG as Postgres
+  participant Relay as relay process
+  participant R as Redis pub/sub
+  App->>API: POST /realtime/ticket (bearer) → 30 s single-use ticket
+  App->>API: WS /ws?ticket=… → {"type":"hello"}
+  App->>API: GET /sync/{collection}?cursor=N (delta since last cursor)
+  Note over PG: any write to services / incidents / deployments
+  PG->>PG: BEFORE trigger: per-org xact lock + change_seq = nextval()
+  PG->>PG: AFTER trigger: INSERT outbox + pg_notify
+  Relay->>PG: LISTEN devpulse_outbox (2 s poll fallback), claim rows FOR UPDATE SKIP LOCKED
+  Relay->>R: PUBLISH org:{id} {"type":"sync","collection":"incidents","change_seq":N}
+  Relay-->>Relay: incident_event rows → push dispatch (provider)
+  R->>API: subscribed gateway
+  API->>App: hint
+  App->>API: GET /sync/incidents?cursor=… (only if N > local cursor)
+```
+
+- **Correctness lives in the sync feed, not the socket (ADR-009/019).** Messages are hints; on every (re)connect the app runs a delta sync. A dropped connection or a duplicated message can't lose or duplicate data.
+- **Commit-ordered `change_seq` (ADR-019).** The stamping trigger takes a per-org transaction-scoped advisory lock before `nextval`, so within an org sequence order equals commit order, and a cursor can never skip a late-committing write. Updates that only touch `updated_at`/`last_seen_at` don't stamp (ingestion never takes the lock). Verified by a two-connection concurrency test.
+- **Outbox is written by triggers**, so every synced change produces an event in the same transaction — no code path can forget to publish.
+- Gateway: ticket consumed with `GETDEL`; per-connection Redis subscription to `org:{id}`; server ping every 25 s; membership re-checked every 60 s (close 4403); invalid ticket → close 4401.
+- Push: `incident_event` rows (created / escalated / reopened / assigned) go to members' devices per notification preferences; the actor never notifies themselves. Delivery provider is a logging stub until FCM is configured (ADR-020).
 
 ## 9. Web dashboard
 

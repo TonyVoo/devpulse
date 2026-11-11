@@ -1,12 +1,18 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../app/providers.dart';
 import '../../core/design_system/tokens.dart';
 import '../../core/design_system/widgets/dp_widgets.dart';
 import '../auth/domain/models.dart';
 import '../auth/presentation/session_controller.dart';
+import '../offline/live_sync.dart';
+import '../offline/outbox.dart';
+import '../push/push_routing.dart';
 
 class _Dest {
   const _Dest(this.label, this.icon, this.selectedIcon);
@@ -35,24 +41,87 @@ class AppShell extends ConsumerStatefulWidget {
 }
 
 class _AppShellState extends ConsumerState<AppShell> with WidgetsBindingObserver {
+  StreamSubscription<OutboxNotice>? _notices;
+  StreamSubscription<Map<String, dynamic>>? _pushTaps;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _attach(ref.read(liveSyncProvider));
+      unawaited(_setUpPush());
+    });
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    unawaited(_notices?.cancel());
+    unawaited(_pushTaps?.cancel());
     super.dispose();
   }
 
-  /// Lifecycle: refresh identity when the app returns to the foreground (memberships or
-  /// roles may have changed). Phase 3 adds delta sync + WebSocket reconnect here.
+  /// Starts sync for the current org and surfaces outbox outcomes (conflicts, failures).
+  void _attach(LiveSync? live) {
+    unawaited(_notices?.cancel());
+    _notices = null;
+    if (live == null) return;
+    live.start();
+    _notices = live.outbox.notices.listen((n) {
+      if (!mounted) return;
+      final message = switch (n) {
+        OutboxConflict(:final message) => message,
+        OutboxFailed(:final message) => "A change couldn't be applied: $message",
+      };
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    });
+  }
+
+  /// Push: route cold-start and background taps (switching org if needed) and register the
+  /// device token. A no-op until Firebase is configured (see push_routing.dart).
+  Future<void> _setUpPush() async {
+    final push = ref.read(pushMessagesProvider);
+    final initial = await push.initialMessage();
+    if (initial != null) await _openPush(initial);
+    _pushTaps = push.opened.listen((m) => unawaited(_openPush(m)));
+    final token = await push.token();
+    if (token != null) {
+      try {
+        await ref.read(dioProvider).post<void>('me/devices', data: {'platform': 'ios', 'fcm_token': token});
+      } on Object {
+        // Registration is retried on next launch.
+      }
+    }
+  }
+
+  Future<void> _openPush(Map<String, dynamic> data) async {
+    final payload = PushPayload.parse(data);
+    if (payload == null || !mounted) return;
+    final session = ref.read(sessionControllerProvider).value;
+    if (session is! SignedIn || session.me.org(payload.orgId) == null) return;
+    if (session.currentOrgId != payload.orgId) {
+      await ref.read(sessionControllerProvider.notifier).selectOrg(payload.orgId);
+    }
+    if (mounted) GoRouter.of(context).go(payload.route);
+  }
+
+  /// Lifecycle (MOBILE_ARCHITECTURE.md §7): foreground → reconnect + delta sync + flush the
+  /// outbox + refresh identity; background → close the socket after a short grace period.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      ref.read(sessionControllerProvider.notifier).refreshProfile();
+    final live = ref.read(liveSyncProvider);
+    switch (state) {
+      case AppLifecycleState.resumed:
+        ref.read(sessionControllerProvider.notifier).refreshProfile();
+        live?.onForeground();
+      case AppLifecycleState.paused:
+        live?.onBackground();
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.hidden:
+      case AppLifecycleState.detached:
+        break;
     }
   }
 
@@ -65,21 +134,30 @@ class _AppShellState extends ConsumerState<AppShell> with WidgetsBindingObserver
   @override
   Widget build(BuildContext context) {
     final wide = MediaQuery.sizeOf(context).width >= 840;
+    ref.listen(liveSyncProvider, (_, next) => _attach(next)); // org switched
     final session = ref.watch(sessionControllerProvider).value;
     final stale = session is SignedIn && session.isStale;
+    final online = ref.watch(onlineProvider).value ?? true;
+    final pending = ref.watch(pendingChangesProvider).value ?? 0;
 
     final body = Column(
       children: [
-        if (stale)
+        if (stale || !online || pending > 0)
           SafeArea(
             bottom: false,
             child: Padding(
               padding: const EdgeInsets.fromLTRB(DpSpace.lg, DpSpace.sm, DpSpace.lg, 0),
               child: DpBanner(
-                message: 'Offline · showing data saved on this device',
-                tone: DpBannerTone.warning,
+                message: [
+                  if (stale || !online) 'Offline · showing data saved on this device',
+                  if (pending > 0) '$pending change${pending == 1 ? '' : 's'} waiting to sync',
+                ].join(' · '),
+                tone: (stale || !online) ? DpBannerTone.warning : DpBannerTone.info,
                 action: TextButton(
-                  onPressed: () => ref.read(sessionControllerProvider.notifier).refreshProfile(),
+                  onPressed: () {
+                    ref.read(sessionControllerProvider.notifier).refreshProfile();
+                    unawaited(ref.read(liveSyncProvider)?.refresh().catchError((Object _) {}));
+                  },
                   child: const Text('Retry'),
                 ),
               ),

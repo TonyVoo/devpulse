@@ -100,6 +100,13 @@ class _OverviewBody extends StatelessWidget {
           ),
           const SizedBox(height: DpSpace.md),
         ],
+        if (o.isStale) ...[
+          const DpBanner(
+            message: 'Offline · showing the last overview saved on this device',
+            tone: DpBannerTone.warning,
+          ),
+          const SizedBox(height: DpSpace.md),
+        ],
         _HealthStrip(o),
         const SizedBox(height: DpSpace.md),
         if (!o.hasTelemetry)

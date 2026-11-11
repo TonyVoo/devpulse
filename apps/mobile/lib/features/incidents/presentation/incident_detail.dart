@@ -4,142 +4,92 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../app/providers.dart';
+import '../../../core/database/app_database.dart';
 import '../../../core/design_system/tokens.dart';
 import '../../../core/design_system/widgets/async_view.dart';
 import '../../../core/design_system/widgets/dp_widgets.dart';
 import '../../../core/design_system/widgets/status_widgets.dart';
-import '../../../core/network/org_api.dart';
 import '../../../core/result/failure.dart';
 import '../../auth/domain/models.dart';
 import '../../auth/presentation/session_controller.dart';
+import '../../offline/live_sync.dart';
+import '../../offline/outbox.dart';
 import '../../ops_repositories.dart';
 import '../domain/incident.dart';
-import 'incidents_list.dart';
 
-class IncidentDetail {
-  const IncidentDetail({
-    required this.incident,
-    required this.timeline,
-    required this.comments,
-    required this.deployments,
+/// The incident itself comes from the local cache (works offline, updates live). If it isn't
+/// cached yet (deep link to an old incident), it is fetched once and cached.
+final incidentStreamProvider = StreamProvider.autoDispose.family<Incident?, String>((ref, incidentRef) {
+  final live = ref.watch(liveSyncProvider);
+  if (live == null) return Stream.value(null);
+  final repo = ref.watch(opsRepositoryProvider);
+  return live.store.watchIncident(incidentRef).asyncMap((cached) async {
+    if (cached != null) return cached;
+    final fetched = await repo.incident(incidentRef); // not cached yet: fetch once…
+    await live.store.cacheIfMissing(fetched); // …the cache stream then takes over
+    return fetched;
   });
+});
 
-  final Incident incident;
+class IncidentExtras {
+  const IncidentExtras({required this.timeline, required this.comments, required this.deployments, this.stale = false});
+
   final List<TimelineEvent> timeline;
   final List<IncidentComment> comments;
   final List<CorrelatedDeployment> deployments;
-
-  IncidentDetail copyWith({Incident? incident, List<IncidentComment>? comments, List<TimelineEvent>? timeline}) =>
-      IncidentDetail(
-        incident: incident ?? this.incident,
-        timeline: timeline ?? this.timeline,
-        comments: comments ?? this.comments,
-        deployments: deployments,
-      );
+  final bool stale;
 }
 
-/// Outcome of an action, for the UI to show (never throws to widgets).
-sealed class ActionResult {
-  const ActionResult();
-}
-
-class ActionOk extends ActionResult {
-  const ActionOk();
-}
-
-class ActionStale extends ActionResult {
-  const ActionStale(this.message);
-  final String message;
-}
-
-class ActionFailed extends ActionResult {
-  const ActionFailed(this.failure);
-  final Failure failure;
-}
-
-class IncidentDetailController extends AsyncNotifier<IncidentDetail> {
-  IncidentDetailController(this.incidentRef);
-
-  /// Incident key (`INC-1024`) or UUID.
-  final String incidentRef;
-
-  OpsRepository get _repo => ref.read(opsRepositoryProvider);
-
-  @override
-  Future<IncidentDetail> build() async {
-    final repo = ref.watch(opsRepositoryProvider);
-    final (incident, timeline, comments, deployments) = await (
-      repo.incident(incidentRef),
-      repo.timeline(incidentRef),
-      repo.comments(incidentRef),
-      repo.correlated(incidentRef),
-    ).wait;
-    return IncidentDetail(incident: incident, timeline: timeline, comments: comments, deployments: deployments);
+/// Timeline, comments and suspected deployments: network first, with the last copy kept on
+/// the device so an incident opened offline still shows its history. Refreshed when the
+/// realtime channel reports a new timeline event for this incident.
+final incidentExtrasProvider = FutureProvider.autoDispose.family<IncidentExtras, String>((ref, incidentId) async {
+  final live = ref.watch(liveSyncProvider);
+  if (live != null) {
+    final sub = live.incidentEvents.where((id) => id == incidentId).listen((_) => ref.invalidateSelf());
+    ref.onDispose(sub.cancel);
   }
-
-  Future<ActionResult> act(IncidentAction action) async {
-    final current = state.value;
-    if (current == null) return const ActionFailed(UnknownFailure('Not loaded'));
-    try {
-      final updated = await _repo.act(current.incident, action);
-      ref.read(incidentsProvider.notifier).upsert(updated);
-      state = AsyncData(current.copyWith(incident: updated, timeline: await _repo.timeline(incidentRef)));
-      return const ActionOk();
-    } on ConflictFailure catch (f) {
-      // Someone else changed it (version mismatch) or the action no longer applies
-      // (e.g. already resolved). Reload and tell the user what happened.
-      final fresh = await AsyncValue.guard(build);
-      state = fresh;
-      final now = fresh.value?.incident;
-      if (now != null) ref.read(incidentsProvider.notifier).upsert(now);
-      return ActionStale(
-        f.code == 'conflict.version_mismatch'
-            ? 'This incident was just updated by someone else. Showing the latest — check before acting again.'
-            : '${f.message}. Showing the latest state.',
-      );
-    } on Failure catch (f) {
-      return ActionFailed(f);
-    }
-  }
-
-  /// Optimistic comment: shown immediately as pending; the client id makes retries safe.
-  Future<ActionResult> comment(String body) async {
-    final current = state.value;
-    if (current == null || body.trim().isEmpty) return const ActionOk();
-    final clientId = OrgApi.newClientId();
-    final pending = IncidentComment(
-      id: clientId,
-      clientId: clientId,
-      body: body.trim(),
-      at: DateTime.now(),
-      authorName: 'You',
-      pending: true,
+  final repo = ref.watch(opsRepositoryProvider);
+  final db = ref.watch(databaseProvider);
+  try {
+    final results = await Future.wait<Object>([
+      repo.timeline(incidentId),
+      repo.comments(incidentId),
+      repo.correlated(incidentId),
+    ], eagerError: true);
+    final t = results[0] as List<TimelineEvent>;
+    final c = results[1] as List<IncidentComment>;
+    final d = results[2] as List<CorrelatedDeployment>;
+    await db.writeJson(KvKeys.incidentExtras(incidentId), {
+      'timeline': [for (final e in t) e.toJson()],
+      'comments': [for (final x in c) x.toJson()],
+      'deployments': [for (final x in d) x.toJson()],
+    });
+    return IncidentExtras(timeline: t, comments: c, deployments: d);
+  } on Object catch (e) {
+    final cached = await db.readJson(KvKeys.incidentExtras(incidentId));
+    if (cached == null) throw Failure.from(e);
+    return IncidentExtras(
+      stale: true,
+      timeline: [
+        for (final j in cached['timeline'] as List<dynamic>) TimelineEvent.fromJson(j as Map<String, dynamic>),
+      ],
+      comments: [
+        for (final j in cached['comments'] as List<dynamic>) IncidentComment.fromJson(j as Map<String, dynamic>),
+      ],
+      deployments: [
+        for (final j in cached['deployments'] as List<dynamic>)
+          CorrelatedDeployment.fromJson(j as Map<String, dynamic>),
+      ],
     );
-    state = AsyncData(current.copyWith(comments: [...current.comments, pending]));
-    try {
-      final saved = await _repo.comment(incidentRef, body.trim(), clientId);
-      final latest = state.value ?? current;
-      state = AsyncData(
-        latest.copyWith(comments: [for (final c in latest.comments) c.clientId == clientId ? saved : c]),
-      );
-      return const ActionOk();
-    } on Failure catch (f) {
-      final latest = state.value ?? current;
-      state = AsyncData(
-        latest.copyWith(
-          comments: [
-            for (final c in latest.comments)
-              if (c.clientId != clientId) c,
-          ],
-        ),
-      );
-      return ActionFailed(f);
-    }
   }
-}
+}, retry: (_, _) => null);
 
-final incidentDetailProvider = AsyncNotifierProvider.autoDispose
-    .family<IncidentDetailController, IncidentDetail, String>(IncidentDetailController.new, retry: (_, _) => null);
+final pendingCommentsProvider = StreamProvider.autoDispose.family<List<PendingComment>, String>((ref, incidentId) {
+  final live = ref.watch(liveSyncProvider);
+  return live == null ? Stream.value(const []) : live.outbox.watchPendingComments(incidentId);
+});
 
 class IncidentDetailScreen extends ConsumerWidget {
   const IncidentDetailScreen({required this.incidentRef, super.key});
@@ -148,15 +98,25 @@ class IncidentDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final value = ref.watch(incidentDetailProvider(incidentRef));
+    final value = ref.watch(incidentStreamProvider(incidentRef));
+    final incident = value.value;
     return Scaffold(
-      appBar: AppBar(title: Text(value.value?.incident.key ?? incidentRef.toUpperCase())),
+      appBar: AppBar(title: Text(incident?.key ?? incidentRef.toUpperCase())),
       body: RefreshIndicator(
-        onRefresh: () => ref.refresh(incidentDetailProvider(incidentRef).future),
-        child: AsyncView(
+        onRefresh: () async {
+          await ref.read(liveSyncProvider)?.refresh();
+          if (incident != null) ref.invalidate(incidentExtrasProvider(incident.id));
+        },
+        child: AsyncView<Incident?>(
           value: value,
-          onRetry: () => ref.invalidate(incidentDetailProvider(incidentRef)),
-          data: (d) => _DetailBody(detail: d, incidentRef: incidentRef),
+          onRetry: () => ref.invalidate(incidentStreamProvider(incidentRef)),
+          data: (i) => i == null
+              ? const DpEmptyState(
+                  icon: Icons.search_off,
+                  title: 'Incident not found',
+                  description: 'It may belong to another organization.',
+                )
+              : _DetailBody(incident: i),
         ),
       ),
     );
@@ -164,10 +124,9 @@ class IncidentDetailScreen extends ConsumerWidget {
 }
 
 class _DetailBody extends ConsumerStatefulWidget {
-  const _DetailBody({required this.detail, required this.incidentRef});
+  const _DetailBody({required this.incident});
 
-  final IncidentDetail detail;
-  final String incidentRef;
+  final Incident incident;
 
   @override
   ConsumerState<_DetailBody> createState() => _DetailBodyState();
@@ -175,7 +134,6 @@ class _DetailBody extends ConsumerStatefulWidget {
 
 class _DetailBodyState extends ConsumerState<_DetailBody> {
   final _comment = TextEditingController();
-  String? _busy;
 
   @override
   void dispose() {
@@ -183,21 +141,16 @@ class _DetailBodyState extends ConsumerState<_DetailBody> {
     super.dispose();
   }
 
-  IncidentDetailController get _ctl => ref.read(incidentDetailProvider(widget.incidentRef).notifier);
-
-  Future<void> _run(String label, IncidentAction action) async {
-    setState(() => _busy = label);
-    final result = await _ctl.act(action);
-    if (!mounted) return;
-    setState(() => _busy = null);
-    final messenger = ScaffoldMessenger.of(context);
-    switch (result) {
-      case ActionOk():
-        unawaited(HapticFeedback.mediumImpact());
-      case ActionStale(:final message):
-        messenger.showSnackBar(SnackBar(content: Text(message)));
-      case ActionFailed(:final failure):
-        messenger.showSnackBar(SnackBar(content: Text(failure.message)));
+  /// Queued in the outbox: applied on screen immediately, sent now or when back online.
+  Future<void> _act(IncidentAction action) async {
+    final live = ref.read(liveSyncProvider);
+    if (live == null) return;
+    await live.outbox.enqueueAction(widget.incident, action.path, action.body);
+    unawaited(HapticFeedback.mediumImpact());
+    if (!live.isOnline && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("You're offline. The change is saved and will be sent automatically.")),
+      );
     }
   }
 
@@ -220,29 +173,44 @@ class _DetailBodyState extends ConsumerState<_DetailBody> {
     );
     final text = note.text.trim();
     note.dispose();
-    if (ok ?? false) await _run('resolve', Resolve(note: text.isEmpty ? null : text));
+    if (ok ?? false) await _act(Resolve(note: text.isEmpty ? null : text));
   }
 
   Future<void> _sendComment() async {
-    final text = _comment.text;
-    if (text.trim().isEmpty) return;
+    final text = _comment.text.trim();
+    final live = ref.read(liveSyncProvider);
+    if (text.isEmpty || live == null) return;
     _comment.clear();
-    final r = await _ctl.comment(text);
-    if (r is ActionFailed && mounted) {
-      _comment.text = text; // give the text back so nothing is lost
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Comment not sent: ${r.failure.message}')));
-    }
+    await live.outbox.enqueueComment(widget.incident.id, text);
   }
 
   @override
   Widget build(BuildContext context) {
-    final d = widget.detail;
-    final i = d.incident;
+    final i = widget.incident;
     final t = Theme.of(context).textTheme;
     final p = context.dp;
     final session = ref.watch(sessionControllerProvider).value;
     final me = session is SignedIn ? session.me : null;
     final canAct = session is SignedIn && session.currentOrg?.role != OrgRole.viewer;
+    final extras = ref.watch(incidentExtrasProvider(i.id));
+    final pending = ref.watch(pendingCommentsProvider(i.id)).value ?? const [];
+    final busy = i.isPending;
+
+    final serverComments = extras.value?.comments ?? const <IncidentComment>[];
+    final serverIds = {for (final c in serverComments) c.clientId};
+    final comments = [
+      ...serverComments,
+      for (final c in pending)
+        if (!serverIds.contains(c.clientId))
+          IncidentComment(
+            id: c.clientId,
+            clientId: c.clientId,
+            body: c.body,
+            at: c.createdAt,
+            authorName: 'You',
+            pending: true,
+          ),
+    ];
 
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
@@ -264,6 +232,10 @@ class _DetailBodyState extends ConsumerState<_DetailBody> {
             if (i.isDemo) const DpDemoTag(),
           ],
         ),
+        if (busy) ...[
+          const SizedBox(height: DpSpace.sm),
+          DpBanner(message: 'Your "${i.pendingAction}" is waiting to be sent.', tone: DpBannerTone.warning),
+        ],
         const SizedBox(height: DpSpace.sm),
         Text(i.title, style: t.headlineSmall),
         const SizedBox(height: DpSpace.xs),
@@ -290,47 +262,46 @@ class _DetailBodyState extends ConsumerState<_DetailBody> {
                 DpButton(
                   label: 'Acknowledge',
                   icon: Icons.front_hand_outlined,
-                  loading: _busy == 'ack',
-                  onPressed: _busy == null ? () => _run('ack', const Acknowledge()) : null,
+                  onPressed: busy ? null : () => _act(const Acknowledge()),
                 ),
               if (i.status.isOpen)
                 DpButton(
                   label: 'Resolve',
                   icon: Icons.check,
                   variant: i.status == IncidentStatus.triggered ? DpButtonVariant.secondary : DpButtonVariant.primary,
-                  loading: _busy == 'resolve',
-                  onPressed: _busy == null ? _resolve : null,
+                  onPressed: busy ? null : _resolve,
                 ),
               if (i.status.isOpen && me != null && i.assigneeId != me.id)
                 DpButton(
                   label: 'Assign to me',
                   variant: DpButtonVariant.secondary,
-                  loading: _busy == 'assign',
-                  onPressed: _busy == null ? () => _run('assign', AssignTo(me.id)) : null,
+                  onPressed: busy ? null : () => _act(AssignTo(me.id)),
                 ),
               if (i.status.isOpen)
                 DpButton(
                   label: 'Escalate',
                   variant: DpButtonVariant.ghost,
-                  loading: _busy == 'escalate',
-                  onPressed: _busy == null ? () => _run('escalate', const Escalate()) : null,
+                  onPressed: busy ? null : () => _act(const Escalate()),
                 ),
               if (!i.status.isOpen)
                 DpButton(
                   label: 'Reopen',
                   variant: DpButtonVariant.secondary,
-                  loading: _busy == 'reopen',
-                  onPressed: _busy == null ? () => _run('reopen', const Reopen()) : null,
+                  onPressed: busy ? null : () => _act(const Reopen()),
                 ),
             ],
           ),
         ],
-        if (d.deployments.isNotEmpty) ...[
+        if (extras.value?.stale ?? false) ...[
+          const SizedBox(height: DpSpace.md),
+          const DpBanner(message: 'Showing the timeline saved on this device.', tone: DpBannerTone.warning),
+        ],
+        if ((extras.value?.deployments ?? const []).isNotEmpty) ...[
           const SectionHeader('Possibly related deployments'),
           Card(
             child: Column(
               children: [
-                for (final (idx, dep) in d.deployments.indexed) ...[
+                for (final (idx, dep) in extras.value!.deployments.indexed) ...[
                   if (idx > 0) const Divider(),
                   ListTile(
                     leading: Icon(Icons.rocket_launch_outlined, color: p.violet),
@@ -363,21 +334,34 @@ class _DetailBodyState extends ConsumerState<_DetailBody> {
         Card(
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: DpSpace.sm),
-            child: Column(
-              children: [
-                for (final e in d.timeline)
-                  ListTile(
-                    dense: true,
-                    leading: Icon(switch (e.actorType) {
-                      'system' => Icons.memory,
-                      'ai' => Icons.auto_awesome,
-                      _ => Icons.person_outline,
-                    }, size: 18),
-                    title: Text(e.describe()),
-                    trailing: Text(timeAgo(e.at), style: t.bodySmall),
+            child: extras.isLoading && extras.value == null
+                ? const Padding(
+                    padding: EdgeInsets.all(DpSpace.lg),
+                    child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                  )
+                : extras.hasError && extras.value == null
+                ? ListTile(
+                    title: Text("Couldn't load the timeline", style: t.bodySmall),
+                    trailing: TextButton(
+                      onPressed: () => ref.invalidate(incidentExtrasProvider(i.id)),
+                      child: const Text('Retry'),
+                    ),
+                  )
+                : Column(
+                    children: [
+                      for (final e in extras.value?.timeline ?? const <TimelineEvent>[])
+                        ListTile(
+                          dense: true,
+                          leading: Icon(switch (e.actorType) {
+                            'system' => Icons.memory,
+                            'ai' => Icons.auto_awesome,
+                            _ => Icons.person_outline,
+                          }, size: 18),
+                          title: Text(e.describe()),
+                          trailing: Text(timeAgo(e.at), style: t.bodySmall),
+                        ),
+                    ],
                   ),
-              ],
-            ),
           ),
         ),
         const SectionHeader('Comments'),
@@ -385,21 +369,19 @@ class _DetailBodyState extends ConsumerState<_DetailBody> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              if (d.comments.isEmpty)
+              if (comments.isEmpty)
                 Padding(
                   padding: const EdgeInsets.all(DpSpace.lg),
                   child: Text('No comments yet.', style: t.bodySmall),
                 ),
-              for (final c in d.comments)
+              for (final c in comments)
                 ListTile(
                   title: Text(c.body),
                   subtitle: Text(
-                    '${c.authorName ?? 'Unknown'} · ${c.pending ? 'sending…' : timeAgo(c.at)}',
+                    '${c.authorName ?? 'Unknown'} · ${c.pending ? 'waiting to send' : timeAgo(c.at)}',
                     style: t.bodySmall,
                   ),
-                  trailing: c.pending
-                      ? const SizedBox.square(dimension: 14, child: CircularProgressIndicator(strokeWidth: 1.5))
-                      : null,
+                  trailing: c.pending ? Icon(Icons.schedule, size: 16, color: p.degraded) : null,
                 ),
               if (canAct)
                 Padding(

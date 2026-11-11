@@ -1,6 +1,6 @@
 # DevPulse — API Contract (v1)
 
-**Implemented:** Phase 1 — §2 (auth, `/me`, sessions, devices; `/me/notification-preferences` not yet), §3, §9. Phase 2 — §4 (overview, services + `PATCH`/`If-Match`, ingest keys, service metrics, incidents with commands/timeline/comments/correlation, deployments, alert rules + preview, GitHub integration), §5 (metrics, logs, deployments ingestion). Not yet: §6 sync, §7 realtime, §8 AI, `/me/notification-preferences`. Everything else is the target contract. The live schema is `packages/api-contract/openapi.json` (CI fails if it is stale).
+**Implemented:** Phase 1 — §2 (auth, `/me`, sessions, devices; `/me/notification-preferences` not yet), §3, §9. Phase 2 — §4 (overview, services + `PATCH`/`If-Match`, ingest keys, service metrics, incidents with commands/timeline/comments/correlation, deployments, alert rules + preview, GitHub integration), §5 (metrics, logs, deployments ingestion). Phase 3 — §6 sync feed, §7 realtime (ticket + WebSocket), notification preferences (`GET|PUT /orgs/{org_id}/notification-preferences`; per user and org: `push_enabled`, `min_severity`, `only_assigned`). Not yet: §8 AI. Everything else is the target contract. The live schema is `packages/api-contract/openapi.json` (CI fails if it is stale).
 
 **Web BFF routes** (Next.js, same origin as the dashboard — browser never sees tokens):
 `POST /api/auth/login|register` (JSON only → sets httpOnly cookies, returns `{user}`), `POST /api/auth/logout` (CSRF header required), `GET|POST|PATCH|PUT|DELETE /api/v1/*` (proxy to the API with the session; `x-csrf-token` required on mutations; `auth/*` and `me/password` blocked because their responses carry tokens).
@@ -103,30 +103,31 @@ Limits: ≤ 1000 points, ≤ 1 MB, labels ≤ 20 keys, timestamps within [now-1h
 
 `POST /ingest/v1/logs` — same envelope with `{ts, level, message, attributes, trace_id}`.
 
-## 6. Incremental sync (mobile offline)
+## 6. Incremental sync (mobile offline) — implemented
 
-`GET /orgs/{org_id}/sync/{collection}?cursor=<opaque>&limit=500` for `collection ∈ {services, incidents, deployments}`
+`GET /orgs/{org_id}/sync/{collection}?cursor=<int>&limit≤500` for `collection ∈ {services, incidents, deployments}`
 
 ```json
-{ "changes": [ { "op": "upsert", "id": "…", "version": 7, "data": { … } },
-               { "op": "delete", "id": "…", "version": 8 } ],
-  "next_cursor": "…", "has_more": false }
+{ "collection": "incidents",
+  "changes": [ { "op": "upsert", "id": "…", "change_seq": 812, "data": { …same shape as GET … } },
+               { "op": "delete", "id": "…", "change_seq": 815, "data": null } ],
+  "next_cursor": 815, "has_more": false }
 ```
-- Every write to a synced table sets `change_seq = nextval('sync_change_seq')` (trigger). The cursor encodes the last `change_seq` delivered; ordering is total.
-- Sequence values are allocated before commit, so a long transaction can commit a *lower* value after a higher one was already served. To avoid skipping it, the feed only returns rows whose `change_seq` is below the oldest in-flight value (tracked via `pg_snapshot_xmin`/a short safety lag). This is a known subtle point — it gets a dedicated concurrency test (ROADMAP risk R4).
-- Soft-deleted rows appear as `delete` tombstones (tombstones kept 30 days; older cursors receive `410 sync.cursor_expired` → client does a full resync).
-- First sync without cursor returns the window the client cares about (open incidents + last 7 days resolved; all services; deployments last 7 days).
+- `cursor` is the last `change_seq` the client stored (0 = first sync). Rows come in `change_seq` order; `change_seq` is commit-ordered per org (ADR-019), so resuming from `next_cursor` never skips a change.
+- First sync (`cursor=0`) ships what a phone needs: non-deleted services, open incidents + incidents resolved in the last 7 days, deployments from the last 7 days. Anything older still arrives later if it changes.
+- Deleted services arrive as `delete` tombstones (services are soft-deleted). Incidents and deployments are never deleted.
+- Clients should store each page and its cursor atomically and only replace a cached row with a higher `change_seq`.
 
-## 7. Realtime (WebSocket)
+## 7. Realtime (WebSocket) — implemented
 
-- `POST /api/v1/realtime/ticket` → `{ticket, expires_in: 30}`; connect `GET /ws?ticket=…`
-- Client → server: `{"type":"subscribe","org_id":"…"}`, `{"type":"pong"}`
-- Server → client:
-```json
-{ "type": "incident.updated", "org_id": "…", "entity": "incident",
-  "id": "…", "version": 9, "occurred_at": "…", "data": { …full resource… } }
-```
-Types: `incident.created|updated`, `incident.event_added`, `incident.comment_added`, `service.health_changed`, `deployment.created|updated`, `ai.investigation.updated`, `ping`. Close code `4401` = ticket invalid/expired → fetch a new ticket.
+- `POST /api/v1/realtime/ticket {"org_id"}` (bearer; membership checked, 404 otherwise) → `{ticket, expires_in: 30, path: "/ws"}`. Single use.
+- `GET /ws?ticket=…` → first frame `{"type":"hello","org_id":…,"server_time":…}`.
+- Server → client frames:
+  - `{"type":"sync","collection":"services|incidents|deployments","id":…,"change_seq":N}` — something in that collection changed; delta-sync if `N` is above your cursor.
+  - `{"type":"incident_event","event":"created|acknowledged|comment_added|…","incident_id":…,"event_id":…,"actor_id":…}` — timeline changed (useful for an open detail screen).
+  - `{"type":"ping"}` every 25 s.
+- Close codes: `4401` invalid/expired ticket (get a new one), `4403` membership revoked.
+- Delivery is at-least-once and best-effort; always delta-sync after (re)connecting.
 
 ## 8. AI
 

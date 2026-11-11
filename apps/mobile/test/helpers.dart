@@ -188,37 +188,6 @@ class FakeOpsRepository implements OpsRepository {
   Future<List<CorrelatedDeployment>> correlated(String ref) async => const [];
 
   @override
-  Future<Incident> act(Incident incident, IncidentAction action) async {
-    actions.add(action.path);
-    if (actFailure != null) throw actFailure!;
-    final current = _incidents[incident.id]!;
-    if (current.version != incident.version) {
-      throw const ConflictFailure('Changed', code: 'conflict.version_mismatch');
-    }
-    final next = incidentFixture(
-      id: current.id,
-      number: int.parse(current.key.split('-').last),
-      status: switch (action) {
-        Acknowledge() => IncidentStatus.acknowledged,
-        Resolve() => IncidentStatus.resolved,
-        Reopen() => IncidentStatus.triggered,
-        _ => current.status,
-      },
-      version: current.version + 1,
-      startedAt: current.startedAt,
-    );
-    _incidents[next.id] = next;
-    return next;
-  }
-
-  @override
-  Future<IncidentComment> comment(String ref, String body, String clientId) async {
-    final c = IncidentComment(id: 'c-$clientId', clientId: clientId, body: body, at: DateTime.now(), authorName: 'Ada');
-    savedComments.add(c);
-    return c;
-  }
-
-  @override
   Future<Paged<Deployment>> deployments({String? serviceId, String? cursor}) async => const Paged([], null);
 }
 

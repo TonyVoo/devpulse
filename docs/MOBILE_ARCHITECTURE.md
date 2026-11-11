@@ -2,7 +2,13 @@
 
 Flutter 3.47.9 (Dart 3.13), Riverpod 3.5 (no codegen yet — ADR-015), go_router 18, Dio 5.11, Drift 2.35, flutter_secure_storage 11. Planned for later phases: Freezed + json_serializable (Phase 2), firebase_messaging, web_socket_channel, workmanager, connectivity_plus (Phase 3).
 
-**Phase 1 status:** §1 layout, §4 auth & session, §5 navigation (5-tab shell, redirects, tablet rail) and the design system are implemented and tested. §2–3 (entity tables, outbox, delta sync), §6 (deep-link platform config, FCM) and §7 (WebSocket) are Phase 3.
+**Status (Phase 3):** §1–5 and §7 are implemented and tested; §6 deep links route in-app (`/incidents/INC-1042`) and push routing is implemented behind a `PushMessages` interface, but **real FCM delivery and universal-link platform files (AASA / assetlinks) are not configured** — they need a Firebase project, APNs key and a public domain.
+
+As built:
+- `features/offline/`: `LocalStore` (Drift v2 tables `cached_services|incidents|deployments`, `sync_cursors`, `outbox_entries`), `SyncEngine` (single-flight per collection with re-run-if-dirty; page + cursor in one transaction), `OutboxProcessor` (ordered replay, Idempotency-Key + If-Match, full-jitter backoff 2 s → 2 min, conflict → refresh + notice, permanent failure → `failed`), `RealtimeClient` (ticket, WS, 1 s → 30 s backoff, resync on hello), `LiveSync` (wires them to connectivity and lifecycle; 30 s background grace before closing the socket).
+- Optimistic actions: the cached row carries `pending_action`; reads overlay the expected status, so the item leaves "Open" immediately and shows a clock until the server confirms.
+- Comments queued offline appear as "waiting to send" and are idempotent on `client_id`.
+- Screens read Drift streams (Incidents, Services, Deployments, service detail sections); Overview and incident timeline/comments are network-first with the last copy kept on the device.
 
 ## 1. Layout (feature-first)
 

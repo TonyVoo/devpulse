@@ -18,9 +18,12 @@ from app.modules.deployments.service import ingest_router as deploy_ingest_route
 from app.modules.deployments.service import router as deployments_router
 from app.modules.incidents.router import router as incidents_router
 from app.modules.integrations.service import router as integrations_router
+from app.modules.notifications.router import router as notifications_router
 from app.modules.organizations.router import router as org_router
 from app.modules.overview.router import router as overview_router
+from app.modules.realtime.gateway import router as realtime_router
 from app.modules.services.router import router as services_router
+from app.modules.sync.router import router as sync_router
 from app.modules.telemetry.ingest import router as ingest_router
 from app.modules.telemetry.metrics import router as metrics_router
 from app.modules.users.router import router as me_router
@@ -73,6 +76,8 @@ def create_app() -> FastAPI:
         alerts_router,
         overview_router,
         deployments_router,
+        sync_router,
+        notifications_router,
     ):
         v1.include_router(r)
     app.include_router(v1)
@@ -80,6 +85,7 @@ def create_app() -> FastAPI:
     app.include_router(ingest_router)
     app.include_router(deploy_ingest_router)
     app.include_router(integrations_router)
+    app.include_router(realtime_router)
     app.include_router(health_router)
     return app
 

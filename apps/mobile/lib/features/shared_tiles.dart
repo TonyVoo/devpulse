@@ -54,6 +54,11 @@ class IncidentTile extends StatelessWidget {
                         if (i.serviceName != null) Text(i.serviceName!, style: t.bodySmall),
                         Text(timeAgo(i.startedAt), style: t.bodySmall),
                         if (i.isDemo) const DpDemoTag(),
+                        if (i.isPending)
+                          Semantics(
+                            label: 'Waiting to sync',
+                            child: Icon(Icons.schedule, size: 14, color: p.degraded),
+                          ),
                       ],
                     ),
                   ],

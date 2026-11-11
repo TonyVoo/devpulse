@@ -1,11 +1,12 @@
 import 'package:devpulse_mobile/core/database/app_database.dart';
+import 'package:drift/drift.dart' show DatabaseConnection;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   late AppDatabase db;
 
-  setUp(() => db = AppDatabase(NativeDatabase.memory()));
+  setUp(() => db = AppDatabase(DatabaseConnection(NativeDatabase.memory(), closeStreamsSynchronously: true)));
   tearDown(() => db.close());
 
   test('stores and overwrites JSON values', () async {
@@ -31,6 +32,6 @@ void main() {
   });
 
   test('schema version is pinned (bump requires a migration + test)', () {
-    expect(db.schemaVersion, 1);
+    expect(db.schemaVersion, 2);
   });
 }

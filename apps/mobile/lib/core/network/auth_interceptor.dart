@@ -101,7 +101,9 @@ class AuthInterceptor extends QueuedInterceptor {
   }
 
   Future<AuthTokens?> _refreshOnce(AuthTokens current) {
-    return _inflight ??= _doRefresh(current).whenComplete(() => _inflight = null);
+    return _inflight ??= _doRefresh(current).whenComplete(() {
+      _inflight = null;
+    });
   }
 
   Future<AuthTokens?> _doRefresh(AuthTokens current) async {

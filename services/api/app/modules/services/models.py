@@ -5,6 +5,7 @@ from uuid import UUID
 
 from sqlalchemy import (
     ARRAY,
+    BigInteger,
     Boolean,
     DateTime,
     Enum,
@@ -44,6 +45,7 @@ class Service(UUIDPk, Timestamps, Base):
     __table_args__ = (
         UniqueConstraint("org_id", "environment", "slug"),
         Index("ix_services_org_health", "org_id", "health"),
+        Index("ix_services_sync", "org_id", "change_seq"),
     )
 
     org_id: Mapped[UUID] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"))
@@ -63,6 +65,8 @@ class Service(UUIDPk, Timestamps, Base):
     is_demo: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     version: Mapped[int] = mapped_column(Integer, default=1, server_default="1")
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # Set by the sync trigger (ADR-019); never written by the application.
+    change_seq: Mapped[int] = mapped_column(BigInteger, server_default="0", index=False)
 
 
 class IngestKey(UUIDPk, Base):

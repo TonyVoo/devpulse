@@ -679,6 +679,24 @@ export interface paths {
         patch: operations["update_member_api_v1_orgs__org_id__members__user_id__patch"];
         trace?: never;
     };
+    "/api/v1/orgs/{org_id}/notification-preferences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Preferences */
+        get: operations["get_preferences_api_v1_orgs__org_id__notification_preferences_get"];
+        /** Put Preferences */
+        put: operations["put_preferences_api_v1_orgs__org_id__notification_preferences_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/orgs/{org_id}/overview": {
         parameters: {
             query?: never;
@@ -748,6 +766,40 @@ export interface paths {
         get: operations["get_metrics_api_v1_orgs__org_id__services__service_id__metrics_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/orgs/{org_id}/sync/{collection}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Sync */
+        get: operations["sync_api_v1_orgs__org_id__sync__collection__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/realtime/ticket": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Ticket */
+        post: operations["create_ticket_api_v1_realtime_ticket_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1040,6 +1092,25 @@ export interface components {
          * @enum {string}
          */
         BuildStatus: "pending" | "running" | "succeeded" | "failed";
+        /** Change */
+        Change: {
+            /** Change Seq */
+            change_seq: number;
+            /** Data */
+            data: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Op
+             * @enum {string}
+             */
+            op: "upsert" | "delete";
+        };
         /** ChangePasswordIn */
         ChangePasswordIn: {
             /** Current Password */
@@ -1818,6 +1889,21 @@ export interface components {
              */
             id: string;
         };
+        /** PreferencesIO */
+        PreferencesIO: {
+            /** @default sev2 */
+            min_severity: components["schemas"]["Severity"];
+            /**
+             * Only Assigned
+             * @default false
+             */
+            only_assigned: boolean;
+            /**
+             * Push Enabled
+             * @default true
+             */
+            push_enabled: boolean;
+        };
         /**
          * PreviewOut
          * @description Would the rule have fired over the last 24h? (evaluated every 5 minutes)
@@ -2014,6 +2100,40 @@ export interface components {
         /** SeverityIn */
         SeverityIn: {
             severity: components["schemas"]["Severity"];
+        };
+        /** SyncPage */
+        SyncPage: {
+            /** Changes */
+            changes: components["schemas"]["Change"][];
+            /**
+             * Collection
+             * @enum {string}
+             */
+            collection: "services" | "incidents" | "deployments";
+            /** Has More */
+            has_more: boolean;
+            /** Next Cursor */
+            next_cursor: number;
+        };
+        /** TicketIn */
+        TicketIn: {
+            /**
+             * Org Id
+             * Format: uuid
+             */
+            org_id: string;
+        };
+        /** TicketOut */
+        TicketOut: {
+            /** Expires In */
+            expires_in: number;
+            /**
+             * Path
+             * @default /ws
+             */
+            path: string;
+            /** Ticket */
+            ticket: string;
         };
         /**
          * Tier
@@ -3776,6 +3896,72 @@ export interface operations {
             };
         };
     };
+    get_preferences_api_v1_orgs__org_id__notification_preferences_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PreferencesIO"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_preferences_api_v1_orgs__org_id__notification_preferences_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PreferencesIO"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PreferencesIO"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     overview_api_v1_orgs__org_id__overview_get: {
         parameters: {
             query?: {
@@ -4005,6 +4191,74 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MetricsOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sync_api_v1_orgs__org_id__sync__collection__get: {
+        parameters: {
+            query?: {
+                cursor?: number;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                collection: "services" | "incidents" | "deployments";
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SyncPage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_ticket_api_v1_realtime_ticket_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TicketIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TicketOut"];
                 };
             };
             /** @description Validation Error */

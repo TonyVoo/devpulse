@@ -89,6 +89,16 @@ Format: Context → Decision → Consequences. Status: **Accepted** unless noted
 **Decision:** `make seed-demo` creates only an org, services, alert rules and a demo ingest key (all flagged `is_demo`); all telemetry, deployments and incidents come from `make loadgen` through the real ingest API. Seeding refuses `APP_ENV=production`.
 **Consequences:** Demos exercise the exact production code paths; demo rows are always tagged in UIs.
 
+### ADR-019 Commit-ordered sync stamps via triggers (Phase 3)
+**Context:** A plain sequence is allocated before commit, so a long transaction can commit a lower `change_seq` after a higher one was already served, and a cursor would skip it (ROADMAP R4).
+**Decision:** A BEFORE trigger on services/incidents/deployments takes `pg_advisory_xact_lock(org)` and then assigns `nextval('sync_change_seq')`; the lock is held until commit, so within an org sequence order equals commit order. Bookkeeping-only updates (`updated_at`, `last_seen_at`) don't stamp. An AFTER trigger writes the outbox row in the same transaction.
+**Consequences:** Gap-free cursors with no read-side heuristics. Writers to synced tables in the same org are serialised for the rest of their transaction — fine for incident commands and the evaluator (one at a time anyway); ingestion is unaffected. If an org ever needs high write concurrency on these tables, move stamping to the relay (single writer assigns positions after commit).
+
+### ADR-020 Realtime hints, relay process, push provider stub (Phase 3)
+- WebSocket frames are hints (`collection changed up to N`), not entity payloads: smaller, no per-field authorization at fan-out, and clients converge through the same sync code path.
+- A dedicated `relay` process (LISTEN/NOTIFY + 2 s poll, `SKIP LOCKED`) publishes outbox rows to Redis; at-least-once.
+- Push recipients and payloads are implemented and tested; delivery uses `LoggingPushProvider` until a Firebase project (service account, APNs key) is provided. The mobile side routes push payloads (`route`, `org_id`) behind `PushMessages`, defaulting to `NoPushMessages`.
+
 ### Resolved open questions
 - Python dependency tool: **pip + pyproject with pinned compatible ranges** for Phase 1 (uv was not installed; avoided adding system tools). A lockfile (uv or pip-tools) should be added before Phase 6.
 - Node version: `.nvmrc` pins **24 LTS**; Docker and CI use Node 24. Local development was verified on Node 25.

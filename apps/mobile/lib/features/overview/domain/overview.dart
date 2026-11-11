@@ -26,9 +26,10 @@ class Overview {
     required this.recentIncidents,
     required this.recentDeployments,
     required this.hasTelemetry,
+    this.isStale = false,
   });
 
-  factory Overview.fromJson(Map<String, dynamic> j, {Duration step = Duration.zero}) {
+  factory Overview.fromJson(Map<String, dynamic> j, {Duration step = Duration.zero, bool stale = false}) {
     final totals = j['totals'] as Map<String, dynamic>;
     double? n(Object? v) => (v as num?)?.toDouble();
     return Overview(
@@ -55,6 +56,7 @@ class Overview {
         for (final d in j['recent_deployments'] as List<dynamic>) Deployment.fromJson(d as Map<String, dynamic>),
       ],
       hasTelemetry: j['has_telemetry'] as bool,
+      isStale: stale,
     );
   }
 
@@ -69,6 +71,9 @@ class Overview {
   final List<Incident> recentIncidents;
   final List<Deployment> recentDeployments;
   final bool hasTelemetry;
+
+  /// Loaded from the device because the API was unreachable.
+  final bool isStale;
 
   int get openIncidents => openBySeverity.values.fold(0, (a, b) => a + b);
 }

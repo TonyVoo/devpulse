@@ -7,7 +7,7 @@
 | **0 Planning** ✅ | Docs in `docs/` | Architecture, schema, API, mobile, AI, deployment, ADRs reviewed |
 | **1 Foundation** ✅ | Monorepo scaffold, Compose (pg, redis, api, worker, web), config validation, auth (register/login/refresh/logout), orgs, memberships, RBAC, audit log core, error model, logging, CI; Flutter app shell (theme, router, auth flow, org select, secure storage); Next.js shell (BFF auth, org switch) | `make up` healthy; auth + RBAC + tenant-isolation tests green; mobile logs in against local API; CI green |
 | **2 Core product** ✅ | Services CRUD, ingest keys, metrics ingestion + rollups, overview endpoint, alert rules + evaluation, incident lifecycle/timeline/comments, deployments + GitHub webhooks, correlation; mobile Overview/Services/Incidents/Deployments screens (online) | Synthetic load generator drives an alert → incident end-to-end; lifecycle tests green |
-| **3 Realtime & mobile excellence** | Outbox relay, WS gateway, sync feed, Drift offline model, outbox writes, backoff, conflict handling, FCM, deep links, lifecycle, tablet layouts, integration tests | Airplane-mode ack replays correctly; WS drop → no lost/duplicate items; push tap cold-start opens incident |
+| **3 Realtime & mobile excellence** ✅ (push delivery pending Firebase) | Outbox relay, WS gateway, sync feed, Drift offline model, outbox writes, backoff, conflict handling, FCM, deep links, lifecycle, tablet layouts, integration tests | Airplane-mode ack replays correctly; WS drop → no lost/duplicate items; push tap cold-start opens incident |
 | **4 AI** | Provider port + Anthropic/OpenAI/Fake adapters, context collector, evidence registry, investigation task, validation/repair, usage & budget, Copilot UI (mobile + web), follow-up chat with read-only tools, proposals/approval | Golden scenarios pass with FakeProvider in CI; schema/grounding tests green; manual eval run documented |
 | **5 Web & polish** | Members/RBAC admin, alert rule builder with preview, integrations, AI config, audit log viewer, advanced charts & correlation timeline; accessibility & motion pass on mobile | Playwright critical flows green; a11y audit fixes landed |
 | **6 Production readiness** | Security review, RLS, OIDC, rate-limit tuning, load test ingestion, perf profiling (Flutter DevTools, API p95), Sentry wiring, deployment pipeline, demo environment | Threat model documented; load test report; staging deploy reproducible from CI |
@@ -19,13 +19,13 @@
 | R1 | ~~Flutter SDK not installed~~ — **resolved**: Flutter 3.47.9 via Homebrew; Xcode 26.1 works (the earlier `xcodebuild` error was a wrong flag). Android cmdline-tools/licenses still pending | Android local builds | Install Android cmdline-tools and run `flutter doctor --android-licenses` (user action) |
 | R2 | Workspace is a temporary, non-git folder | Work could be lost | Move project to a permanent folder and `git init` before Phase 1 |
 | R3 | Dependency incompatibilities (Riverpod 2 vs 3 codegen, Drift + build_runner, Next major vs React 19, Node 25 non-LTS) | Broken builds | Pin versions after checking against installed SDKs; Node 24 LTS via `.nvmrc`; lockfiles committed; Renovate later |
-| R4 | Sync feed correctness under concurrent commits (`change_seq` gaps) | Silent missed updates offline | Snapshot-xmin/safety-lag reads; dedicated concurrency test with interleaved transactions; periodic full reconcile (hash of ids+versions) |
+| R4 | ~~Sync feed correctness under concurrent commits~~ — **resolved** by commit-ordered stamping (ADR-019), covered by a two-connection test | — | Periodic full reconcile still a nice-to-have |
 | R5 | Tenant data leak via a forgotten filter | Severe | Scoped repositories, generated cross-tenant tests over every route, RLS in Phase 6, workers require explicit OrgContext |
 | R6 | Postgres time-series performance | Slow charts | Rollups, point caps, partition pruning, `MetricsStore` interface for later swap (ADR-002) |
 | R7 | LLM hallucination / overconfidence | Wrong guidance during incidents | Evidence registry + ref validation, confidence caps, "hypothesis" labelling, data-gap disclosure, human-only confirmation |
 | R8 | Prompt injection via logs/commit messages | Misleading analysis | Data delimiting, read-only tools, no execution path |
 | R9 | LLM cost/latency spikes | Budget overrun, slow UX | Token budget per run, monthly org budget, async runs with progress, timeouts/retries |
-| R10 | iOS background limits, APNs/FCM setup | Stale data, no push | Correctness never depends on background; foreground delta sync; needs Firebase project from you (Phase 3) |
+| R10 | iOS background limits, APNs/FCM setup | Stale data, no push | Correctness never depends on background (verified: resume → reconnect → delta sync). **Open:** real push needs a Firebase project + APNs key from you |
 | R11 | WebSocket scaling & auth | Leaks or dropped connections | Short-lived tickets, Redis fan-out, heartbeat, per-org subscription checks |
 | R12 | Scope size vs quality | Half-finished features | Phase exit criteria above; nothing marked done without tests; placeholders documented as such |
 
@@ -116,3 +116,27 @@ Legend: ✅ done and verified · ⏳ not done (reason given)
 - ✅ Overview with real data, Services (list + create), Ingest keys (create shown-once with curl example, revoke), Incidents (read-only list); checked in the browser against the demo org
 - ✅ 25 vitest tests; lint, typecheck clean
 - ⏳ Alert rule builder, GitHub integration UI, incident actions on web — Phase 5 (APIs exist)
+
+## 5. Phase 3 checklist
+
+**Backend**
+- ✅ `change_seq` stamping + outbox via triggers (ADR-019), migration tested up/down with existing data
+- ✅ Sync feed `/sync/{services|incidents|deployments}` with initial window, tombstones, pagination
+- ✅ Relay process (LISTEN/NOTIFY + poll, SKIP LOCKED), WebSocket gateway with single-use tickets, heartbeat and membership re-check
+- ✅ Push dispatch: recipients by preferences, actor excluded, payload `route`/`org_id`; notification preferences API
+- ✅ 84 tests (incl. commit-order concurrency test, ingestion not stamping, relay publishing, push rules, WebSocket against a real uvicorn process)
+- ✅ Live check on the stack: incident created → hint received over WebSocket in ~100 ms
+- ⏳ Real FCM delivery (needs Firebase project, service account, APNs key)
+
+**Mobile**
+- ✅ Drift schema v2 + v1→v2 migration test
+- ✅ Sync engine (single-flight, re-run-if-dirty, atomic page+cursor, seq-guarded upserts, tombstones)
+- ✅ Outbox: optimistic actions/comments, ordered replay, idempotent retries (lost response), backoff, conflicts → refresh + message, permanent failures kept
+- ✅ Realtime client with ticket auth, backoff reconnect, resync on hello; lifecycle (30 s background grace) and connectivity handling
+- ✅ Lists read from the local database; offline/pending banner; pending markers on items
+- ✅ Push routing (payload validation, org switch, cold start / background tap) behind `PushMessages`
+- ✅ 65 unit/widget tests (offline replay, lost response, conflict, ordering, comments, tombstones, migration, realtime reconnect)
+- ✅ Simulator vs real stack: `offline_realtime_test` — realtime delivery without refresh; airplane-mode acknowledge replayed exactly once; Phase 1–2 flow still passes
+- ⏳ Firebase SDK + universal links (AASA/assetlinks) — need your Firebase project and a domain
+- ⏳ Background fetch (workmanager) — not needed for correctness; deferred
+- ⏳ Exit criterion "push tap cold-start opens incident": routing is implemented and unit-tested; not verifiable end-to-end without Firebase

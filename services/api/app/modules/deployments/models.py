@@ -2,7 +2,17 @@ from datetime import datetime
 from enum import StrEnum
 from uuid import UUID
 
-from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Index, String, Text, UniqueConstraint
+from sqlalchemy import (
+    BigInteger,
+    Boolean,
+    DateTime,
+    Enum,
+    ForeignKey,
+    Index,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.db import Base, Timestamps, UUIDPk
@@ -38,6 +48,7 @@ class Deployment(UUIDPk, Timestamps, Base):
         UniqueConstraint("org_id", "source", "external_id"),
         Index("ix_deployments_service_started", "org_id", "service_id", "started_at"),
         Index("ix_deployments_org_started", "org_id", "started_at", "id"),
+        Index("ix_deployments_sync", "org_id", "change_seq"),
     )
 
     org_id: Mapped[UUID] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"))
@@ -56,3 +67,5 @@ class Deployment(UUIDPk, Timestamps, Base):
     source: Mapped[DeploySource] = mapped_column(_enum(DeploySource, "deploy_source"))
     external_id: Mapped[str] = mapped_column(String(120))
     is_demo: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    # Set by the sync trigger (ADR-019); never written by the application.
+    change_seq: Mapped[int] = mapped_column(BigInteger, server_default="0", index=False)

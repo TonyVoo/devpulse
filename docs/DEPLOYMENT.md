@@ -49,6 +49,7 @@ flowchart LR
 - Only `migrate` declares the API image build; `api`, `worker`, `beat` reuse `devpulse-api:local` (avoids parallel builds of the same tag).
 - Observability stack (OTel collector, Prometheus, Grafana) as a Compose **profile** is **not built yet** — planned with telemetry in Phase 2.
 - Phase 1 status: postgres, redis, migrate, api, worker, beat, web all implemented and verified healthy with `make up`.
+- Phase 3 adds `relay` (`python -m app.workers.relay`): outbox → Redis pub/sub + push dispatch. Several relays may run (rows are claimed with SKIP LOCKED). WebSockets are served by the `api` process at `/ws`; a load balancer in front must allow WebSocket upgrades (no sticky sessions needed — fan-out goes through Redis).
 
 ## 4. CI (GitHub Actions)
 

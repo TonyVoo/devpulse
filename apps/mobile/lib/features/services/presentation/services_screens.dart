@@ -11,6 +11,7 @@ import '../../../core/design_system/widgets/status_widgets.dart';
 import '../../../core/network/org_api.dart';
 import '../../deployments/domain/deployment.dart';
 import '../../incidents/domain/incident.dart';
+import '../../offline/live_sync.dart';
 import '../../ops_repositories.dart';
 import '../../shared_tiles.dart';
 import '../domain/service.dart';
@@ -40,16 +41,22 @@ class ServicesQueryController extends Notifier<ServicesQuery> {
 
 final servicesQueryProvider = NotifierProvider<ServicesQueryController, ServicesQuery>(ServicesQueryController.new);
 
-final servicesProvider = FutureProvider<List<MonitoredService>>((ref) async {
+/// Live query on the offline cache; problems first, then by name.
+final servicesProvider = StreamProvider<List<MonitoredService>>((ref) {
+  final live = ref.watch(liveSyncProvider);
+  if (live == null) return Stream.value(const []);
   final q = ref.watch(servicesQueryProvider);
-  final page = await ref.watch(opsRepositoryProvider).services(query: q.text, health: q.health);
-  // Problems first, then by name.
   const rank = {Health.critical: 0, Health.degraded: 1, Health.unknown: 2, Health.healthy: 3};
-  return [...page.items]..sort((a, b) {
-    final r = rank[a.health]!.compareTo(rank[b.health]!);
-    return r != 0 ? r : a.name.toLowerCase().compareTo(b.name.toLowerCase());
-  });
-}, retry: (_, _) => null);
+  return live.store
+      .watchServices(text: q.text, health: q.health)
+      .map(
+        (items) => [...items]
+          ..sort((a, b) {
+            final r = rank[a.health]!.compareTo(rank[b.health]!);
+            return r != 0 ? r : a.name.toLowerCase().compareTo(b.name.toLowerCase());
+          }),
+      );
+});
 
 class ServicesScreen extends ConsumerStatefulWidget {
   const ServicesScreen({super.key});
@@ -111,7 +118,7 @@ class _ServicesScreenState extends ConsumerState<ServicesScreen> {
           ),
           Expanded(
             child: RefreshIndicator(
-              onRefresh: () => ref.refresh(servicesProvider.future),
+              onRefresh: () async => ref.read(liveSyncProvider)?.refresh(),
               child: AsyncView(
                 value: value,
                 onRetry: () => ref.invalidate(servicesProvider),
@@ -199,15 +206,17 @@ final serviceMetricsProvider = FutureProvider.autoDispose.family<List<MetricSeri
   retry: (_, _) => null,
 );
 
-final serviceIncidentsProvider = FutureProvider.autoDispose.family<Paged<Incident>, String>(
-  (ref, id) => ref.watch(opsRepositoryProvider).incidents(const IncidentFilter(), serviceId: id),
-  retry: (_, _) => null,
-);
+final serviceIncidentsProvider = StreamProvider.autoDispose.family<Paged<Incident>, String>((ref, id) {
+  final live = ref.watch(liveSyncProvider);
+  if (live == null) return Stream.value(const Paged([], null));
+  return live.store.watchIncidents(const IncidentFilter(), serviceId: id).map((items) => Paged(items, null));
+});
 
-final serviceDeploymentsProvider = FutureProvider.autoDispose.family<Paged<Deployment>, String>(
-  (ref, id) => ref.watch(opsRepositoryProvider).deployments(serviceId: id),
-  retry: (_, _) => null,
-);
+final serviceDeploymentsProvider = StreamProvider.autoDispose.family<Paged<Deployment>, String>((ref, id) {
+  final live = ref.watch(liveSyncProvider);
+  if (live == null) return Stream.value(const Paged([], null));
+  return live.store.watchDeployments(serviceId: id, limit: 10).map((items) => Paged(items, null));
+});
 
 class ServiceDetailScreen extends ConsumerWidget {
   const ServiceDetailScreen({required this.serviceId, super.key});

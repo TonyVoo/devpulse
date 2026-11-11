@@ -1,5 +1,3 @@
-import 'dart:collection';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -9,6 +7,9 @@ import '../../../core/design_system/widgets/async_view.dart';
 import '../../../core/design_system/widgets/dp_widgets.dart';
 import '../../../core/design_system/widgets/status_widgets.dart';
 import '../../../core/result/failure.dart';
+import '../../auth/domain/models.dart';
+import '../../auth/presentation/session_controller.dart';
+import '../../offline/live_sync.dart';
 import '../../ops_repositories.dart';
 import '../../shared_tiles.dart';
 import '../domain/incident.dart';
@@ -23,79 +24,46 @@ class IncidentFilterController extends Notifier<IncidentFilter> {
 /// Kept alive (not autoDispose): the filter survives opening an incident and coming back.
 final incidentFilterProvider = NotifierProvider<IncidentFilterController, IncidentFilter>(IncidentFilterController.new);
 
-class IncidentsPage {
-  const IncidentsPage({required this.byId, required this.cursor, this.loadingMore = false, this.moreError});
+/// The list is a live query on the local database (ADR-005): sync pages, realtime updates
+/// and offline edits all land in the same rows, so items can never appear twice.
+final incidentsProvider = StreamProvider<List<Incident>>((ref) {
+  final live = ref.watch(liveSyncProvider);
+  if (live == null) return Stream.value(const []);
+  final session = ref.watch(sessionControllerProvider).value;
+  final meId = session is SignedIn ? session.me.id : null;
+  return live.store.watchIncidents(ref.watch(incidentFilterProvider), meId: meId);
+});
 
-  /// Insertion-ordered map keyed by id: a refreshed/updated incident replaces its entry
-  /// instead of appearing twice when pages and live updates overlap.
-  final LinkedHashMap<String, Incident> byId;
-  final String? cursor;
-  final bool loadingMore;
-  final Failure? moreError;
-
-  List<Incident> get items => byId.values.toList(growable: false);
-  bool get hasMore => cursor != null;
-
-  IncidentsPage copyWith({String? cursor, bool? loadingMore, Failure? moreError, bool clearCursor = false}) =>
-      IncidentsPage(
-        byId: byId,
-        cursor: clearCursor ? null : (cursor ?? this.cursor),
-        loadingMore: loadingMore ?? this.loadingMore,
-        moreError: moreError,
-      );
-}
-
-class IncidentsController extends AsyncNotifier<IncidentsPage> {
+/// Older incidents beyond the offline window are fetched on demand and cached.
+class OlderIncidentsLoader extends Notifier<({bool loading, bool done, String? cursor, Failure? error})> {
   @override
-  Future<IncidentsPage> build() async {
-    final filter = ref.watch(incidentFilterProvider);
-    final page = await ref.watch(opsRepositoryProvider).incidents(filter);
-    return IncidentsPage(
-      byId: LinkedHashMap.fromEntries(page.items.map((i) => MapEntry(i.id, i))),
-      cursor: page.nextCursor,
-    );
+  ({bool loading, bool done, String? cursor, Failure? error}) build() {
+    ref.watch(incidentFilterProvider);
+    return (loading: false, done: false, cursor: null, error: null);
   }
 
-  Future<void> loadMore() async {
-    final current = state.value;
-    if (current == null || !current.hasMore || current.loadingMore) return;
-    state = AsyncData(current.copyWith(loadingMore: true));
+  Future<void> load() async {
+    final live = ref.read(liveSyncProvider);
+    if (state.loading || state.done || live == null) return;
+    state = (loading: true, done: false, cursor: state.cursor, error: null);
     try {
       final page = await ref
           .read(opsRepositoryProvider)
-          .incidents(ref.read(incidentFilterProvider), cursor: current.cursor);
-      final merged = LinkedHashMap<String, Incident>.of(current.byId);
+          .incidents(ref.read(incidentFilterProvider), cursor: state.cursor);
       for (final i in page.items) {
-        merged[i.id] = i; // dedupe
+        await live.store.cacheIfMissing(i);
       }
-      state = AsyncData(IncidentsPage(byId: merged, cursor: page.nextCursor));
+      state = (loading: false, done: page.nextCursor == null, cursor: page.nextCursor, error: null);
     } on Failure catch (f) {
-      state = AsyncData(current.copyWith(loadingMore: false, moreError: f));
+      state = (loading: false, done: false, cursor: state.cursor, error: f);
     }
-  }
-
-  /// Applies a newer version of an incident (e.g. after acting on it in the detail screen).
-  /// Only replaces items already in the list (keeps their position); never inserts, so
-  /// page boundaries stay consistent. Stale versions are ignored.
-  void upsert(Incident updated) {
-    final current = state.value;
-    final existing = current?.byId[updated.id];
-    if (current == null || existing == null || existing.version >= updated.version) return;
-    final statuses = ref.read(incidentFilterProvider).statuses;
-    final merged = LinkedHashMap<String, Incident>.of(current.byId);
-    if (statuses.isEmpty || statuses.contains(updated.status)) {
-      merged[updated.id] = updated;
-    } else {
-      merged.remove(updated.id); // e.g. resolved while viewing "Open"
-    }
-    state = AsyncData(IncidentsPage(byId: merged, cursor: current.cursor));
   }
 }
 
-final incidentsProvider = AsyncNotifierProvider<IncidentsController, IncidentsPage>(
-  IncidentsController.new,
-  retry: (_, _) => null,
-);
+final olderIncidentsProvider =
+    NotifierProvider<OlderIncidentsLoader, ({bool loading, bool done, String? cursor, Failure? error})>(
+      OlderIncidentsLoader.new,
+    );
 
 enum _StatusTab {
   open('Open', {IncidentStatus.triggered, IncidentStatus.acknowledged}),
@@ -116,6 +84,7 @@ class IncidentsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final filter = ref.watch(incidentFilterProvider);
     final value = ref.watch(incidentsProvider);
+    final older = ref.watch(olderIncidentsProvider);
     final tab = _StatusTab.values.firstWhere(
       (t) => t.statuses.length == filter.statuses.length && t.statuses.containsAll(filter.statuses),
       orElse: () => _StatusTab.all,
@@ -165,11 +134,11 @@ class IncidentsScreen extends ConsumerWidget {
           ),
           Expanded(
             child: RefreshIndicator(
-              onRefresh: () => ref.refresh(incidentsProvider.future),
+              onRefresh: () async => ref.read(liveSyncProvider)?.refresh(),
               child: AsyncView(
                 value: value,
                 onRetry: () => ref.invalidate(incidentsProvider),
-                data: (page) => page.byId.isEmpty
+                data: (items) => items.isEmpty
                     ? ListView(
                         physics: const AlwaysScrollableScrollPhysics(),
                         children: [
@@ -183,42 +152,29 @@ class IncidentsScreen extends ConsumerWidget {
                           ),
                         ],
                       )
-                    : NotificationListener<ScrollNotification>(
-                        onNotification: (n) {
-                          if (n.metrics.pixels > n.metrics.maxScrollExtent - 400) {
-                            ref.read(incidentsProvider.notifier).loadMore();
+                    : ListView.separated(
+                        key: const PageStorageKey('incidents-list'), // keeps scroll position
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        itemCount: items.length + 1,
+                        separatorBuilder: (_, _) => const Divider(),
+                        itemBuilder: (context, i) {
+                          if (i < items.length) {
+                            final inc = items[i];
+                            return IncidentTile(inc, onTap: () => context.push('/incidents/${inc.key}'));
                           }
-                          return false;
+                          if (older.done) return const SizedBox(height: DpSpace.xl);
+                          return Padding(
+                            padding: const EdgeInsets.all(DpSpace.md),
+                            child: Center(
+                              child: DpButton(
+                                label: older.error != null ? "Couldn't load — retry" : 'Load older incidents',
+                                variant: DpButtonVariant.ghost,
+                                loading: older.loading,
+                                onPressed: () => ref.read(olderIncidentsProvider.notifier).load(),
+                              ),
+                            ),
+                          );
                         },
-                        child: ListView.separated(
-                          key: const PageStorageKey('incidents-list'), // keeps scroll position
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          itemCount: page.byId.length + 1,
-                          separatorBuilder: (_, _) => const Divider(),
-                          itemBuilder: (context, i) {
-                            final items = page.items;
-                            if (i < items.length) {
-                              final inc = items[i];
-                              return IncidentTile(inc, onTap: () => context.push('/incidents/${inc.key}'));
-                            }
-                            if (page.moreError != null) {
-                              return ListTile(
-                                title: Text("Couldn't load more", style: Theme.of(context).textTheme.bodySmall),
-                                trailing: TextButton(
-                                  onPressed: () => ref.read(incidentsProvider.notifier).loadMore(),
-                                  child: const Text('Retry'),
-                                ),
-                              );
-                            }
-                            if (page.hasMore) {
-                              return const Padding(
-                                padding: EdgeInsets.all(DpSpace.lg),
-                                child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
-                              );
-                            }
-                            return const SizedBox(height: DpSpace.xl);
-                          },
-                        ),
                       ),
               ),
             ),

@@ -36,6 +36,7 @@ class Incident {
     this.acknowledgedAt,
     this.resolvedAt,
     this.resolutionNote,
+    this.pendingAction,
   });
 
   factory Incident.fromJson(Map<String, dynamic> j) {
@@ -84,6 +85,56 @@ class Incident {
   final String? serviceName;
   final String? assigneeId;
   final String? assigneeName;
+
+  /// A local action waiting to reach the server (`acknowledge`, `resolve`, …), if any.
+  final String? pendingAction;
+
+  bool get isPending => pendingAction != null;
+
+  /// API shape (`IncidentOut`) — used to cache incidents fetched outside the sync feed.
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'key': key,
+    'number': int.tryParse(key.split('-').last) ?? 0,
+    'title': title,
+    'summary': summary,
+    'severity': severity.name,
+    'status': status.name,
+    'started_at': startedAt.toUtc().toIso8601String(),
+    'updated_at': updatedAt.toUtc().toIso8601String(),
+    'acknowledged_at': acknowledgedAt?.toUtc().toIso8601String(),
+    'resolved_at': resolvedAt?.toUtc().toIso8601String(),
+    'resolution_note': resolutionNote,
+    'version': version,
+    'is_demo': isDemo,
+    'escalation_level': escalationLevel,
+    'source': source,
+    'service': serviceId == null ? null : {'id': serviceId, 'name': serviceName ?? '', 'slug': ''},
+    'assignee': assigneeId == null ? null : {'id': assigneeId, 'display_name': assigneeName ?? ''},
+  };
+
+  Incident withPending(String? action) => Incident(
+    id: id,
+    key: key,
+    title: title,
+    summary: summary,
+    severity: severity,
+    status: status,
+    startedAt: startedAt,
+    updatedAt: updatedAt,
+    acknowledgedAt: acknowledgedAt,
+    resolvedAt: resolvedAt,
+    resolutionNote: resolutionNote,
+    version: version,
+    isDemo: isDemo,
+    escalationLevel: escalationLevel,
+    source: source,
+    serviceId: serviceId,
+    serviceName: serviceName,
+    assigneeId: assigneeId,
+    assigneeName: assigneeName,
+    pendingAction: action,
+  );
 }
 
 class TimelineEvent {
@@ -111,6 +162,15 @@ class TimelineEvent {
   final String? actorName;
   final Map<String, dynamic> data;
   final DateTime at;
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'type': type,
+    'actor_type': actorType,
+    'actor': actorName == null ? null : {'id': '', 'display_name': actorName},
+    'data': data,
+    'created_at': at.toUtc().toIso8601String(),
+  };
 
   /// Human sentence for the timeline.
   String describe() {
@@ -156,6 +216,14 @@ class IncidentComment {
   final String? authorName;
   final DateTime at;
   final bool pending;
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'client_id': clientId,
+    'body': body,
+    'author': authorName == null ? null : {'id': '', 'display_name': authorName},
+    'created_at': at.toUtc().toIso8601String(),
+  };
 }
 
 class CorrelatedDeployment {
@@ -189,6 +257,17 @@ class CorrelatedDeployment {
   final String correlation;
   final String? commitSha;
   final String? commitMessage;
+
+  Map<String, dynamic> toJson() => {
+    'deployment_id': deploymentId,
+    'version': version,
+    'status': status,
+    'started_at': startedAt.toUtc().toIso8601String(),
+    'score': score,
+    'correlation': correlation,
+    'commit_sha': commitSha,
+    'commit_message': commitMessage,
+  };
 }
 
 /// Incident list filter. Persisted in a provider so it survives navigating to detail and back.
