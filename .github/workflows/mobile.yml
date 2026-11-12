@@ -33,7 +33,8 @@ jobs:
           git diff --exit-code -- lib \
             || (echo "::error::generated code is stale — run build_runner and commit" && exit 1)
       - name: Format
-        run: dart format --output=none --set-exit-if-changed lib test integration_test
+        # Generated code (*.g.dart) is checked by the build_runner step above, not formatted.
+        run: find lib test integration_test -name '*.dart' ! -name '*.g.dart' -print0 | xargs -0 dart format --output=none --set-exit-if-changed
       - run: flutter analyze
       - run: flutter test
 

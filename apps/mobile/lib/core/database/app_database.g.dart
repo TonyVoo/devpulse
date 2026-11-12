@@ -3,7 +3,8 @@
 part of 'app_database.dart';
 
 // ignore_for_file: type=lint
-class $KeyValueEntriesTable extends KeyValueEntries with TableInfo<$KeyValueEntriesTable, KeyValueEntry> {
+class $KeyValueEntriesTable extends KeyValueEntries
+    with TableInfo<$KeyValueEntriesTable, KeyValueEntry> {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
@@ -26,7 +27,9 @@ class $KeyValueEntriesTable extends KeyValueEntries with TableInfo<$KeyValueEntr
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _updatedAtMeta = const VerificationMeta('updatedAt');
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
   @override
   late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
     'updated_at',
@@ -44,21 +47,33 @@ class $KeyValueEntriesTable extends KeyValueEntries with TableInfo<$KeyValueEntr
   String get actualTableName => $name;
   static const String $name = 'key_value_entries';
   @override
-  VerificationContext validateIntegrity(Insertable<KeyValueEntry> instance, {bool isInserting = false}) {
+  VerificationContext validateIntegrity(
+    Insertable<KeyValueEntry> instance, {
+    bool isInserting = false,
+  }) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
     if (data.containsKey('key')) {
-      context.handle(_keyMeta, key.isAcceptableOrUnknown(data['key']!, _keyMeta));
+      context.handle(
+        _keyMeta,
+        key.isAcceptableOrUnknown(data['key']!, _keyMeta),
+      );
     } else if (isInserting) {
       context.missing(_keyMeta);
     }
     if (data.containsKey('value')) {
-      context.handle(_valueMeta, value.isAcceptableOrUnknown(data['value']!, _valueMeta));
+      context.handle(
+        _valueMeta,
+        value.isAcceptableOrUnknown(data['value']!, _valueMeta),
+      );
     } else if (isInserting) {
       context.missing(_valueMeta);
     }
     if (data.containsKey('updated_at')) {
-      context.handle(_updatedAtMeta, updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
     }
     return context;
   }
@@ -69,9 +84,18 @@ class $KeyValueEntriesTable extends KeyValueEntries with TableInfo<$KeyValueEntr
   KeyValueEntry map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return KeyValueEntry(
-      key: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}key'])!,
-      value: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}value'])!,
-      updatedAt: attachedDatabase.typeMapping.read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
+      key: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}key'],
+      )!,
+      value: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}value'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
     );
   }
 
@@ -85,7 +109,11 @@ class KeyValueEntry extends DataClass implements Insertable<KeyValueEntry> {
   final String key;
   final String value;
   final DateTime updatedAt;
-  const KeyValueEntry({required this.key, required this.value, required this.updatedAt});
+  const KeyValueEntry({
+    required this.key,
+    required this.value,
+    required this.updatedAt,
+  });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -96,10 +124,17 @@ class KeyValueEntry extends DataClass implements Insertable<KeyValueEntry> {
   }
 
   KeyValueEntriesCompanion toCompanion(bool nullToAbsent) {
-    return KeyValueEntriesCompanion(key: Value(key), value: Value(value), updatedAt: Value(updatedAt));
+    return KeyValueEntriesCompanion(
+      key: Value(key),
+      value: Value(value),
+      updatedAt: Value(updatedAt),
+    );
   }
 
-  factory KeyValueEntry.fromJson(Map<String, dynamic> json, {ValueSerializer? serializer}) {
+  factory KeyValueEntry.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return KeyValueEntry(
       key: serializer.fromJson<String>(json['key']),
@@ -118,7 +153,11 @@ class KeyValueEntry extends DataClass implements Insertable<KeyValueEntry> {
   }
 
   KeyValueEntry copyWith({String? key, String? value, DateTime? updatedAt}) =>
-      KeyValueEntry(key: key ?? this.key, value: value ?? this.value, updatedAt: updatedAt ?? this.updatedAt);
+      KeyValueEntry(
+        key: key ?? this.key,
+        value: value ?? this.value,
+        updatedAt: updatedAt ?? this.updatedAt,
+      );
   KeyValueEntry copyWithCompanion(KeyValueEntriesCompanion data) {
     return KeyValueEntry(
       key: data.key.present ? data.key.value : this.key,
@@ -224,7 +263,8 @@ class KeyValueEntriesCompanion extends UpdateCompanion<KeyValueEntry> {
   }
 }
 
-class $CachedServicesTable extends CachedServices with TableInfo<$CachedServicesTable, CachedService> {
+class $CachedServicesTable extends CachedServices
+    with TableInfo<$CachedServicesTable, CachedService> {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
@@ -274,7 +314,9 @@ class $CachedServicesTable extends CachedServices with TableInfo<$CachedServices
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _changeSeqMeta = const VerificationMeta('changeSeq');
+  static const VerificationMeta _changeSeqMeta = const VerificationMeta(
+    'changeSeq',
+  );
   @override
   late final GeneratedColumn<int> changeSeq = GeneratedColumn<int>(
     'change_seq',
@@ -284,14 +326,24 @@ class $CachedServicesTable extends CachedServices with TableInfo<$CachedServices
     requiredDuringInsert: true,
   );
   @override
-  List<GeneratedColumn> get $columns => [id, orgId, name, health, json, changeSeq];
+  List<GeneratedColumn> get $columns => [
+    id,
+    orgId,
+    name,
+    health,
+    json,
+    changeSeq,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
   String get actualTableName => $name;
   static const String $name = 'cached_services';
   @override
-  VerificationContext validateIntegrity(Insertable<CachedService> instance, {bool isInserting = false}) {
+  VerificationContext validateIntegrity(
+    Insertable<CachedService> instance, {
+    bool isInserting = false,
+  }) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
     if (data.containsKey('id')) {
@@ -300,27 +352,42 @@ class $CachedServicesTable extends CachedServices with TableInfo<$CachedServices
       context.missing(_idMeta);
     }
     if (data.containsKey('org_id')) {
-      context.handle(_orgIdMeta, orgId.isAcceptableOrUnknown(data['org_id']!, _orgIdMeta));
+      context.handle(
+        _orgIdMeta,
+        orgId.isAcceptableOrUnknown(data['org_id']!, _orgIdMeta),
+      );
     } else if (isInserting) {
       context.missing(_orgIdMeta);
     }
     if (data.containsKey('name')) {
-      context.handle(_nameMeta, name.isAcceptableOrUnknown(data['name']!, _nameMeta));
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
     } else if (isInserting) {
       context.missing(_nameMeta);
     }
     if (data.containsKey('health')) {
-      context.handle(_healthMeta, health.isAcceptableOrUnknown(data['health']!, _healthMeta));
+      context.handle(
+        _healthMeta,
+        health.isAcceptableOrUnknown(data['health']!, _healthMeta),
+      );
     } else if (isInserting) {
       context.missing(_healthMeta);
     }
     if (data.containsKey('json')) {
-      context.handle(_jsonMeta, json.isAcceptableOrUnknown(data['json']!, _jsonMeta));
+      context.handle(
+        _jsonMeta,
+        json.isAcceptableOrUnknown(data['json']!, _jsonMeta),
+      );
     } else if (isInserting) {
       context.missing(_jsonMeta);
     }
     if (data.containsKey('change_seq')) {
-      context.handle(_changeSeqMeta, changeSeq.isAcceptableOrUnknown(data['change_seq']!, _changeSeqMeta));
+      context.handle(
+        _changeSeqMeta,
+        changeSeq.isAcceptableOrUnknown(data['change_seq']!, _changeSeqMeta),
+      );
     } else if (isInserting) {
       context.missing(_changeSeqMeta);
     }
@@ -333,12 +400,30 @@ class $CachedServicesTable extends CachedServices with TableInfo<$CachedServices
   CachedService map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return CachedService(
-      id: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}id'])!,
-      orgId: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}org_id'])!,
-      name: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}name'])!,
-      health: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}health'])!,
-      json: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}json'])!,
-      changeSeq: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}change_seq'])!,
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      orgId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}org_id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      health: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}health'],
+      )!,
+      json: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}json'],
+      )!,
+      changeSeq: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}change_seq'],
+      )!,
     );
   }
 
@@ -386,7 +471,10 @@ class CachedService extends DataClass implements Insertable<CachedService> {
     );
   }
 
-  factory CachedService.fromJson(Map<String, dynamic> json, {ValueSerializer? serializer}) {
+  factory CachedService.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return CachedService(
       id: serializer.fromJson<String>(json['id']),
@@ -410,15 +498,21 @@ class CachedService extends DataClass implements Insertable<CachedService> {
     };
   }
 
-  CachedService copyWith({String? id, String? orgId, String? name, String? health, String? json, int? changeSeq}) =>
-      CachedService(
-        id: id ?? this.id,
-        orgId: orgId ?? this.orgId,
-        name: name ?? this.name,
-        health: health ?? this.health,
-        json: json ?? this.json,
-        changeSeq: changeSeq ?? this.changeSeq,
-      );
+  CachedService copyWith({
+    String? id,
+    String? orgId,
+    String? name,
+    String? health,
+    String? json,
+    int? changeSeq,
+  }) => CachedService(
+    id: id ?? this.id,
+    orgId: orgId ?? this.orgId,
+    name: name ?? this.name,
+    health: health ?? this.health,
+    json: json ?? this.json,
+    changeSeq: changeSeq ?? this.changeSeq,
+  );
   CachedService copyWithCompanion(CachedServicesCompanion data) {
     return CachedService(
       id: data.id.present ? data.id.value : this.id,
@@ -570,7 +664,8 @@ class CachedServicesCompanion extends UpdateCompanion<CachedService> {
   }
 }
 
-class $CachedIncidentsTable extends CachedIncidents with TableInfo<$CachedIncidentsTable, CachedIncident> {
+class $CachedIncidentsTable extends CachedIncidents
+    with TableInfo<$CachedIncidentsTable, CachedIncident> {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
@@ -611,7 +706,9 @@ class $CachedIncidentsTable extends CachedIncidents with TableInfo<$CachedIncide
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _severityMeta = const VerificationMeta('severity');
+  static const VerificationMeta _severityMeta = const VerificationMeta(
+    'severity',
+  );
   @override
   late final GeneratedColumn<String> severity = GeneratedColumn<String>(
     'severity',
@@ -620,7 +717,9 @@ class $CachedIncidentsTable extends CachedIncidents with TableInfo<$CachedIncide
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _startedAtMeta = const VerificationMeta('startedAt');
+  static const VerificationMeta _startedAtMeta = const VerificationMeta(
+    'startedAt',
+  );
   @override
   late final GeneratedColumn<int> startedAt = GeneratedColumn<int>(
     'started_at',
@@ -629,7 +728,9 @@ class $CachedIncidentsTable extends CachedIncidents with TableInfo<$CachedIncide
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _serviceIdMeta = const VerificationMeta('serviceId');
+  static const VerificationMeta _serviceIdMeta = const VerificationMeta(
+    'serviceId',
+  );
   @override
   late final GeneratedColumn<String> serviceId = GeneratedColumn<String>(
     'service_id',
@@ -638,7 +739,9 @@ class $CachedIncidentsTable extends CachedIncidents with TableInfo<$CachedIncide
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
-  static const VerificationMeta _assigneeIdMeta = const VerificationMeta('assigneeId');
+  static const VerificationMeta _assigneeIdMeta = const VerificationMeta(
+    'assigneeId',
+  );
   @override
   late final GeneratedColumn<String> assigneeId = GeneratedColumn<String>(
     'assignee_id',
@@ -656,7 +759,9 @@ class $CachedIncidentsTable extends CachedIncidents with TableInfo<$CachedIncide
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _versionMeta = const VerificationMeta('version');
+  static const VerificationMeta _versionMeta = const VerificationMeta(
+    'version',
+  );
   @override
   late final GeneratedColumn<int> version = GeneratedColumn<int>(
     'version',
@@ -665,7 +770,9 @@ class $CachedIncidentsTable extends CachedIncidents with TableInfo<$CachedIncide
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _changeSeqMeta = const VerificationMeta('changeSeq');
+  static const VerificationMeta _changeSeqMeta = const VerificationMeta(
+    'changeSeq',
+  );
   @override
   late final GeneratedColumn<int> changeSeq = GeneratedColumn<int>(
     'change_seq',
@@ -674,7 +781,9 @@ class $CachedIncidentsTable extends CachedIncidents with TableInfo<$CachedIncide
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _pendingActionMeta = const VerificationMeta('pendingAction');
+  static const VerificationMeta _pendingActionMeta = const VerificationMeta(
+    'pendingAction',
+  );
   @override
   late final GeneratedColumn<String> pendingAction = GeneratedColumn<String>(
     'pending_action',
@@ -704,7 +813,10 @@ class $CachedIncidentsTable extends CachedIncidents with TableInfo<$CachedIncide
   String get actualTableName => $name;
   static const String $name = 'cached_incidents';
   @override
-  VerificationContext validateIntegrity(Insertable<CachedIncident> instance, {bool isInserting = false}) {
+  VerificationContext validateIntegrity(
+    Insertable<CachedIncident> instance, {
+    bool isInserting = false,
+  }) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
     if (data.containsKey('id')) {
@@ -713,55 +825,88 @@ class $CachedIncidentsTable extends CachedIncidents with TableInfo<$CachedIncide
       context.missing(_idMeta);
     }
     if (data.containsKey('org_id')) {
-      context.handle(_orgIdMeta, orgId.isAcceptableOrUnknown(data['org_id']!, _orgIdMeta));
+      context.handle(
+        _orgIdMeta,
+        orgId.isAcceptableOrUnknown(data['org_id']!, _orgIdMeta),
+      );
     } else if (isInserting) {
       context.missing(_orgIdMeta);
     }
     if (data.containsKey('key')) {
-      context.handle(_keyMeta, key.isAcceptableOrUnknown(data['key']!, _keyMeta));
+      context.handle(
+        _keyMeta,
+        key.isAcceptableOrUnknown(data['key']!, _keyMeta),
+      );
     } else if (isInserting) {
       context.missing(_keyMeta);
     }
     if (data.containsKey('status')) {
-      context.handle(_statusMeta, status.isAcceptableOrUnknown(data['status']!, _statusMeta));
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
     } else if (isInserting) {
       context.missing(_statusMeta);
     }
     if (data.containsKey('severity')) {
-      context.handle(_severityMeta, severity.isAcceptableOrUnknown(data['severity']!, _severityMeta));
+      context.handle(
+        _severityMeta,
+        severity.isAcceptableOrUnknown(data['severity']!, _severityMeta),
+      );
     } else if (isInserting) {
       context.missing(_severityMeta);
     }
     if (data.containsKey('started_at')) {
-      context.handle(_startedAtMeta, startedAt.isAcceptableOrUnknown(data['started_at']!, _startedAtMeta));
+      context.handle(
+        _startedAtMeta,
+        startedAt.isAcceptableOrUnknown(data['started_at']!, _startedAtMeta),
+      );
     } else if (isInserting) {
       context.missing(_startedAtMeta);
     }
     if (data.containsKey('service_id')) {
-      context.handle(_serviceIdMeta, serviceId.isAcceptableOrUnknown(data['service_id']!, _serviceIdMeta));
+      context.handle(
+        _serviceIdMeta,
+        serviceId.isAcceptableOrUnknown(data['service_id']!, _serviceIdMeta),
+      );
     }
     if (data.containsKey('assignee_id')) {
-      context.handle(_assigneeIdMeta, assigneeId.isAcceptableOrUnknown(data['assignee_id']!, _assigneeIdMeta));
+      context.handle(
+        _assigneeIdMeta,
+        assigneeId.isAcceptableOrUnknown(data['assignee_id']!, _assigneeIdMeta),
+      );
     }
     if (data.containsKey('json')) {
-      context.handle(_jsonMeta, json.isAcceptableOrUnknown(data['json']!, _jsonMeta));
+      context.handle(
+        _jsonMeta,
+        json.isAcceptableOrUnknown(data['json']!, _jsonMeta),
+      );
     } else if (isInserting) {
       context.missing(_jsonMeta);
     }
     if (data.containsKey('version')) {
-      context.handle(_versionMeta, version.isAcceptableOrUnknown(data['version']!, _versionMeta));
+      context.handle(
+        _versionMeta,
+        version.isAcceptableOrUnknown(data['version']!, _versionMeta),
+      );
     } else if (isInserting) {
       context.missing(_versionMeta);
     }
     if (data.containsKey('change_seq')) {
-      context.handle(_changeSeqMeta, changeSeq.isAcceptableOrUnknown(data['change_seq']!, _changeSeqMeta));
+      context.handle(
+        _changeSeqMeta,
+        changeSeq.isAcceptableOrUnknown(data['change_seq']!, _changeSeqMeta),
+      );
     } else if (isInserting) {
       context.missing(_changeSeqMeta);
     }
     if (data.containsKey('pending_action')) {
       context.handle(
         _pendingActionMeta,
-        pendingAction.isAcceptableOrUnknown(data['pending_action']!, _pendingActionMeta),
+        pendingAction.isAcceptableOrUnknown(
+          data['pending_action']!,
+          _pendingActionMeta,
+        ),
       );
     }
     return context;
@@ -773,18 +918,54 @@ class $CachedIncidentsTable extends CachedIncidents with TableInfo<$CachedIncide
   CachedIncident map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return CachedIncident(
-      id: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}id'])!,
-      orgId: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}org_id'])!,
-      key: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}key'])!,
-      status: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}status'])!,
-      severity: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}severity'])!,
-      startedAt: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}started_at'])!,
-      serviceId: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}service_id']),
-      assigneeId: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}assignee_id']),
-      json: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}json'])!,
-      version: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}version'])!,
-      changeSeq: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}change_seq'])!,
-      pendingAction: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}pending_action']),
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      orgId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}org_id'],
+      )!,
+      key: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}key'],
+      )!,
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status'],
+      )!,
+      severity: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}severity'],
+      )!,
+      startedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}started_at'],
+      )!,
+      serviceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}service_id'],
+      ),
+      assigneeId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}assignee_id'],
+      ),
+      json: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}json'],
+      )!,
+      version: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}version'],
+      )!,
+      changeSeq: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}change_seq'],
+      )!,
+      pendingAction: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}pending_action'],
+      ),
     );
   }
 
@@ -855,16 +1036,25 @@ class CachedIncident extends DataClass implements Insertable<CachedIncident> {
       status: Value(status),
       severity: Value(severity),
       startedAt: Value(startedAt),
-      serviceId: serviceId == null && nullToAbsent ? const Value.absent() : Value(serviceId),
-      assigneeId: assigneeId == null && nullToAbsent ? const Value.absent() : Value(assigneeId),
+      serviceId: serviceId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(serviceId),
+      assigneeId: assigneeId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(assigneeId),
       json: Value(json),
       version: Value(version),
       changeSeq: Value(changeSeq),
-      pendingAction: pendingAction == null && nullToAbsent ? const Value.absent() : Value(pendingAction),
+      pendingAction: pendingAction == null && nullToAbsent
+          ? const Value.absent()
+          : Value(pendingAction),
     );
   }
 
-  factory CachedIncident.fromJson(Map<String, dynamic> json, {ValueSerializer? serializer}) {
+  factory CachedIncident.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return CachedIncident(
       id: serializer.fromJson<String>(json['id']),
@@ -925,7 +1115,9 @@ class CachedIncident extends DataClass implements Insertable<CachedIncident> {
     json: json ?? this.json,
     version: version ?? this.version,
     changeSeq: changeSeq ?? this.changeSeq,
-    pendingAction: pendingAction.present ? pendingAction.value : this.pendingAction,
+    pendingAction: pendingAction.present
+        ? pendingAction.value
+        : this.pendingAction,
   );
   CachedIncident copyWithCompanion(CachedIncidentsCompanion data) {
     return CachedIncident(
@@ -936,11 +1128,15 @@ class CachedIncident extends DataClass implements Insertable<CachedIncident> {
       severity: data.severity.present ? data.severity.value : this.severity,
       startedAt: data.startedAt.present ? data.startedAt.value : this.startedAt,
       serviceId: data.serviceId.present ? data.serviceId.value : this.serviceId,
-      assigneeId: data.assigneeId.present ? data.assigneeId.value : this.assigneeId,
+      assigneeId: data.assigneeId.present
+          ? data.assigneeId.value
+          : this.assigneeId,
       json: data.json.present ? data.json.value : this.json,
       version: data.version.present ? data.version.value : this.version,
       changeSeq: data.changeSeq.present ? data.changeSeq.value : this.changeSeq,
-      pendingAction: data.pendingAction.present ? data.pendingAction.value : this.pendingAction,
+      pendingAction: data.pendingAction.present
+          ? data.pendingAction.value
+          : this.pendingAction,
     );
   }
 
@@ -1178,7 +1374,8 @@ class CachedIncidentsCompanion extends UpdateCompanion<CachedIncident> {
   }
 }
 
-class $CachedDeploymentsTable extends CachedDeployments with TableInfo<$CachedDeploymentsTable, CachedDeployment> {
+class $CachedDeploymentsTable extends CachedDeployments
+    with TableInfo<$CachedDeploymentsTable, CachedDeployment> {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
@@ -1201,7 +1398,9 @@ class $CachedDeploymentsTable extends CachedDeployments with TableInfo<$CachedDe
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _serviceIdMeta = const VerificationMeta('serviceId');
+  static const VerificationMeta _serviceIdMeta = const VerificationMeta(
+    'serviceId',
+  );
   @override
   late final GeneratedColumn<String> serviceId = GeneratedColumn<String>(
     'service_id',
@@ -1210,7 +1409,9 @@ class $CachedDeploymentsTable extends CachedDeployments with TableInfo<$CachedDe
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _startedAtMeta = const VerificationMeta('startedAt');
+  static const VerificationMeta _startedAtMeta = const VerificationMeta(
+    'startedAt',
+  );
   @override
   late final GeneratedColumn<int> startedAt = GeneratedColumn<int>(
     'started_at',
@@ -1228,7 +1429,9 @@ class $CachedDeploymentsTable extends CachedDeployments with TableInfo<$CachedDe
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _changeSeqMeta = const VerificationMeta('changeSeq');
+  static const VerificationMeta _changeSeqMeta = const VerificationMeta(
+    'changeSeq',
+  );
   @override
   late final GeneratedColumn<int> changeSeq = GeneratedColumn<int>(
     'change_seq',
@@ -1238,14 +1441,24 @@ class $CachedDeploymentsTable extends CachedDeployments with TableInfo<$CachedDe
     requiredDuringInsert: true,
   );
   @override
-  List<GeneratedColumn> get $columns => [id, orgId, serviceId, startedAt, json, changeSeq];
+  List<GeneratedColumn> get $columns => [
+    id,
+    orgId,
+    serviceId,
+    startedAt,
+    json,
+    changeSeq,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
   String get actualTableName => $name;
   static const String $name = 'cached_deployments';
   @override
-  VerificationContext validateIntegrity(Insertable<CachedDeployment> instance, {bool isInserting = false}) {
+  VerificationContext validateIntegrity(
+    Insertable<CachedDeployment> instance, {
+    bool isInserting = false,
+  }) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
     if (data.containsKey('id')) {
@@ -1254,27 +1467,42 @@ class $CachedDeploymentsTable extends CachedDeployments with TableInfo<$CachedDe
       context.missing(_idMeta);
     }
     if (data.containsKey('org_id')) {
-      context.handle(_orgIdMeta, orgId.isAcceptableOrUnknown(data['org_id']!, _orgIdMeta));
+      context.handle(
+        _orgIdMeta,
+        orgId.isAcceptableOrUnknown(data['org_id']!, _orgIdMeta),
+      );
     } else if (isInserting) {
       context.missing(_orgIdMeta);
     }
     if (data.containsKey('service_id')) {
-      context.handle(_serviceIdMeta, serviceId.isAcceptableOrUnknown(data['service_id']!, _serviceIdMeta));
+      context.handle(
+        _serviceIdMeta,
+        serviceId.isAcceptableOrUnknown(data['service_id']!, _serviceIdMeta),
+      );
     } else if (isInserting) {
       context.missing(_serviceIdMeta);
     }
     if (data.containsKey('started_at')) {
-      context.handle(_startedAtMeta, startedAt.isAcceptableOrUnknown(data['started_at']!, _startedAtMeta));
+      context.handle(
+        _startedAtMeta,
+        startedAt.isAcceptableOrUnknown(data['started_at']!, _startedAtMeta),
+      );
     } else if (isInserting) {
       context.missing(_startedAtMeta);
     }
     if (data.containsKey('json')) {
-      context.handle(_jsonMeta, json.isAcceptableOrUnknown(data['json']!, _jsonMeta));
+      context.handle(
+        _jsonMeta,
+        json.isAcceptableOrUnknown(data['json']!, _jsonMeta),
+      );
     } else if (isInserting) {
       context.missing(_jsonMeta);
     }
     if (data.containsKey('change_seq')) {
-      context.handle(_changeSeqMeta, changeSeq.isAcceptableOrUnknown(data['change_seq']!, _changeSeqMeta));
+      context.handle(
+        _changeSeqMeta,
+        changeSeq.isAcceptableOrUnknown(data['change_seq']!, _changeSeqMeta),
+      );
     } else if (isInserting) {
       context.missing(_changeSeqMeta);
     }
@@ -1287,12 +1515,30 @@ class $CachedDeploymentsTable extends CachedDeployments with TableInfo<$CachedDe
   CachedDeployment map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return CachedDeployment(
-      id: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}id'])!,
-      orgId: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}org_id'])!,
-      serviceId: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}service_id'])!,
-      startedAt: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}started_at'])!,
-      json: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}json'])!,
-      changeSeq: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}change_seq'])!,
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      orgId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}org_id'],
+      )!,
+      serviceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}service_id'],
+      )!,
+      startedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}started_at'],
+      )!,
+      json: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}json'],
+      )!,
+      changeSeq: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}change_seq'],
+      )!,
     );
   }
 
@@ -1302,7 +1548,8 @@ class $CachedDeploymentsTable extends CachedDeployments with TableInfo<$CachedDe
   }
 }
 
-class CachedDeployment extends DataClass implements Insertable<CachedDeployment> {
+class CachedDeployment extends DataClass
+    implements Insertable<CachedDeployment> {
   final String id;
   final String orgId;
   final String serviceId;
@@ -1340,7 +1587,10 @@ class CachedDeployment extends DataClass implements Insertable<CachedDeployment>
     );
   }
 
-  factory CachedDeployment.fromJson(Map<String, dynamic> json, {ValueSerializer? serializer}) {
+  factory CachedDeployment.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return CachedDeployment(
       id: serializer.fromJson<String>(json['id']),
@@ -1404,7 +1654,8 @@ class CachedDeployment extends DataClass implements Insertable<CachedDeployment>
   }
 
   @override
-  int get hashCode => Object.hash(id, orgId, serviceId, startedAt, json, changeSeq);
+  int get hashCode =>
+      Object.hash(id, orgId, serviceId, startedAt, json, changeSeq);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1530,7 +1781,8 @@ class CachedDeploymentsCompanion extends UpdateCompanion<CachedDeployment> {
   }
 }
 
-class $SyncCursorsTable extends SyncCursors with TableInfo<$SyncCursorsTable, SyncCursor> {
+class $SyncCursorsTable extends SyncCursors
+    with TableInfo<$SyncCursorsTable, SyncCursor> {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
@@ -1544,7 +1796,9 @@ class $SyncCursorsTable extends SyncCursors with TableInfo<$SyncCursorsTable, Sy
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _collectionMeta = const VerificationMeta('collection');
+  static const VerificationMeta _collectionMeta = const VerificationMeta(
+    'collection',
+  );
   @override
   late final GeneratedColumn<String> collection = GeneratedColumn<String>(
     'collection',
@@ -1570,21 +1824,33 @@ class $SyncCursorsTable extends SyncCursors with TableInfo<$SyncCursorsTable, Sy
   String get actualTableName => $name;
   static const String $name = 'sync_cursors';
   @override
-  VerificationContext validateIntegrity(Insertable<SyncCursor> instance, {bool isInserting = false}) {
+  VerificationContext validateIntegrity(
+    Insertable<SyncCursor> instance, {
+    bool isInserting = false,
+  }) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
     if (data.containsKey('org_id')) {
-      context.handle(_orgIdMeta, orgId.isAcceptableOrUnknown(data['org_id']!, _orgIdMeta));
+      context.handle(
+        _orgIdMeta,
+        orgId.isAcceptableOrUnknown(data['org_id']!, _orgIdMeta),
+      );
     } else if (isInserting) {
       context.missing(_orgIdMeta);
     }
     if (data.containsKey('collection')) {
-      context.handle(_collectionMeta, collection.isAcceptableOrUnknown(data['collection']!, _collectionMeta));
+      context.handle(
+        _collectionMeta,
+        collection.isAcceptableOrUnknown(data['collection']!, _collectionMeta),
+      );
     } else if (isInserting) {
       context.missing(_collectionMeta);
     }
     if (data.containsKey('cursor')) {
-      context.handle(_cursorMeta, cursor.isAcceptableOrUnknown(data['cursor']!, _cursorMeta));
+      context.handle(
+        _cursorMeta,
+        cursor.isAcceptableOrUnknown(data['cursor']!, _cursorMeta),
+      );
     } else if (isInserting) {
       context.missing(_cursorMeta);
     }
@@ -1597,9 +1863,18 @@ class $SyncCursorsTable extends SyncCursors with TableInfo<$SyncCursorsTable, Sy
   SyncCursor map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return SyncCursor(
-      orgId: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}org_id'])!,
-      collection: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}collection'])!,
-      cursor: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}cursor'])!,
+      orgId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}org_id'],
+      )!,
+      collection: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}collection'],
+      )!,
+      cursor: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}cursor'],
+      )!,
     );
   }
 
@@ -1613,7 +1888,11 @@ class SyncCursor extends DataClass implements Insertable<SyncCursor> {
   final String orgId;
   final String collection;
   final int cursor;
-  const SyncCursor({required this.orgId, required this.collection, required this.cursor});
+  const SyncCursor({
+    required this.orgId,
+    required this.collection,
+    required this.cursor,
+  });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -1624,10 +1903,17 @@ class SyncCursor extends DataClass implements Insertable<SyncCursor> {
   }
 
   SyncCursorsCompanion toCompanion(bool nullToAbsent) {
-    return SyncCursorsCompanion(orgId: Value(orgId), collection: Value(collection), cursor: Value(cursor));
+    return SyncCursorsCompanion(
+      orgId: Value(orgId),
+      collection: Value(collection),
+      cursor: Value(cursor),
+    );
   }
 
-  factory SyncCursor.fromJson(Map<String, dynamic> json, {ValueSerializer? serializer}) {
+  factory SyncCursor.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return SyncCursor(
       orgId: serializer.fromJson<String>(json['orgId']),
@@ -1646,11 +1932,17 @@ class SyncCursor extends DataClass implements Insertable<SyncCursor> {
   }
 
   SyncCursor copyWith({String? orgId, String? collection, int? cursor}) =>
-      SyncCursor(orgId: orgId ?? this.orgId, collection: collection ?? this.collection, cursor: cursor ?? this.cursor);
+      SyncCursor(
+        orgId: orgId ?? this.orgId,
+        collection: collection ?? this.collection,
+        cursor: cursor ?? this.cursor,
+      );
   SyncCursor copyWithCompanion(SyncCursorsCompanion data) {
     return SyncCursor(
       orgId: data.orgId.present ? data.orgId.value : this.orgId,
-      collection: data.collection.present ? data.collection.value : this.collection,
+      collection: data.collection.present
+          ? data.collection.value
+          : this.collection,
       cursor: data.cursor.present ? data.cursor.value : this.cursor,
     );
   }
@@ -1753,7 +2045,8 @@ class SyncCursorsCompanion extends UpdateCompanion<SyncCursor> {
   }
 }
 
-class $OutboxEntriesTable extends OutboxEntries with TableInfo<$OutboxEntriesTable, OutboxEntry> {
+class $OutboxEntriesTable extends OutboxEntries
+    with TableInfo<$OutboxEntriesTable, OutboxEntry> {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
@@ -1767,7 +2060,9 @@ class $OutboxEntriesTable extends OutboxEntries with TableInfo<$OutboxEntriesTab
     hasAutoIncrement: true,
     type: DriftSqlType.int,
     requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'),
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
   );
   static const VerificationMeta _orgIdMeta = const VerificationMeta('orgId');
   @override
@@ -1778,7 +2073,9 @@ class $OutboxEntriesTable extends OutboxEntries with TableInfo<$OutboxEntriesTab
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _incidentIdMeta = const VerificationMeta('incidentId');
+  static const VerificationMeta _incidentIdMeta = const VerificationMeta(
+    'incidentId',
+  );
   @override
   late final GeneratedColumn<String> incidentId = GeneratedColumn<String>(
     'incident_id',
@@ -1823,7 +2120,9 @@ class $OutboxEntriesTable extends OutboxEntries with TableInfo<$OutboxEntriesTab
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _idempotencyKeyMeta = const VerificationMeta('idempotencyKey');
+  static const VerificationMeta _idempotencyKeyMeta = const VerificationMeta(
+    'idempotencyKey',
+  );
   @override
   late final GeneratedColumn<String> idempotencyKey = GeneratedColumn<String>(
     'idempotency_key',
@@ -1832,7 +2131,9 @@ class $OutboxEntriesTable extends OutboxEntries with TableInfo<$OutboxEntriesTab
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _clientIdMeta = const VerificationMeta('clientId');
+  static const VerificationMeta _clientIdMeta = const VerificationMeta(
+    'clientId',
+  );
   @override
   late final GeneratedColumn<String> clientId = GeneratedColumn<String>(
     'client_id',
@@ -1841,7 +2142,9 @@ class $OutboxEntriesTable extends OutboxEntries with TableInfo<$OutboxEntriesTab
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
-  static const VerificationMeta _baseVersionMeta = const VerificationMeta('baseVersion');
+  static const VerificationMeta _baseVersionMeta = const VerificationMeta(
+    'baseVersion',
+  );
   @override
   late final GeneratedColumn<int> baseVersion = GeneratedColumn<int>(
     'base_version',
@@ -1850,7 +2153,9 @@ class $OutboxEntriesTable extends OutboxEntries with TableInfo<$OutboxEntriesTab
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
-  static const VerificationMeta _attemptsMeta = const VerificationMeta('attempts');
+  static const VerificationMeta _attemptsMeta = const VerificationMeta(
+    'attempts',
+  );
   @override
   late final GeneratedColumn<int> attempts = GeneratedColumn<int>(
     'attempts',
@@ -1860,7 +2165,9 @@ class $OutboxEntriesTable extends OutboxEntries with TableInfo<$OutboxEntriesTab
     requiredDuringInsert: false,
     defaultValue: const Constant(0),
   );
-  static const VerificationMeta _nextAttemptAtMeta = const VerificationMeta('nextAttemptAt');
+  static const VerificationMeta _nextAttemptAtMeta = const VerificationMeta(
+    'nextAttemptAt',
+  );
   @override
   late final GeneratedColumn<int> nextAttemptAt = GeneratedColumn<int>(
     'next_attempt_at',
@@ -1880,7 +2187,9 @@ class $OutboxEntriesTable extends OutboxEntries with TableInfo<$OutboxEntriesTab
     requiredDuringInsert: false,
     defaultValue: const Constant('pending'),
   );
-  static const VerificationMeta _lastErrorMeta = const VerificationMeta('lastError');
+  static const VerificationMeta _lastErrorMeta = const VerificationMeta(
+    'lastError',
+  );
   @override
   late final GeneratedColumn<String> lastError = GeneratedColumn<String>(
     'last_error',
@@ -1889,7 +2198,9 @@ class $OutboxEntriesTable extends OutboxEntries with TableInfo<$OutboxEntriesTab
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
-  static const VerificationMeta _createdAtMeta = const VerificationMeta('createdAt');
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
   @override
   late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
     'created_at',
@@ -1922,73 +2233,121 @@ class $OutboxEntriesTable extends OutboxEntries with TableInfo<$OutboxEntriesTab
   String get actualTableName => $name;
   static const String $name = 'outbox_entries';
   @override
-  VerificationContext validateIntegrity(Insertable<OutboxEntry> instance, {bool isInserting = false}) {
+  VerificationContext validateIntegrity(
+    Insertable<OutboxEntry> instance, {
+    bool isInserting = false,
+  }) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
     }
     if (data.containsKey('org_id')) {
-      context.handle(_orgIdMeta, orgId.isAcceptableOrUnknown(data['org_id']!, _orgIdMeta));
+      context.handle(
+        _orgIdMeta,
+        orgId.isAcceptableOrUnknown(data['org_id']!, _orgIdMeta),
+      );
     } else if (isInserting) {
       context.missing(_orgIdMeta);
     }
     if (data.containsKey('incident_id')) {
-      context.handle(_incidentIdMeta, incidentId.isAcceptableOrUnknown(data['incident_id']!, _incidentIdMeta));
+      context.handle(
+        _incidentIdMeta,
+        incidentId.isAcceptableOrUnknown(data['incident_id']!, _incidentIdMeta),
+      );
     } else if (isInserting) {
       context.missing(_incidentIdMeta);
     }
     if (data.containsKey('kind')) {
-      context.handle(_kindMeta, kind.isAcceptableOrUnknown(data['kind']!, _kindMeta));
+      context.handle(
+        _kindMeta,
+        kind.isAcceptableOrUnknown(data['kind']!, _kindMeta),
+      );
     } else if (isInserting) {
       context.missing(_kindMeta);
     }
     if (data.containsKey('action')) {
-      context.handle(_actionMeta, action.isAcceptableOrUnknown(data['action']!, _actionMeta));
+      context.handle(
+        _actionMeta,
+        action.isAcceptableOrUnknown(data['action']!, _actionMeta),
+      );
     } else if (isInserting) {
       context.missing(_actionMeta);
     }
     if (data.containsKey('path')) {
-      context.handle(_pathMeta, path.isAcceptableOrUnknown(data['path']!, _pathMeta));
+      context.handle(
+        _pathMeta,
+        path.isAcceptableOrUnknown(data['path']!, _pathMeta),
+      );
     } else if (isInserting) {
       context.missing(_pathMeta);
     }
     if (data.containsKey('body')) {
-      context.handle(_bodyMeta, body.isAcceptableOrUnknown(data['body']!, _bodyMeta));
+      context.handle(
+        _bodyMeta,
+        body.isAcceptableOrUnknown(data['body']!, _bodyMeta),
+      );
     } else if (isInserting) {
       context.missing(_bodyMeta);
     }
     if (data.containsKey('idempotency_key')) {
       context.handle(
         _idempotencyKeyMeta,
-        idempotencyKey.isAcceptableOrUnknown(data['idempotency_key']!, _idempotencyKeyMeta),
+        idempotencyKey.isAcceptableOrUnknown(
+          data['idempotency_key']!,
+          _idempotencyKeyMeta,
+        ),
       );
     } else if (isInserting) {
       context.missing(_idempotencyKeyMeta);
     }
     if (data.containsKey('client_id')) {
-      context.handle(_clientIdMeta, clientId.isAcceptableOrUnknown(data['client_id']!, _clientIdMeta));
+      context.handle(
+        _clientIdMeta,
+        clientId.isAcceptableOrUnknown(data['client_id']!, _clientIdMeta),
+      );
     }
     if (data.containsKey('base_version')) {
-      context.handle(_baseVersionMeta, baseVersion.isAcceptableOrUnknown(data['base_version']!, _baseVersionMeta));
+      context.handle(
+        _baseVersionMeta,
+        baseVersion.isAcceptableOrUnknown(
+          data['base_version']!,
+          _baseVersionMeta,
+        ),
+      );
     }
     if (data.containsKey('attempts')) {
-      context.handle(_attemptsMeta, attempts.isAcceptableOrUnknown(data['attempts']!, _attemptsMeta));
+      context.handle(
+        _attemptsMeta,
+        attempts.isAcceptableOrUnknown(data['attempts']!, _attemptsMeta),
+      );
     }
     if (data.containsKey('next_attempt_at')) {
       context.handle(
         _nextAttemptAtMeta,
-        nextAttemptAt.isAcceptableOrUnknown(data['next_attempt_at']!, _nextAttemptAtMeta),
+        nextAttemptAt.isAcceptableOrUnknown(
+          data['next_attempt_at']!,
+          _nextAttemptAtMeta,
+        ),
       );
     }
     if (data.containsKey('state')) {
-      context.handle(_stateMeta, state.isAcceptableOrUnknown(data['state']!, _stateMeta));
+      context.handle(
+        _stateMeta,
+        state.isAcceptableOrUnknown(data['state']!, _stateMeta),
+      );
     }
     if (data.containsKey('last_error')) {
-      context.handle(_lastErrorMeta, lastError.isAcceptableOrUnknown(data['last_error']!, _lastErrorMeta));
+      context.handle(
+        _lastErrorMeta,
+        lastError.isAcceptableOrUnknown(data['last_error']!, _lastErrorMeta),
+      );
     }
     if (data.containsKey('created_at')) {
-      context.handle(_createdAtMeta, createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
     } else if (isInserting) {
       context.missing(_createdAtMeta);
     }
@@ -2001,24 +2360,66 @@ class $OutboxEntriesTable extends OutboxEntries with TableInfo<$OutboxEntriesTab
   OutboxEntry map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return OutboxEntry(
-      id: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}id'])!,
-      orgId: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}org_id'])!,
-      incidentId: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}incident_id'])!,
-      kind: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}kind'])!,
-      action: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}action'])!,
-      path: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}path'])!,
-      body: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}body'])!,
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      orgId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}org_id'],
+      )!,
+      incidentId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}incident_id'],
+      )!,
+      kind: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}kind'],
+      )!,
+      action: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}action'],
+      )!,
+      path: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}path'],
+      )!,
+      body: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}body'],
+      )!,
       idempotencyKey: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}idempotency_key'],
       )!,
-      clientId: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}client_id']),
-      baseVersion: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}base_version']),
-      attempts: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}attempts'])!,
-      nextAttemptAt: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}next_attempt_at'])!,
-      state: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}state'])!,
-      lastError: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}last_error']),
-      createdAt: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}created_at'])!,
+      clientId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}client_id'],
+      ),
+      baseVersion: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}base_version'],
+      ),
+      attempts: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}attempts'],
+      )!,
+      nextAttemptAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}next_attempt_at'],
+      )!,
+      state: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}state'],
+      )!,
+      lastError: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}last_error'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at'],
+      )!,
     );
   }
 
@@ -2098,17 +2499,26 @@ class OutboxEntry extends DataClass implements Insertable<OutboxEntry> {
       path: Value(path),
       body: Value(body),
       idempotencyKey: Value(idempotencyKey),
-      clientId: clientId == null && nullToAbsent ? const Value.absent() : Value(clientId),
-      baseVersion: baseVersion == null && nullToAbsent ? const Value.absent() : Value(baseVersion),
+      clientId: clientId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(clientId),
+      baseVersion: baseVersion == null && nullToAbsent
+          ? const Value.absent()
+          : Value(baseVersion),
       attempts: Value(attempts),
       nextAttemptAt: Value(nextAttemptAt),
       state: Value(state),
-      lastError: lastError == null && nullToAbsent ? const Value.absent() : Value(lastError),
+      lastError: lastError == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastError),
       createdAt: Value(createdAt),
     );
   }
 
-  factory OutboxEntry.fromJson(Map<String, dynamic> json, {ValueSerializer? serializer}) {
+  factory OutboxEntry.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return OutboxEntry(
       id: serializer.fromJson<int>(json['id']),
@@ -2187,16 +2597,24 @@ class OutboxEntry extends DataClass implements Insertable<OutboxEntry> {
     return OutboxEntry(
       id: data.id.present ? data.id.value : this.id,
       orgId: data.orgId.present ? data.orgId.value : this.orgId,
-      incidentId: data.incidentId.present ? data.incidentId.value : this.incidentId,
+      incidentId: data.incidentId.present
+          ? data.incidentId.value
+          : this.incidentId,
       kind: data.kind.present ? data.kind.value : this.kind,
       action: data.action.present ? data.action.value : this.action,
       path: data.path.present ? data.path.value : this.path,
       body: data.body.present ? data.body.value : this.body,
-      idempotencyKey: data.idempotencyKey.present ? data.idempotencyKey.value : this.idempotencyKey,
+      idempotencyKey: data.idempotencyKey.present
+          ? data.idempotencyKey.value
+          : this.idempotencyKey,
       clientId: data.clientId.present ? data.clientId.value : this.clientId,
-      baseVersion: data.baseVersion.present ? data.baseVersion.value : this.baseVersion,
+      baseVersion: data.baseVersion.present
+          ? data.baseVersion.value
+          : this.baseVersion,
       attempts: data.attempts.present ? data.attempts.value : this.attempts,
-      nextAttemptAt: data.nextAttemptAt.present ? data.nextAttemptAt.value : this.nextAttemptAt,
+      nextAttemptAt: data.nextAttemptAt.present
+          ? data.nextAttemptAt.value
+          : this.nextAttemptAt,
       state: data.state.present ? data.state.value : this.state,
       lastError: data.lastError.present ? data.lastError.value : this.lastError,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
@@ -2470,14 +2888,20 @@ class OutboxEntriesCompanion extends UpdateCompanion<OutboxEntry> {
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
-  late final $KeyValueEntriesTable keyValueEntries = $KeyValueEntriesTable(this);
+  late final $KeyValueEntriesTable keyValueEntries = $KeyValueEntriesTable(
+    this,
+  );
   late final $CachedServicesTable cachedServices = $CachedServicesTable(this);
-  late final $CachedIncidentsTable cachedIncidents = $CachedIncidentsTable(this);
-  late final $CachedDeploymentsTable cachedDeployments = $CachedDeploymentsTable(this);
+  late final $CachedIncidentsTable cachedIncidents = $CachedIncidentsTable(
+    this,
+  );
+  late final $CachedDeploymentsTable cachedDeployments =
+      $CachedDeploymentsTable(this);
   late final $SyncCursorsTable syncCursors = $SyncCursorsTable(this);
   late final $OutboxEntriesTable outboxEntries = $OutboxEntriesTable(this);
   @override
-  Iterable<TableInfo<Table, Object?>> get allTables => allSchemaEntities.whereType<TableInfo<Table, Object?>>();
+  Iterable<TableInfo<Table, Object?>> get allTables =>
+      allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
   List<DatabaseSchemaEntity> get allSchemaEntities => [
     keyValueEntries,
@@ -2489,20 +2913,23 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   ];
 }
 
-typedef $$KeyValueEntriesTableCreateCompanionBuilder = KeyValueEntriesCompanion Function({
-  required String key,
-  required String value,
-  Value<DateTime> updatedAt,
-  Value<int> rowid,
-});
-typedef $$KeyValueEntriesTableUpdateCompanionBuilder = KeyValueEntriesCompanion Function({
-  Value<String> key,
-  Value<String> value,
-  Value<DateTime> updatedAt,
-  Value<int> rowid,
-});
+typedef $$KeyValueEntriesTableCreateCompanionBuilder =
+    KeyValueEntriesCompanion Function({
+      required String key,
+      required String value,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+typedef $$KeyValueEntriesTableUpdateCompanionBuilder =
+    KeyValueEntriesCompanion Function({
+      Value<String> key,
+      Value<String> value,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
 
-class $$KeyValueEntriesTableFilterComposer extends Composer<_$AppDatabase, $KeyValueEntriesTable> {
+class $$KeyValueEntriesTableFilterComposer
+    extends Composer<_$AppDatabase, $KeyValueEntriesTable> {
   $$KeyValueEntriesTableFilterComposer({
     required super.$db,
     required super.$table,
@@ -2510,16 +2937,24 @@ class $$KeyValueEntriesTableFilterComposer extends Composer<_$AppDatabase, $KeyV
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnFilters<String> get key => $composableBuilder(column: $table.key, builder: (column) => ColumnFilters(column));
+  ColumnFilters<String> get key => $composableBuilder(
+    column: $table.key,
+    builder: (column) => ColumnFilters(column),
+  );
 
-  ColumnFilters<String> get value =>
-      $composableBuilder(column: $table.value, builder: (column) => ColumnFilters(column));
+  ColumnFilters<String> get value => $composableBuilder(
+    column: $table.value,
+    builder: (column) => ColumnFilters(column),
+  );
 
-  ColumnFilters<DateTime> get updatedAt =>
-      $composableBuilder(column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
 }
 
-class $$KeyValueEntriesTableOrderingComposer extends Composer<_$AppDatabase, $KeyValueEntriesTable> {
+class $$KeyValueEntriesTableOrderingComposer
+    extends Composer<_$AppDatabase, $KeyValueEntriesTable> {
   $$KeyValueEntriesTableOrderingComposer({
     required super.$db,
     required super.$table,
@@ -2527,17 +2962,24 @@ class $$KeyValueEntriesTableOrderingComposer extends Composer<_$AppDatabase, $Ke
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnOrderings<String> get key =>
-      $composableBuilder(column: $table.key, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<String> get key => $composableBuilder(
+    column: $table.key,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<String> get value =>
-      $composableBuilder(column: $table.value, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<String> get value => $composableBuilder(
+    column: $table.value,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<DateTime> get updatedAt =>
-      $composableBuilder(column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
-class $$KeyValueEntriesTableAnnotationComposer extends Composer<_$AppDatabase, $KeyValueEntriesTable> {
+class $$KeyValueEntriesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $KeyValueEntriesTable> {
   $$KeyValueEntriesTableAnnotationComposer({
     required super.$db,
     required super.$table,
@@ -2545,11 +2987,14 @@ class $$KeyValueEntriesTableAnnotationComposer extends Composer<_$AppDatabase, $
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  GeneratedColumn<String> get key => $composableBuilder(column: $table.key, builder: (column) => column);
+  GeneratedColumn<String> get key =>
+      $composableBuilder(column: $table.key, builder: (column) => column);
 
-  GeneratedColumn<String> get value => $composableBuilder(column: $table.value, builder: (column) => column);
+  GeneratedColumn<String> get value =>
+      $composableBuilder(column: $table.value, builder: (column) => column);
 
-  GeneratedColumn<DateTime> get updatedAt => $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
 }
 
 class $$KeyValueEntriesTableTableManager
@@ -2563,35 +3008,59 @@ class $$KeyValueEntriesTableTableManager
           $$KeyValueEntriesTableAnnotationComposer,
           $$KeyValueEntriesTableCreateCompanionBuilder,
           $$KeyValueEntriesTableUpdateCompanionBuilder,
-          (KeyValueEntry, BaseReferences<_$AppDatabase, $KeyValueEntriesTable, KeyValueEntry>),
+          (
+            KeyValueEntry,
+            BaseReferences<_$AppDatabase, $KeyValueEntriesTable, KeyValueEntry>,
+          ),
           KeyValueEntry,
           PrefetchHooks Function()
         > {
-  $$KeyValueEntriesTableTableManager(_$AppDatabase db, $KeyValueEntriesTable table)
-    : super(
+  $$KeyValueEntriesTableTableManager(
+    _$AppDatabase db,
+    $KeyValueEntriesTable table,
+  ) : super(
         TableManagerState(
           db: db,
           table: table,
-          createFilteringComposer: () => $$KeyValueEntriesTableFilterComposer($db: db, $table: table),
-          createOrderingComposer: () => $$KeyValueEntriesTableOrderingComposer($db: db, $table: table),
-          createComputedFieldComposer: () => $$KeyValueEntriesTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback: ({
-            Value<String> key = const Value.absent(),
-            Value<String> value = const Value.absent(),
-            Value<DateTime> updatedAt = const Value.absent(),
-            Value<int> rowid = const Value.absent(),
-          }) => KeyValueEntriesCompanion(key: key, value: value, updatedAt: updatedAt, rowid: rowid),
-          createCompanionCallback: ({
-            required String key,
-            required String value,
-            Value<DateTime> updatedAt = const Value.absent(),
-            Value<int> rowid = const Value.absent(),
-          }) => KeyValueEntriesCompanion.insert(key: key, value: value, updatedAt: updatedAt, rowid: rowid),
+          createFilteringComposer: () =>
+              $$KeyValueEntriesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$KeyValueEntriesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$KeyValueEntriesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> key = const Value.absent(),
+                Value<String> value = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => KeyValueEntriesCompanion(
+                key: key,
+                value: value,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String key,
+                required String value,
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => KeyValueEntriesCompanion.insert(
+                key: key,
+                value: value,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
                   e.readTable<$KeyValueEntriesTable, KeyValueEntry>(table),
-                  BaseReferences<_$AppDatabase, $KeyValueEntriesTable, KeyValueEntry>(db, table, e),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $KeyValueEntriesTable,
+                    KeyValueEntry
+                  >(db, table, e),
                 ),
               )
               .toList(),
@@ -2610,30 +3079,36 @@ typedef $$KeyValueEntriesTableProcessedTableManager =
       $$KeyValueEntriesTableAnnotationComposer,
       $$KeyValueEntriesTableCreateCompanionBuilder,
       $$KeyValueEntriesTableUpdateCompanionBuilder,
-      (KeyValueEntry, BaseReferences<_$AppDatabase, $KeyValueEntriesTable, KeyValueEntry>),
+      (
+        KeyValueEntry,
+        BaseReferences<_$AppDatabase, $KeyValueEntriesTable, KeyValueEntry>,
+      ),
       KeyValueEntry,
       PrefetchHooks Function()
     >;
-typedef $$CachedServicesTableCreateCompanionBuilder = CachedServicesCompanion Function({
-  required String id,
-  required String orgId,
-  required String name,
-  required String health,
-  required String json,
-  required int changeSeq,
-  Value<int> rowid,
-});
-typedef $$CachedServicesTableUpdateCompanionBuilder = CachedServicesCompanion Function({
-  Value<String> id,
-  Value<String> orgId,
-  Value<String> name,
-  Value<String> health,
-  Value<String> json,
-  Value<int> changeSeq,
-  Value<int> rowid,
-});
+typedef $$CachedServicesTableCreateCompanionBuilder =
+    CachedServicesCompanion Function({
+      required String id,
+      required String orgId,
+      required String name,
+      required String health,
+      required String json,
+      required int changeSeq,
+      Value<int> rowid,
+    });
+typedef $$CachedServicesTableUpdateCompanionBuilder =
+    CachedServicesCompanion Function({
+      Value<String> id,
+      Value<String> orgId,
+      Value<String> name,
+      Value<String> health,
+      Value<String> json,
+      Value<int> changeSeq,
+      Value<int> rowid,
+    });
 
-class $$CachedServicesTableFilterComposer extends Composer<_$AppDatabase, $CachedServicesTable> {
+class $$CachedServicesTableFilterComposer
+    extends Composer<_$AppDatabase, $CachedServicesTable> {
   $$CachedServicesTableFilterComposer({
     required super.$db,
     required super.$table,
@@ -2641,23 +3116,39 @@ class $$CachedServicesTableFilterComposer extends Composer<_$AppDatabase, $Cache
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnFilters<String> get id => $composableBuilder(column: $table.id, builder: (column) => ColumnFilters(column));
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
 
-  ColumnFilters<String> get orgId =>
-      $composableBuilder(column: $table.orgId, builder: (column) => ColumnFilters(column));
+  ColumnFilters<String> get orgId => $composableBuilder(
+    column: $table.orgId,
+    builder: (column) => ColumnFilters(column),
+  );
 
-  ColumnFilters<String> get name => $composableBuilder(column: $table.name, builder: (column) => ColumnFilters(column));
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
 
-  ColumnFilters<String> get health =>
-      $composableBuilder(column: $table.health, builder: (column) => ColumnFilters(column));
+  ColumnFilters<String> get health => $composableBuilder(
+    column: $table.health,
+    builder: (column) => ColumnFilters(column),
+  );
 
-  ColumnFilters<String> get json => $composableBuilder(column: $table.json, builder: (column) => ColumnFilters(column));
+  ColumnFilters<String> get json => $composableBuilder(
+    column: $table.json,
+    builder: (column) => ColumnFilters(column),
+  );
 
-  ColumnFilters<int> get changeSeq =>
-      $composableBuilder(column: $table.changeSeq, builder: (column) => ColumnFilters(column));
+  ColumnFilters<int> get changeSeq => $composableBuilder(
+    column: $table.changeSeq,
+    builder: (column) => ColumnFilters(column),
+  );
 }
 
-class $$CachedServicesTableOrderingComposer extends Composer<_$AppDatabase, $CachedServicesTable> {
+class $$CachedServicesTableOrderingComposer
+    extends Composer<_$AppDatabase, $CachedServicesTable> {
   $$CachedServicesTableOrderingComposer({
     required super.$db,
     required super.$table,
@@ -2665,25 +3156,39 @@ class $$CachedServicesTableOrderingComposer extends Composer<_$AppDatabase, $Cac
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnOrderings<String> get id => $composableBuilder(column: $table.id, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<String> get orgId =>
-      $composableBuilder(column: $table.orgId, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<String> get orgId => $composableBuilder(
+    column: $table.orgId,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<String> get name =>
-      $composableBuilder(column: $table.name, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<String> get health =>
-      $composableBuilder(column: $table.health, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<String> get health => $composableBuilder(
+    column: $table.health,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<String> get json =>
-      $composableBuilder(column: $table.json, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<String> get json => $composableBuilder(
+    column: $table.json,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<int> get changeSeq =>
-      $composableBuilder(column: $table.changeSeq, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<int> get changeSeq => $composableBuilder(
+    column: $table.changeSeq,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
-class $$CachedServicesTableAnnotationComposer extends Composer<_$AppDatabase, $CachedServicesTable> {
+class $$CachedServicesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CachedServicesTable> {
   $$CachedServicesTableAnnotationComposer({
     required super.$db,
     required super.$table,
@@ -2691,17 +3196,23 @@ class $$CachedServicesTableAnnotationComposer extends Composer<_$AppDatabase, $C
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  GeneratedColumn<String> get id => $composableBuilder(column: $table.id, builder: (column) => column);
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
 
-  GeneratedColumn<String> get orgId => $composableBuilder(column: $table.orgId, builder: (column) => column);
+  GeneratedColumn<String> get orgId =>
+      $composableBuilder(column: $table.orgId, builder: (column) => column);
 
-  GeneratedColumn<String> get name => $composableBuilder(column: $table.name, builder: (column) => column);
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
 
-  GeneratedColumn<String> get health => $composableBuilder(column: $table.health, builder: (column) => column);
+  GeneratedColumn<String> get health =>
+      $composableBuilder(column: $table.health, builder: (column) => column);
 
-  GeneratedColumn<String> get json => $composableBuilder(column: $table.json, builder: (column) => column);
+  GeneratedColumn<String> get json =>
+      $composableBuilder(column: $table.json, builder: (column) => column);
 
-  GeneratedColumn<int> get changeSeq => $composableBuilder(column: $table.changeSeq, builder: (column) => column);
+  GeneratedColumn<int> get changeSeq =>
+      $composableBuilder(column: $table.changeSeq, builder: (column) => column);
 }
 
 class $$CachedServicesTableTableManager
@@ -2715,18 +3226,26 @@ class $$CachedServicesTableTableManager
           $$CachedServicesTableAnnotationComposer,
           $$CachedServicesTableCreateCompanionBuilder,
           $$CachedServicesTableUpdateCompanionBuilder,
-          (CachedService, BaseReferences<_$AppDatabase, $CachedServicesTable, CachedService>),
+          (
+            CachedService,
+            BaseReferences<_$AppDatabase, $CachedServicesTable, CachedService>,
+          ),
           CachedService,
           PrefetchHooks Function()
         > {
-  $$CachedServicesTableTableManager(_$AppDatabase db, $CachedServicesTable table)
-    : super(
+  $$CachedServicesTableTableManager(
+    _$AppDatabase db,
+    $CachedServicesTable table,
+  ) : super(
         TableManagerState(
           db: db,
           table: table,
-          createFilteringComposer: () => $$CachedServicesTableFilterComposer($db: db, $table: table),
-          createOrderingComposer: () => $$CachedServicesTableOrderingComposer($db: db, $table: table),
-          createComputedFieldComposer: () => $$CachedServicesTableAnnotationComposer($db: db, $table: table),
+          createFilteringComposer: () =>
+              $$CachedServicesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CachedServicesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CachedServicesTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback:
               ({
                 Value<String> id = const Value.absent(),
@@ -2767,7 +3286,11 @@ class $$CachedServicesTableTableManager
               .map(
                 (e) => (
                   e.readTable<$CachedServicesTable, CachedService>(table),
-                  BaseReferences<_$AppDatabase, $CachedServicesTable, CachedService>(db, table, e),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $CachedServicesTable,
+                    CachedService
+                  >(db, table, e),
                 ),
               )
               .toList(),
@@ -2786,42 +3309,48 @@ typedef $$CachedServicesTableProcessedTableManager =
       $$CachedServicesTableAnnotationComposer,
       $$CachedServicesTableCreateCompanionBuilder,
       $$CachedServicesTableUpdateCompanionBuilder,
-      (CachedService, BaseReferences<_$AppDatabase, $CachedServicesTable, CachedService>),
+      (
+        CachedService,
+        BaseReferences<_$AppDatabase, $CachedServicesTable, CachedService>,
+      ),
       CachedService,
       PrefetchHooks Function()
     >;
-typedef $$CachedIncidentsTableCreateCompanionBuilder = CachedIncidentsCompanion Function({
-  required String id,
-  required String orgId,
-  required String key,
-  required String status,
-  required String severity,
-  required int startedAt,
-  Value<String?> serviceId,
-  Value<String?> assigneeId,
-  required String json,
-  required int version,
-  required int changeSeq,
-  Value<String?> pendingAction,
-  Value<int> rowid,
-});
-typedef $$CachedIncidentsTableUpdateCompanionBuilder = CachedIncidentsCompanion Function({
-  Value<String> id,
-  Value<String> orgId,
-  Value<String> key,
-  Value<String> status,
-  Value<String> severity,
-  Value<int> startedAt,
-  Value<String?> serviceId,
-  Value<String?> assigneeId,
-  Value<String> json,
-  Value<int> version,
-  Value<int> changeSeq,
-  Value<String?> pendingAction,
-  Value<int> rowid,
-});
+typedef $$CachedIncidentsTableCreateCompanionBuilder =
+    CachedIncidentsCompanion Function({
+      required String id,
+      required String orgId,
+      required String key,
+      required String status,
+      required String severity,
+      required int startedAt,
+      Value<String?> serviceId,
+      Value<String?> assigneeId,
+      required String json,
+      required int version,
+      required int changeSeq,
+      Value<String?> pendingAction,
+      Value<int> rowid,
+    });
+typedef $$CachedIncidentsTableUpdateCompanionBuilder =
+    CachedIncidentsCompanion Function({
+      Value<String> id,
+      Value<String> orgId,
+      Value<String> key,
+      Value<String> status,
+      Value<String> severity,
+      Value<int> startedAt,
+      Value<String?> serviceId,
+      Value<String?> assigneeId,
+      Value<String> json,
+      Value<int> version,
+      Value<int> changeSeq,
+      Value<String?> pendingAction,
+      Value<int> rowid,
+    });
 
-class $$CachedIncidentsTableFilterComposer extends Composer<_$AppDatabase, $CachedIncidentsTable> {
+class $$CachedIncidentsTableFilterComposer
+    extends Composer<_$AppDatabase, $CachedIncidentsTable> {
   $$CachedIncidentsTableFilterComposer({
     required super.$db,
     required super.$table,
@@ -2829,41 +3358,69 @@ class $$CachedIncidentsTableFilterComposer extends Composer<_$AppDatabase, $Cach
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnFilters<String> get id => $composableBuilder(column: $table.id, builder: (column) => ColumnFilters(column));
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
 
-  ColumnFilters<String> get orgId =>
-      $composableBuilder(column: $table.orgId, builder: (column) => ColumnFilters(column));
+  ColumnFilters<String> get orgId => $composableBuilder(
+    column: $table.orgId,
+    builder: (column) => ColumnFilters(column),
+  );
 
-  ColumnFilters<String> get key => $composableBuilder(column: $table.key, builder: (column) => ColumnFilters(column));
+  ColumnFilters<String> get key => $composableBuilder(
+    column: $table.key,
+    builder: (column) => ColumnFilters(column),
+  );
 
-  ColumnFilters<String> get status =>
-      $composableBuilder(column: $table.status, builder: (column) => ColumnFilters(column));
+  ColumnFilters<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
 
-  ColumnFilters<String> get severity =>
-      $composableBuilder(column: $table.severity, builder: (column) => ColumnFilters(column));
+  ColumnFilters<String> get severity => $composableBuilder(
+    column: $table.severity,
+    builder: (column) => ColumnFilters(column),
+  );
 
-  ColumnFilters<int> get startedAt =>
-      $composableBuilder(column: $table.startedAt, builder: (column) => ColumnFilters(column));
+  ColumnFilters<int> get startedAt => $composableBuilder(
+    column: $table.startedAt,
+    builder: (column) => ColumnFilters(column),
+  );
 
-  ColumnFilters<String> get serviceId =>
-      $composableBuilder(column: $table.serviceId, builder: (column) => ColumnFilters(column));
+  ColumnFilters<String> get serviceId => $composableBuilder(
+    column: $table.serviceId,
+    builder: (column) => ColumnFilters(column),
+  );
 
-  ColumnFilters<String> get assigneeId =>
-      $composableBuilder(column: $table.assigneeId, builder: (column) => ColumnFilters(column));
+  ColumnFilters<String> get assigneeId => $composableBuilder(
+    column: $table.assigneeId,
+    builder: (column) => ColumnFilters(column),
+  );
 
-  ColumnFilters<String> get json => $composableBuilder(column: $table.json, builder: (column) => ColumnFilters(column));
+  ColumnFilters<String> get json => $composableBuilder(
+    column: $table.json,
+    builder: (column) => ColumnFilters(column),
+  );
 
-  ColumnFilters<int> get version =>
-      $composableBuilder(column: $table.version, builder: (column) => ColumnFilters(column));
+  ColumnFilters<int> get version => $composableBuilder(
+    column: $table.version,
+    builder: (column) => ColumnFilters(column),
+  );
 
-  ColumnFilters<int> get changeSeq =>
-      $composableBuilder(column: $table.changeSeq, builder: (column) => ColumnFilters(column));
+  ColumnFilters<int> get changeSeq => $composableBuilder(
+    column: $table.changeSeq,
+    builder: (column) => ColumnFilters(column),
+  );
 
-  ColumnFilters<String> get pendingAction =>
-      $composableBuilder(column: $table.pendingAction, builder: (column) => ColumnFilters(column));
+  ColumnFilters<String> get pendingAction => $composableBuilder(
+    column: $table.pendingAction,
+    builder: (column) => ColumnFilters(column),
+  );
 }
 
-class $$CachedIncidentsTableOrderingComposer extends Composer<_$AppDatabase, $CachedIncidentsTable> {
+class $$CachedIncidentsTableOrderingComposer
+    extends Composer<_$AppDatabase, $CachedIncidentsTable> {
   $$CachedIncidentsTableOrderingComposer({
     required super.$db,
     required super.$table,
@@ -2871,43 +3428,69 @@ class $$CachedIncidentsTableOrderingComposer extends Composer<_$AppDatabase, $Ca
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnOrderings<String> get id => $composableBuilder(column: $table.id, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<String> get orgId =>
-      $composableBuilder(column: $table.orgId, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<String> get orgId => $composableBuilder(
+    column: $table.orgId,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<String> get key =>
-      $composableBuilder(column: $table.key, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<String> get key => $composableBuilder(
+    column: $table.key,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<String> get status =>
-      $composableBuilder(column: $table.status, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<String> get severity =>
-      $composableBuilder(column: $table.severity, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<String> get severity => $composableBuilder(
+    column: $table.severity,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<int> get startedAt =>
-      $composableBuilder(column: $table.startedAt, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<int> get startedAt => $composableBuilder(
+    column: $table.startedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<String> get serviceId =>
-      $composableBuilder(column: $table.serviceId, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<String> get serviceId => $composableBuilder(
+    column: $table.serviceId,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<String> get assigneeId =>
-      $composableBuilder(column: $table.assigneeId, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<String> get assigneeId => $composableBuilder(
+    column: $table.assigneeId,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<String> get json =>
-      $composableBuilder(column: $table.json, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<String> get json => $composableBuilder(
+    column: $table.json,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<int> get version =>
-      $composableBuilder(column: $table.version, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<int> get version => $composableBuilder(
+    column: $table.version,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<int> get changeSeq =>
-      $composableBuilder(column: $table.changeSeq, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<int> get changeSeq => $composableBuilder(
+    column: $table.changeSeq,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<String> get pendingAction =>
-      $composableBuilder(column: $table.pendingAction, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<String> get pendingAction => $composableBuilder(
+    column: $table.pendingAction,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
-class $$CachedIncidentsTableAnnotationComposer extends Composer<_$AppDatabase, $CachedIncidentsTable> {
+class $$CachedIncidentsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CachedIncidentsTable> {
   $$CachedIncidentsTableAnnotationComposer({
     required super.$db,
     required super.$table,
@@ -2915,30 +3498,45 @@ class $$CachedIncidentsTableAnnotationComposer extends Composer<_$AppDatabase, $
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  GeneratedColumn<String> get id => $composableBuilder(column: $table.id, builder: (column) => column);
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
 
-  GeneratedColumn<String> get orgId => $composableBuilder(column: $table.orgId, builder: (column) => column);
+  GeneratedColumn<String> get orgId =>
+      $composableBuilder(column: $table.orgId, builder: (column) => column);
 
-  GeneratedColumn<String> get key => $composableBuilder(column: $table.key, builder: (column) => column);
+  GeneratedColumn<String> get key =>
+      $composableBuilder(column: $table.key, builder: (column) => column);
 
-  GeneratedColumn<String> get status => $composableBuilder(column: $table.status, builder: (column) => column);
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
 
-  GeneratedColumn<String> get severity => $composableBuilder(column: $table.severity, builder: (column) => column);
+  GeneratedColumn<String> get severity =>
+      $composableBuilder(column: $table.severity, builder: (column) => column);
 
-  GeneratedColumn<int> get startedAt => $composableBuilder(column: $table.startedAt, builder: (column) => column);
+  GeneratedColumn<int> get startedAt =>
+      $composableBuilder(column: $table.startedAt, builder: (column) => column);
 
-  GeneratedColumn<String> get serviceId => $composableBuilder(column: $table.serviceId, builder: (column) => column);
+  GeneratedColumn<String> get serviceId =>
+      $composableBuilder(column: $table.serviceId, builder: (column) => column);
 
-  GeneratedColumn<String> get assigneeId => $composableBuilder(column: $table.assigneeId, builder: (column) => column);
+  GeneratedColumn<String> get assigneeId => $composableBuilder(
+    column: $table.assigneeId,
+    builder: (column) => column,
+  );
 
-  GeneratedColumn<String> get json => $composableBuilder(column: $table.json, builder: (column) => column);
+  GeneratedColumn<String> get json =>
+      $composableBuilder(column: $table.json, builder: (column) => column);
 
-  GeneratedColumn<int> get version => $composableBuilder(column: $table.version, builder: (column) => column);
+  GeneratedColumn<int> get version =>
+      $composableBuilder(column: $table.version, builder: (column) => column);
 
-  GeneratedColumn<int> get changeSeq => $composableBuilder(column: $table.changeSeq, builder: (column) => column);
+  GeneratedColumn<int> get changeSeq =>
+      $composableBuilder(column: $table.changeSeq, builder: (column) => column);
 
-  GeneratedColumn<String> get pendingAction =>
-      $composableBuilder(column: $table.pendingAction, builder: (column) => column);
+  GeneratedColumn<String> get pendingAction => $composableBuilder(
+    column: $table.pendingAction,
+    builder: (column) => column,
+  );
 }
 
 class $$CachedIncidentsTableTableManager
@@ -2952,18 +3550,30 @@ class $$CachedIncidentsTableTableManager
           $$CachedIncidentsTableAnnotationComposer,
           $$CachedIncidentsTableCreateCompanionBuilder,
           $$CachedIncidentsTableUpdateCompanionBuilder,
-          (CachedIncident, BaseReferences<_$AppDatabase, $CachedIncidentsTable, CachedIncident>),
+          (
+            CachedIncident,
+            BaseReferences<
+              _$AppDatabase,
+              $CachedIncidentsTable,
+              CachedIncident
+            >,
+          ),
           CachedIncident,
           PrefetchHooks Function()
         > {
-  $$CachedIncidentsTableTableManager(_$AppDatabase db, $CachedIncidentsTable table)
-    : super(
+  $$CachedIncidentsTableTableManager(
+    _$AppDatabase db,
+    $CachedIncidentsTable table,
+  ) : super(
         TableManagerState(
           db: db,
           table: table,
-          createFilteringComposer: () => $$CachedIncidentsTableFilterComposer($db: db, $table: table),
-          createOrderingComposer: () => $$CachedIncidentsTableOrderingComposer($db: db, $table: table),
-          createComputedFieldComposer: () => $$CachedIncidentsTableAnnotationComposer($db: db, $table: table),
+          createFilteringComposer: () =>
+              $$CachedIncidentsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CachedIncidentsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CachedIncidentsTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback:
               ({
                 Value<String> id = const Value.absent(),
@@ -3028,7 +3638,11 @@ class $$CachedIncidentsTableTableManager
               .map(
                 (e) => (
                   e.readTable<$CachedIncidentsTable, CachedIncident>(table),
-                  BaseReferences<_$AppDatabase, $CachedIncidentsTable, CachedIncident>(db, table, e),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $CachedIncidentsTable,
+                    CachedIncident
+                  >(db, table, e),
                 ),
               )
               .toList(),
@@ -3047,30 +3661,36 @@ typedef $$CachedIncidentsTableProcessedTableManager =
       $$CachedIncidentsTableAnnotationComposer,
       $$CachedIncidentsTableCreateCompanionBuilder,
       $$CachedIncidentsTableUpdateCompanionBuilder,
-      (CachedIncident, BaseReferences<_$AppDatabase, $CachedIncidentsTable, CachedIncident>),
+      (
+        CachedIncident,
+        BaseReferences<_$AppDatabase, $CachedIncidentsTable, CachedIncident>,
+      ),
       CachedIncident,
       PrefetchHooks Function()
     >;
-typedef $$CachedDeploymentsTableCreateCompanionBuilder = CachedDeploymentsCompanion Function({
-  required String id,
-  required String orgId,
-  required String serviceId,
-  required int startedAt,
-  required String json,
-  required int changeSeq,
-  Value<int> rowid,
-});
-typedef $$CachedDeploymentsTableUpdateCompanionBuilder = CachedDeploymentsCompanion Function({
-  Value<String> id,
-  Value<String> orgId,
-  Value<String> serviceId,
-  Value<int> startedAt,
-  Value<String> json,
-  Value<int> changeSeq,
-  Value<int> rowid,
-});
+typedef $$CachedDeploymentsTableCreateCompanionBuilder =
+    CachedDeploymentsCompanion Function({
+      required String id,
+      required String orgId,
+      required String serviceId,
+      required int startedAt,
+      required String json,
+      required int changeSeq,
+      Value<int> rowid,
+    });
+typedef $$CachedDeploymentsTableUpdateCompanionBuilder =
+    CachedDeploymentsCompanion Function({
+      Value<String> id,
+      Value<String> orgId,
+      Value<String> serviceId,
+      Value<int> startedAt,
+      Value<String> json,
+      Value<int> changeSeq,
+      Value<int> rowid,
+    });
 
-class $$CachedDeploymentsTableFilterComposer extends Composer<_$AppDatabase, $CachedDeploymentsTable> {
+class $$CachedDeploymentsTableFilterComposer
+    extends Composer<_$AppDatabase, $CachedDeploymentsTable> {
   $$CachedDeploymentsTableFilterComposer({
     required super.$db,
     required super.$table,
@@ -3078,24 +3698,39 @@ class $$CachedDeploymentsTableFilterComposer extends Composer<_$AppDatabase, $Ca
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnFilters<String> get id => $composableBuilder(column: $table.id, builder: (column) => ColumnFilters(column));
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
 
-  ColumnFilters<String> get orgId =>
-      $composableBuilder(column: $table.orgId, builder: (column) => ColumnFilters(column));
+  ColumnFilters<String> get orgId => $composableBuilder(
+    column: $table.orgId,
+    builder: (column) => ColumnFilters(column),
+  );
 
-  ColumnFilters<String> get serviceId =>
-      $composableBuilder(column: $table.serviceId, builder: (column) => ColumnFilters(column));
+  ColumnFilters<String> get serviceId => $composableBuilder(
+    column: $table.serviceId,
+    builder: (column) => ColumnFilters(column),
+  );
 
-  ColumnFilters<int> get startedAt =>
-      $composableBuilder(column: $table.startedAt, builder: (column) => ColumnFilters(column));
+  ColumnFilters<int> get startedAt => $composableBuilder(
+    column: $table.startedAt,
+    builder: (column) => ColumnFilters(column),
+  );
 
-  ColumnFilters<String> get json => $composableBuilder(column: $table.json, builder: (column) => ColumnFilters(column));
+  ColumnFilters<String> get json => $composableBuilder(
+    column: $table.json,
+    builder: (column) => ColumnFilters(column),
+  );
 
-  ColumnFilters<int> get changeSeq =>
-      $composableBuilder(column: $table.changeSeq, builder: (column) => ColumnFilters(column));
+  ColumnFilters<int> get changeSeq => $composableBuilder(
+    column: $table.changeSeq,
+    builder: (column) => ColumnFilters(column),
+  );
 }
 
-class $$CachedDeploymentsTableOrderingComposer extends Composer<_$AppDatabase, $CachedDeploymentsTable> {
+class $$CachedDeploymentsTableOrderingComposer
+    extends Composer<_$AppDatabase, $CachedDeploymentsTable> {
   $$CachedDeploymentsTableOrderingComposer({
     required super.$db,
     required super.$table,
@@ -3103,25 +3738,39 @@ class $$CachedDeploymentsTableOrderingComposer extends Composer<_$AppDatabase, $
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnOrderings<String> get id => $composableBuilder(column: $table.id, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<String> get orgId =>
-      $composableBuilder(column: $table.orgId, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<String> get orgId => $composableBuilder(
+    column: $table.orgId,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<String> get serviceId =>
-      $composableBuilder(column: $table.serviceId, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<String> get serviceId => $composableBuilder(
+    column: $table.serviceId,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<int> get startedAt =>
-      $composableBuilder(column: $table.startedAt, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<int> get startedAt => $composableBuilder(
+    column: $table.startedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<String> get json =>
-      $composableBuilder(column: $table.json, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<String> get json => $composableBuilder(
+    column: $table.json,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<int> get changeSeq =>
-      $composableBuilder(column: $table.changeSeq, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<int> get changeSeq => $composableBuilder(
+    column: $table.changeSeq,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
-class $$CachedDeploymentsTableAnnotationComposer extends Composer<_$AppDatabase, $CachedDeploymentsTable> {
+class $$CachedDeploymentsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CachedDeploymentsTable> {
   $$CachedDeploymentsTableAnnotationComposer({
     required super.$db,
     required super.$table,
@@ -3129,17 +3778,23 @@ class $$CachedDeploymentsTableAnnotationComposer extends Composer<_$AppDatabase,
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  GeneratedColumn<String> get id => $composableBuilder(column: $table.id, builder: (column) => column);
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
 
-  GeneratedColumn<String> get orgId => $composableBuilder(column: $table.orgId, builder: (column) => column);
+  GeneratedColumn<String> get orgId =>
+      $composableBuilder(column: $table.orgId, builder: (column) => column);
 
-  GeneratedColumn<String> get serviceId => $composableBuilder(column: $table.serviceId, builder: (column) => column);
+  GeneratedColumn<String> get serviceId =>
+      $composableBuilder(column: $table.serviceId, builder: (column) => column);
 
-  GeneratedColumn<int> get startedAt => $composableBuilder(column: $table.startedAt, builder: (column) => column);
+  GeneratedColumn<int> get startedAt =>
+      $composableBuilder(column: $table.startedAt, builder: (column) => column);
 
-  GeneratedColumn<String> get json => $composableBuilder(column: $table.json, builder: (column) => column);
+  GeneratedColumn<String> get json =>
+      $composableBuilder(column: $table.json, builder: (column) => column);
 
-  GeneratedColumn<int> get changeSeq => $composableBuilder(column: $table.changeSeq, builder: (column) => column);
+  GeneratedColumn<int> get changeSeq =>
+      $composableBuilder(column: $table.changeSeq, builder: (column) => column);
 }
 
 class $$CachedDeploymentsTableTableManager
@@ -3153,18 +3808,33 @@ class $$CachedDeploymentsTableTableManager
           $$CachedDeploymentsTableAnnotationComposer,
           $$CachedDeploymentsTableCreateCompanionBuilder,
           $$CachedDeploymentsTableUpdateCompanionBuilder,
-          (CachedDeployment, BaseReferences<_$AppDatabase, $CachedDeploymentsTable, CachedDeployment>),
+          (
+            CachedDeployment,
+            BaseReferences<
+              _$AppDatabase,
+              $CachedDeploymentsTable,
+              CachedDeployment
+            >,
+          ),
           CachedDeployment,
           PrefetchHooks Function()
         > {
-  $$CachedDeploymentsTableTableManager(_$AppDatabase db, $CachedDeploymentsTable table)
-    : super(
+  $$CachedDeploymentsTableTableManager(
+    _$AppDatabase db,
+    $CachedDeploymentsTable table,
+  ) : super(
         TableManagerState(
           db: db,
           table: table,
-          createFilteringComposer: () => $$CachedDeploymentsTableFilterComposer($db: db, $table: table),
-          createOrderingComposer: () => $$CachedDeploymentsTableOrderingComposer($db: db, $table: table),
-          createComputedFieldComposer: () => $$CachedDeploymentsTableAnnotationComposer($db: db, $table: table),
+          createFilteringComposer: () =>
+              $$CachedDeploymentsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CachedDeploymentsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CachedDeploymentsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
           updateCompanionCallback:
               ({
                 Value<String> id = const Value.absent(),
@@ -3205,7 +3875,11 @@ class $$CachedDeploymentsTableTableManager
               .map(
                 (e) => (
                   e.readTable<$CachedDeploymentsTable, CachedDeployment>(table),
-                  BaseReferences<_$AppDatabase, $CachedDeploymentsTable, CachedDeployment>(db, table, e),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $CachedDeploymentsTable,
+                    CachedDeployment
+                  >(db, table, e),
                 ),
               )
               .toList(),
@@ -3224,24 +3898,34 @@ typedef $$CachedDeploymentsTableProcessedTableManager =
       $$CachedDeploymentsTableAnnotationComposer,
       $$CachedDeploymentsTableCreateCompanionBuilder,
       $$CachedDeploymentsTableUpdateCompanionBuilder,
-      (CachedDeployment, BaseReferences<_$AppDatabase, $CachedDeploymentsTable, CachedDeployment>),
+      (
+        CachedDeployment,
+        BaseReferences<
+          _$AppDatabase,
+          $CachedDeploymentsTable,
+          CachedDeployment
+        >,
+      ),
       CachedDeployment,
       PrefetchHooks Function()
     >;
-typedef $$SyncCursorsTableCreateCompanionBuilder = SyncCursorsCompanion Function({
-  required String orgId,
-  required String collection,
-  required int cursor,
-  Value<int> rowid,
-});
-typedef $$SyncCursorsTableUpdateCompanionBuilder = SyncCursorsCompanion Function({
-  Value<String> orgId,
-  Value<String> collection,
-  Value<int> cursor,
-  Value<int> rowid,
-});
+typedef $$SyncCursorsTableCreateCompanionBuilder =
+    SyncCursorsCompanion Function({
+      required String orgId,
+      required String collection,
+      required int cursor,
+      Value<int> rowid,
+    });
+typedef $$SyncCursorsTableUpdateCompanionBuilder =
+    SyncCursorsCompanion Function({
+      Value<String> orgId,
+      Value<String> collection,
+      Value<int> cursor,
+      Value<int> rowid,
+    });
 
-class $$SyncCursorsTableFilterComposer extends Composer<_$AppDatabase, $SyncCursorsTable> {
+class $$SyncCursorsTableFilterComposer
+    extends Composer<_$AppDatabase, $SyncCursorsTable> {
   $$SyncCursorsTableFilterComposer({
     required super.$db,
     required super.$table,
@@ -3249,17 +3933,24 @@ class $$SyncCursorsTableFilterComposer extends Composer<_$AppDatabase, $SyncCurs
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnFilters<String> get orgId =>
-      $composableBuilder(column: $table.orgId, builder: (column) => ColumnFilters(column));
+  ColumnFilters<String> get orgId => $composableBuilder(
+    column: $table.orgId,
+    builder: (column) => ColumnFilters(column),
+  );
 
-  ColumnFilters<String> get collection =>
-      $composableBuilder(column: $table.collection, builder: (column) => ColumnFilters(column));
+  ColumnFilters<String> get collection => $composableBuilder(
+    column: $table.collection,
+    builder: (column) => ColumnFilters(column),
+  );
 
-  ColumnFilters<int> get cursor =>
-      $composableBuilder(column: $table.cursor, builder: (column) => ColumnFilters(column));
+  ColumnFilters<int> get cursor => $composableBuilder(
+    column: $table.cursor,
+    builder: (column) => ColumnFilters(column),
+  );
 }
 
-class $$SyncCursorsTableOrderingComposer extends Composer<_$AppDatabase, $SyncCursorsTable> {
+class $$SyncCursorsTableOrderingComposer
+    extends Composer<_$AppDatabase, $SyncCursorsTable> {
   $$SyncCursorsTableOrderingComposer({
     required super.$db,
     required super.$table,
@@ -3267,17 +3958,24 @@ class $$SyncCursorsTableOrderingComposer extends Composer<_$AppDatabase, $SyncCu
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnOrderings<String> get orgId =>
-      $composableBuilder(column: $table.orgId, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<String> get orgId => $composableBuilder(
+    column: $table.orgId,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<String> get collection =>
-      $composableBuilder(column: $table.collection, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<String> get collection => $composableBuilder(
+    column: $table.collection,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<int> get cursor =>
-      $composableBuilder(column: $table.cursor, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<int> get cursor => $composableBuilder(
+    column: $table.cursor,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
-class $$SyncCursorsTableAnnotationComposer extends Composer<_$AppDatabase, $SyncCursorsTable> {
+class $$SyncCursorsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $SyncCursorsTable> {
   $$SyncCursorsTableAnnotationComposer({
     required super.$db,
     required super.$table,
@@ -3285,11 +3983,16 @@ class $$SyncCursorsTableAnnotationComposer extends Composer<_$AppDatabase, $Sync
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  GeneratedColumn<String> get orgId => $composableBuilder(column: $table.orgId, builder: (column) => column);
+  GeneratedColumn<String> get orgId =>
+      $composableBuilder(column: $table.orgId, builder: (column) => column);
 
-  GeneratedColumn<String> get collection => $composableBuilder(column: $table.collection, builder: (column) => column);
+  GeneratedColumn<String> get collection => $composableBuilder(
+    column: $table.collection,
+    builder: (column) => column,
+  );
 
-  GeneratedColumn<int> get cursor => $composableBuilder(column: $table.cursor, builder: (column) => column);
+  GeneratedColumn<int> get cursor =>
+      $composableBuilder(column: $table.cursor, builder: (column) => column);
 }
 
 class $$SyncCursorsTableTableManager
@@ -3303,7 +4006,10 @@ class $$SyncCursorsTableTableManager
           $$SyncCursorsTableAnnotationComposer,
           $$SyncCursorsTableCreateCompanionBuilder,
           $$SyncCursorsTableUpdateCompanionBuilder,
-          (SyncCursor, BaseReferences<_$AppDatabase, $SyncCursorsTable, SyncCursor>),
+          (
+            SyncCursor,
+            BaseReferences<_$AppDatabase, $SyncCursorsTable, SyncCursor>,
+          ),
           SyncCursor,
           PrefetchHooks Function()
         > {
@@ -3312,26 +4018,45 @@ class $$SyncCursorsTableTableManager
         TableManagerState(
           db: db,
           table: table,
-          createFilteringComposer: () => $$SyncCursorsTableFilterComposer($db: db, $table: table),
-          createOrderingComposer: () => $$SyncCursorsTableOrderingComposer($db: db, $table: table),
-          createComputedFieldComposer: () => $$SyncCursorsTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback: ({
-            Value<String> orgId = const Value.absent(),
-            Value<String> collection = const Value.absent(),
-            Value<int> cursor = const Value.absent(),
-            Value<int> rowid = const Value.absent(),
-          }) => SyncCursorsCompanion(orgId: orgId, collection: collection, cursor: cursor, rowid: rowid),
-          createCompanionCallback: ({
-            required String orgId,
-            required String collection,
-            required int cursor,
-            Value<int> rowid = const Value.absent(),
-          }) => SyncCursorsCompanion.insert(orgId: orgId, collection: collection, cursor: cursor, rowid: rowid),
+          createFilteringComposer: () =>
+              $$SyncCursorsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SyncCursorsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SyncCursorsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> orgId = const Value.absent(),
+                Value<String> collection = const Value.absent(),
+                Value<int> cursor = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => SyncCursorsCompanion(
+                orgId: orgId,
+                collection: collection,
+                cursor: cursor,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String orgId,
+                required String collection,
+                required int cursor,
+                Value<int> rowid = const Value.absent(),
+              }) => SyncCursorsCompanion.insert(
+                orgId: orgId,
+                collection: collection,
+                cursor: cursor,
+                rowid: rowid,
+              ),
           withReferenceMapper: (p0) => p0
               .map(
                 (e) => (
                   e.readTable<$SyncCursorsTable, SyncCursor>(table),
-                  BaseReferences<_$AppDatabase, $SyncCursorsTable, SyncCursor>(db, table, e),
+                  BaseReferences<_$AppDatabase, $SyncCursorsTable, SyncCursor>(
+                    db,
+                    table,
+                    e,
+                  ),
                 ),
               )
               .toList(),
@@ -3350,46 +4075,52 @@ typedef $$SyncCursorsTableProcessedTableManager =
       $$SyncCursorsTableAnnotationComposer,
       $$SyncCursorsTableCreateCompanionBuilder,
       $$SyncCursorsTableUpdateCompanionBuilder,
-      (SyncCursor, BaseReferences<_$AppDatabase, $SyncCursorsTable, SyncCursor>),
+      (
+        SyncCursor,
+        BaseReferences<_$AppDatabase, $SyncCursorsTable, SyncCursor>,
+      ),
       SyncCursor,
       PrefetchHooks Function()
     >;
-typedef $$OutboxEntriesTableCreateCompanionBuilder = OutboxEntriesCompanion Function({
-  Value<int> id,
-  required String orgId,
-  required String incidentId,
-  required String kind,
-  required String action,
-  required String path,
-  required String body,
-  required String idempotencyKey,
-  Value<String?> clientId,
-  Value<int?> baseVersion,
-  Value<int> attempts,
-  Value<int> nextAttemptAt,
-  Value<String> state,
-  Value<String?> lastError,
-  required int createdAt,
-});
-typedef $$OutboxEntriesTableUpdateCompanionBuilder = OutboxEntriesCompanion Function({
-  Value<int> id,
-  Value<String> orgId,
-  Value<String> incidentId,
-  Value<String> kind,
-  Value<String> action,
-  Value<String> path,
-  Value<String> body,
-  Value<String> idempotencyKey,
-  Value<String?> clientId,
-  Value<int?> baseVersion,
-  Value<int> attempts,
-  Value<int> nextAttemptAt,
-  Value<String> state,
-  Value<String?> lastError,
-  Value<int> createdAt,
-});
+typedef $$OutboxEntriesTableCreateCompanionBuilder =
+    OutboxEntriesCompanion Function({
+      Value<int> id,
+      required String orgId,
+      required String incidentId,
+      required String kind,
+      required String action,
+      required String path,
+      required String body,
+      required String idempotencyKey,
+      Value<String?> clientId,
+      Value<int?> baseVersion,
+      Value<int> attempts,
+      Value<int> nextAttemptAt,
+      Value<String> state,
+      Value<String?> lastError,
+      required int createdAt,
+    });
+typedef $$OutboxEntriesTableUpdateCompanionBuilder =
+    OutboxEntriesCompanion Function({
+      Value<int> id,
+      Value<String> orgId,
+      Value<String> incidentId,
+      Value<String> kind,
+      Value<String> action,
+      Value<String> path,
+      Value<String> body,
+      Value<String> idempotencyKey,
+      Value<String?> clientId,
+      Value<int?> baseVersion,
+      Value<int> attempts,
+      Value<int> nextAttemptAt,
+      Value<String> state,
+      Value<String?> lastError,
+      Value<int> createdAt,
+    });
 
-class $$OutboxEntriesTableFilterComposer extends Composer<_$AppDatabase, $OutboxEntriesTable> {
+class $$OutboxEntriesTableFilterComposer
+    extends Composer<_$AppDatabase, $OutboxEntriesTable> {
   $$OutboxEntriesTableFilterComposer({
     required super.$db,
     required super.$table,
@@ -3397,49 +4128,84 @@ class $$OutboxEntriesTableFilterComposer extends Composer<_$AppDatabase, $Outbox
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnFilters<int> get id => $composableBuilder(column: $table.id, builder: (column) => ColumnFilters(column));
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
 
-  ColumnFilters<String> get orgId =>
-      $composableBuilder(column: $table.orgId, builder: (column) => ColumnFilters(column));
+  ColumnFilters<String> get orgId => $composableBuilder(
+    column: $table.orgId,
+    builder: (column) => ColumnFilters(column),
+  );
 
-  ColumnFilters<String> get incidentId =>
-      $composableBuilder(column: $table.incidentId, builder: (column) => ColumnFilters(column));
+  ColumnFilters<String> get incidentId => $composableBuilder(
+    column: $table.incidentId,
+    builder: (column) => ColumnFilters(column),
+  );
 
-  ColumnFilters<String> get kind => $composableBuilder(column: $table.kind, builder: (column) => ColumnFilters(column));
+  ColumnFilters<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnFilters(column),
+  );
 
-  ColumnFilters<String> get action =>
-      $composableBuilder(column: $table.action, builder: (column) => ColumnFilters(column));
+  ColumnFilters<String> get action => $composableBuilder(
+    column: $table.action,
+    builder: (column) => ColumnFilters(column),
+  );
 
-  ColumnFilters<String> get path => $composableBuilder(column: $table.path, builder: (column) => ColumnFilters(column));
+  ColumnFilters<String> get path => $composableBuilder(
+    column: $table.path,
+    builder: (column) => ColumnFilters(column),
+  );
 
-  ColumnFilters<String> get body => $composableBuilder(column: $table.body, builder: (column) => ColumnFilters(column));
+  ColumnFilters<String> get body => $composableBuilder(
+    column: $table.body,
+    builder: (column) => ColumnFilters(column),
+  );
 
-  ColumnFilters<String> get idempotencyKey =>
-      $composableBuilder(column: $table.idempotencyKey, builder: (column) => ColumnFilters(column));
+  ColumnFilters<String> get idempotencyKey => $composableBuilder(
+    column: $table.idempotencyKey,
+    builder: (column) => ColumnFilters(column),
+  );
 
-  ColumnFilters<String> get clientId =>
-      $composableBuilder(column: $table.clientId, builder: (column) => ColumnFilters(column));
+  ColumnFilters<String> get clientId => $composableBuilder(
+    column: $table.clientId,
+    builder: (column) => ColumnFilters(column),
+  );
 
-  ColumnFilters<int> get baseVersion =>
-      $composableBuilder(column: $table.baseVersion, builder: (column) => ColumnFilters(column));
+  ColumnFilters<int> get baseVersion => $composableBuilder(
+    column: $table.baseVersion,
+    builder: (column) => ColumnFilters(column),
+  );
 
-  ColumnFilters<int> get attempts =>
-      $composableBuilder(column: $table.attempts, builder: (column) => ColumnFilters(column));
+  ColumnFilters<int> get attempts => $composableBuilder(
+    column: $table.attempts,
+    builder: (column) => ColumnFilters(column),
+  );
 
-  ColumnFilters<int> get nextAttemptAt =>
-      $composableBuilder(column: $table.nextAttemptAt, builder: (column) => ColumnFilters(column));
+  ColumnFilters<int> get nextAttemptAt => $composableBuilder(
+    column: $table.nextAttemptAt,
+    builder: (column) => ColumnFilters(column),
+  );
 
-  ColumnFilters<String> get state =>
-      $composableBuilder(column: $table.state, builder: (column) => ColumnFilters(column));
+  ColumnFilters<String> get state => $composableBuilder(
+    column: $table.state,
+    builder: (column) => ColumnFilters(column),
+  );
 
-  ColumnFilters<String> get lastError =>
-      $composableBuilder(column: $table.lastError, builder: (column) => ColumnFilters(column));
+  ColumnFilters<String> get lastError => $composableBuilder(
+    column: $table.lastError,
+    builder: (column) => ColumnFilters(column),
+  );
 
-  ColumnFilters<int> get createdAt =>
-      $composableBuilder(column: $table.createdAt, builder: (column) => ColumnFilters(column));
+  ColumnFilters<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
 }
 
-class $$OutboxEntriesTableOrderingComposer extends Composer<_$AppDatabase, $OutboxEntriesTable> {
+class $$OutboxEntriesTableOrderingComposer
+    extends Composer<_$AppDatabase, $OutboxEntriesTable> {
   $$OutboxEntriesTableOrderingComposer({
     required super.$db,
     required super.$table,
@@ -3447,52 +4213,84 @@ class $$OutboxEntriesTableOrderingComposer extends Composer<_$AppDatabase, $Outb
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnOrderings<int> get id => $composableBuilder(column: $table.id, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<String> get orgId =>
-      $composableBuilder(column: $table.orgId, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<String> get orgId => $composableBuilder(
+    column: $table.orgId,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<String> get incidentId =>
-      $composableBuilder(column: $table.incidentId, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<String> get incidentId => $composableBuilder(
+    column: $table.incidentId,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<String> get kind =>
-      $composableBuilder(column: $table.kind, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<String> get action =>
-      $composableBuilder(column: $table.action, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<String> get action => $composableBuilder(
+    column: $table.action,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<String> get path =>
-      $composableBuilder(column: $table.path, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<String> get path => $composableBuilder(
+    column: $table.path,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<String> get body =>
-      $composableBuilder(column: $table.body, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<String> get body => $composableBuilder(
+    column: $table.body,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<String> get idempotencyKey =>
-      $composableBuilder(column: $table.idempotencyKey, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<String> get idempotencyKey => $composableBuilder(
+    column: $table.idempotencyKey,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<String> get clientId =>
-      $composableBuilder(column: $table.clientId, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<String> get clientId => $composableBuilder(
+    column: $table.clientId,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<int> get baseVersion =>
-      $composableBuilder(column: $table.baseVersion, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<int> get baseVersion => $composableBuilder(
+    column: $table.baseVersion,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<int> get attempts =>
-      $composableBuilder(column: $table.attempts, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<int> get attempts => $composableBuilder(
+    column: $table.attempts,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<int> get nextAttemptAt =>
-      $composableBuilder(column: $table.nextAttemptAt, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<int> get nextAttemptAt => $composableBuilder(
+    column: $table.nextAttemptAt,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<String> get state =>
-      $composableBuilder(column: $table.state, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<String> get state => $composableBuilder(
+    column: $table.state,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<String> get lastError =>
-      $composableBuilder(column: $table.lastError, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<String> get lastError => $composableBuilder(
+    column: $table.lastError,
+    builder: (column) => ColumnOrderings(column),
+  );
 
-  ColumnOrderings<int> get createdAt =>
-      $composableBuilder(column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
-class $$OutboxEntriesTableAnnotationComposer extends Composer<_$AppDatabase, $OutboxEntriesTable> {
+class $$OutboxEntriesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $OutboxEntriesTable> {
   $$OutboxEntriesTableAnnotationComposer({
     required super.$db,
     required super.$table,
@@ -3500,37 +4298,58 @@ class $$OutboxEntriesTableAnnotationComposer extends Composer<_$AppDatabase, $Ou
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  GeneratedColumn<int> get id => $composableBuilder(column: $table.id, builder: (column) => column);
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
 
-  GeneratedColumn<String> get orgId => $composableBuilder(column: $table.orgId, builder: (column) => column);
+  GeneratedColumn<String> get orgId =>
+      $composableBuilder(column: $table.orgId, builder: (column) => column);
 
-  GeneratedColumn<String> get incidentId => $composableBuilder(column: $table.incidentId, builder: (column) => column);
+  GeneratedColumn<String> get incidentId => $composableBuilder(
+    column: $table.incidentId,
+    builder: (column) => column,
+  );
 
-  GeneratedColumn<String> get kind => $composableBuilder(column: $table.kind, builder: (column) => column);
+  GeneratedColumn<String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
 
-  GeneratedColumn<String> get action => $composableBuilder(column: $table.action, builder: (column) => column);
+  GeneratedColumn<String> get action =>
+      $composableBuilder(column: $table.action, builder: (column) => column);
 
-  GeneratedColumn<String> get path => $composableBuilder(column: $table.path, builder: (column) => column);
+  GeneratedColumn<String> get path =>
+      $composableBuilder(column: $table.path, builder: (column) => column);
 
-  GeneratedColumn<String> get body => $composableBuilder(column: $table.body, builder: (column) => column);
+  GeneratedColumn<String> get body =>
+      $composableBuilder(column: $table.body, builder: (column) => column);
 
-  GeneratedColumn<String> get idempotencyKey =>
-      $composableBuilder(column: $table.idempotencyKey, builder: (column) => column);
+  GeneratedColumn<String> get idempotencyKey => $composableBuilder(
+    column: $table.idempotencyKey,
+    builder: (column) => column,
+  );
 
-  GeneratedColumn<String> get clientId => $composableBuilder(column: $table.clientId, builder: (column) => column);
+  GeneratedColumn<String> get clientId =>
+      $composableBuilder(column: $table.clientId, builder: (column) => column);
 
-  GeneratedColumn<int> get baseVersion => $composableBuilder(column: $table.baseVersion, builder: (column) => column);
+  GeneratedColumn<int> get baseVersion => $composableBuilder(
+    column: $table.baseVersion,
+    builder: (column) => column,
+  );
 
-  GeneratedColumn<int> get attempts => $composableBuilder(column: $table.attempts, builder: (column) => column);
+  GeneratedColumn<int> get attempts =>
+      $composableBuilder(column: $table.attempts, builder: (column) => column);
 
-  GeneratedColumn<int> get nextAttemptAt =>
-      $composableBuilder(column: $table.nextAttemptAt, builder: (column) => column);
+  GeneratedColumn<int> get nextAttemptAt => $composableBuilder(
+    column: $table.nextAttemptAt,
+    builder: (column) => column,
+  );
 
-  GeneratedColumn<String> get state => $composableBuilder(column: $table.state, builder: (column) => column);
+  GeneratedColumn<String> get state =>
+      $composableBuilder(column: $table.state, builder: (column) => column);
 
-  GeneratedColumn<String> get lastError => $composableBuilder(column: $table.lastError, builder: (column) => column);
+  GeneratedColumn<String> get lastError =>
+      $composableBuilder(column: $table.lastError, builder: (column) => column);
 
-  GeneratedColumn<int> get createdAt => $composableBuilder(column: $table.createdAt, builder: (column) => column);
+  GeneratedColumn<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
 }
 
 class $$OutboxEntriesTableTableManager
@@ -3544,7 +4363,10 @@ class $$OutboxEntriesTableTableManager
           $$OutboxEntriesTableAnnotationComposer,
           $$OutboxEntriesTableCreateCompanionBuilder,
           $$OutboxEntriesTableUpdateCompanionBuilder,
-          (OutboxEntry, BaseReferences<_$AppDatabase, $OutboxEntriesTable, OutboxEntry>),
+          (
+            OutboxEntry,
+            BaseReferences<_$AppDatabase, $OutboxEntriesTable, OutboxEntry>,
+          ),
           OutboxEntry,
           PrefetchHooks Function()
         > {
@@ -3553,9 +4375,12 @@ class $$OutboxEntriesTableTableManager
         TableManagerState(
           db: db,
           table: table,
-          createFilteringComposer: () => $$OutboxEntriesTableFilterComposer($db: db, $table: table),
-          createOrderingComposer: () => $$OutboxEntriesTableOrderingComposer($db: db, $table: table),
-          createComputedFieldComposer: () => $$OutboxEntriesTableAnnotationComposer($db: db, $table: table),
+          createFilteringComposer: () =>
+              $$OutboxEntriesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$OutboxEntriesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$OutboxEntriesTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
@@ -3628,7 +4453,11 @@ class $$OutboxEntriesTableTableManager
               .map(
                 (e) => (
                   e.readTable<$OutboxEntriesTable, OutboxEntry>(table),
-                  BaseReferences<_$AppDatabase, $OutboxEntriesTable, OutboxEntry>(db, table, e),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $OutboxEntriesTable,
+                    OutboxEntry
+                  >(db, table, e),
                 ),
               )
               .toList(),
@@ -3647,7 +4476,10 @@ typedef $$OutboxEntriesTableProcessedTableManager =
       $$OutboxEntriesTableAnnotationComposer,
       $$OutboxEntriesTableCreateCompanionBuilder,
       $$OutboxEntriesTableUpdateCompanionBuilder,
-      (OutboxEntry, BaseReferences<_$AppDatabase, $OutboxEntriesTable, OutboxEntry>),
+      (
+        OutboxEntry,
+        BaseReferences<_$AppDatabase, $OutboxEntriesTable, OutboxEntry>,
+      ),
       OutboxEntry,
       PrefetchHooks Function()
     >;
@@ -3657,11 +4489,14 @@ class $AppDatabaseManager {
   $AppDatabaseManager(this._db);
   $$KeyValueEntriesTableTableManager get keyValueEntries =>
       $$KeyValueEntriesTableTableManager(_db, _db.keyValueEntries);
-  $$CachedServicesTableTableManager get cachedServices => $$CachedServicesTableTableManager(_db, _db.cachedServices);
+  $$CachedServicesTableTableManager get cachedServices =>
+      $$CachedServicesTableTableManager(_db, _db.cachedServices);
   $$CachedIncidentsTableTableManager get cachedIncidents =>
       $$CachedIncidentsTableTableManager(_db, _db.cachedIncidents);
   $$CachedDeploymentsTableTableManager get cachedDeployments =>
       $$CachedDeploymentsTableTableManager(_db, _db.cachedDeployments);
-  $$SyncCursorsTableTableManager get syncCursors => $$SyncCursorsTableTableManager(_db, _db.syncCursors);
-  $$OutboxEntriesTableTableManager get outboxEntries => $$OutboxEntriesTableTableManager(_db, _db.outboxEntries);
+  $$SyncCursorsTableTableManager get syncCursors =>
+      $$SyncCursorsTableTableManager(_db, _db.syncCursors);
+  $$OutboxEntriesTableTableManager get outboxEntries =>
+      $$OutboxEntriesTableTableManager(_db, _db.outboxEntries);
 }
