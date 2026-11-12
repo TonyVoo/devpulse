@@ -20,13 +20,32 @@ export function apiBaseUrl(): string {
   return url.replace(/\/+$/, "");
 }
 
-export async function backendFetch(
-  path: string,
-  init: RequestInit & { accessToken?: string } = {},
-): Promise<Response> {
-  const { accessToken, headers, ...rest } = init;
+/**
+ * The browser's IP as seen by this server. Behind N trusted proxies (TRUSTED_PROXY_HOPS,
+ * Render: 1) it is the Nth X-Forwarded-For entry from the right; entries further left are
+ * client-supplied and ignored. Undefined when unknown (the API then sees this server's IP).
+ */
+export function clientIpFrom(headers: Headers, hops = Number(process.env.TRUSTED_PROXY_HOPS ?? 0)): string | undefined {
+  if (!hops) return undefined;
+  const chain = (headers.get("x-forwarded-for") ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return chain.length >= hops ? chain[chain.length - hops] : undefined;
+}
+
+export type BackendInit = RequestInit & { accessToken?: string; clientIp?: string };
+
+export async function backendFetch(path: string, init: BackendInit = {}): Promise<Response> {
+  const { accessToken, clientIp, headers, ...rest } = init;
   const h = new Headers(headers);
   if (accessToken) h.set("authorization", `Bearer ${accessToken}`);
+  // The API trusts this header only together with the shared secret (rate limits per IP).
+  const secret = process.env.BFF_SHARED_SECRET;
+  if (clientIp && secret) {
+    h.set("x-devpulse-client-ip", clientIp);
+    h.set("x-devpulse-bff-secret", secret);
+  }
   if (rest.body && !h.has("content-type")) h.set("content-type", "application/json");
   h.set("accept", "application/json");
   return fetch(`${apiBaseUrl()}/api/v1/${path.replace(/^\/+/, "")}`, {

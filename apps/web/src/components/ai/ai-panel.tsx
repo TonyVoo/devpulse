@@ -307,7 +307,7 @@ function Chat({ orgId, inv, canAct }: { orgId: string; inv: Investigation; canAc
       </ul>
       {ask.isError && <Alert>{aiErrorMessage(ask.error instanceof ApiError ? ask.error.problem.code : null, ask.error.message)}</Alert>}
       {canAct && (
-        <form
+        <form method="post"
           className="flex gap-2"
           onSubmit={(e) => {
             e.preventDefault();

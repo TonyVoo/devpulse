@@ -12,6 +12,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import get_settings
 from app.core.deps import RequestMeta
 from app.core.errors import Conflict, Forbidden, NotFound, Unprocessable
+from app.core.ratelimit import enforce_rate_limit
+from app.core.redis import get_redis
 from app.core.security import hash_token, new_opaque_token
 from app.core.tenancy import OrgContext, OrgScopedRepository
 from app.modules.audit.service import record
@@ -261,6 +263,14 @@ class OrgService(OrgScopedRepository):
 
     async def invite(self, *, email: str, role: Role, meta: RequestMeta) -> tuple[Invitation, str]:
         self._assert_can_assign(role, Role.VIEWER)
+        await enforce_rate_limit(
+            get_redis(),
+            scope="invite",
+            key=str(self.ctx.org_id),
+            limit=get_settings().invitation_rate_limit_per_hour,
+            window_s=3600,
+            message="Too many invitations from this organization, try again later",
+        )
         already_member = await self.session.scalar(
             self.scoped(Membership, select(func.count()).select_from(Membership))
             .join(User, User.id == Membership.user_id)

@@ -2,7 +2,7 @@ import "server-only";
 
 import { cookies } from "next/headers";
 
-import { backendFetch, refreshTokens } from "./backend";
+import { backendFetch, refreshTokens, type BackendInit } from "./backend";
 import {
   ACCESS_COOKIE,
   ACCESS_EXP_COOKIE,
@@ -40,7 +40,7 @@ export async function checkCsrf(request: Request): Promise<boolean> {
  * Refreshes proactively when the access token is near expiry, and once more on an
  * `auth.token_expired` 401. Returns null when there is no usable session.
  */
-export async function authedFetch(path: string, init: RequestInit = {}): Promise<Response | null> {
+export async function authedFetch(path: string, init: BackendInit = {}): Promise<Response | null> {
   const store = await cookies();
   let access = store.get(ACCESS_COOKIE)?.value;
   const refresh = store.get(REFRESH_COOKIE)?.value;

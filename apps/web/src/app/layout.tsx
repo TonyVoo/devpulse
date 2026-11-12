@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
+import { connection } from "next/server";
 
 import { Providers } from "@/components/providers";
 
@@ -13,7 +14,10 @@ export const metadata: Metadata = {
   description: "Engineering observability, incidents and AI investigation.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  // Render every page per request: the CSP nonce (src/proxy.ts) must be fresh for each
+  // response, and a prerendered page would ship scripts without it.
+  await connection();
   return (
     <html lang="en" className={`${inter.variable} ${mono.variable} h-full antialiased`}>
       <body className="min-h-full">

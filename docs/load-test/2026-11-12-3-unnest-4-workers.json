@@ -1,0 +1,128 @@
+{
+  "api": "http://localhost:8000",
+  "started_at": "2026-11-12T09:58:27.717953+00:00",
+  "seconds_per_step": 15.0,
+  "ingest": [
+    {
+      "ok": 819,
+      "errors": {},
+      "per_second": 54.6,
+      "units_per_second": 27300.0,
+      "p50_ms": 13.3,
+      "p95_ms": 26.3,
+      "p99_ms": 78.4,
+      "mean_ms": 16.4,
+      "workers": 1,
+      "points_per_batch": 500
+    },
+    {
+      "ok": 1961,
+      "errors": {
+        "429": 361
+      },
+      "per_second": 130.7,
+      "units_per_second": 65366.7,
+      "p50_ms": 20.8,
+      "p95_ms": 54.5,
+      "p99_ms": 145.2,
+      "mean_ms": 27.4,
+      "workers": 4,
+      "points_per_batch": 500
+    },
+    {
+      "ok": 1174,
+      "errors": {
+        "429": 596
+      },
+      "per_second": 78.3,
+      "units_per_second": 39133.3,
+      "p50_ms": 61.2,
+      "p95_ms": 311.8,
+      "p99_ms": 443.1,
+      "mean_ms": 87.6,
+      "workers": 8,
+      "points_per_batch": 500
+    },
+    {
+      "ok": 1214,
+      "errors": {
+        "429": 164
+      },
+      "per_second": 80.9,
+      "units_per_second": 40466.7,
+      "p50_ms": 124.0,
+      "p95_ms": 523.1,
+      "p99_ms": 866.2,
+      "mean_ms": 184.7,
+      "workers": 16,
+      "points_per_batch": 500
+    }
+  ],
+  "reads": {
+    "overview": {
+      "ok": 449,
+      "errors": {},
+      "per_second": 29.9,
+      "units_per_second": 29.9,
+      "p50_ms": 44.7,
+      "p95_ms": 215.8,
+      "p99_ms": 433.2,
+      "mean_ms": 66.9
+    },
+    "services_list": {
+      "ok": 647,
+      "errors": {},
+      "per_second": 43.1,
+      "units_per_second": 43.1,
+      "p50_ms": 35.3,
+      "p95_ms": 110.1,
+      "p99_ms": 223.0,
+      "mean_ms": 46.4
+    },
+    "incidents_list": {
+      "ok": 704,
+      "errors": {},
+      "per_second": 46.9,
+      "units_per_second": 46.9,
+      "p50_ms": 31.8,
+      "p95_ms": 104.1,
+      "p99_ms": 196.6,
+      "mean_ms": 42.7
+    },
+    "metrics_6h": {
+      "ok": 613,
+      "errors": {},
+      "per_second": 40.9,
+      "units_per_second": 40.9,
+      "p50_ms": 37.7,
+      "p95_ms": 105.7,
+      "p99_ms": 229.5,
+      "mean_ms": 49.0
+    },
+    "sync_incidents": {
+      "ok": 596,
+      "errors": {},
+      "per_second": 39.7,
+      "units_per_second": 39.7,
+      "p50_ms": 35.3,
+      "p95_ms": 140.0,
+      "p99_ms": 282.0,
+      "mean_ms": 50.4
+    },
+    "_concurrent_ingest": {
+      "ok": 629,
+      "errors": {},
+      "per_second": 41.9,
+      "units_per_second": 20966.7,
+      "p50_ms": 67.3,
+      "p95_ms": 284.9,
+      "p99_ms": 442.9,
+      "mean_ms": 93.5,
+      "workers": 4,
+      "points_per_batch": 500
+    }
+  },
+  "rollup": {
+    "caught_up_after_s": 18.6
+  }
+}

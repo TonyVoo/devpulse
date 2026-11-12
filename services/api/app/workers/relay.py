@@ -24,6 +24,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import get_settings
 from app.core.db import get_sessionmaker
 from app.core.logging import configure_logging
+from app.core.observability import init_sentry
 from app.core.redis import get_redis
 from app.modules.ai.pipeline import maybe_auto_investigate
 from app.modules.notifications.push import (
@@ -95,6 +96,7 @@ async def purge_published(session: AsyncSession, older_than: timedelta = timedel
 async def run() -> None:
     settings = get_settings()
     configure_logging(settings.log_level, json=settings.log_json)
+    init_sentry("relay")
     push: PushProvider = LoggingPushProvider()
     wake = asyncio.Event()
     stop = asyncio.Event()

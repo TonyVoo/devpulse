@@ -10,7 +10,7 @@
 | **3 Realtime & mobile excellence** ✅ (push delivery pending Firebase) | Outbox relay, WS gateway, sync feed, Drift offline model, outbox writes, backoff, conflict handling, FCM, deep links, lifecycle, tablet layouts, integration tests | Airplane-mode ack replays correctly; WS drop → no lost/duplicate items; push tap cold-start opens incident |
 | **4 AI** ✅ (real-model eval pending a key; OpenAI adapter not built) | Provider port + Anthropic/OpenAI/Fake adapters, context collector, evidence registry, investigation task, validation/repair, usage & budget, Copilot UI (mobile + web), follow-up chat with read-only tools, proposals/approval | Golden scenarios pass with FakeProvider in CI; schema/grounding tests green; manual eval run documented |
 | **5 Web & polish** ✅ (manual screen-reader pass open) | Members/RBAC admin, alert rule builder with preview, integrations, AI config, audit log viewer, advanced charts & correlation timeline; accessibility & motion pass on mobile | Playwright critical flows green; a11y audit fixes landed |
-| **6 Production readiness** | Security review, RLS, OIDC, rate-limit tuning, load test ingestion, perf profiling (Flutter DevTools, API p95), Sentry wiring, deployment pipeline, demo environment | Threat model documented; load test report; staging deploy reproducible from CI |
+| **6 Production readiness** ✅ (first Render deploy + OIDC pending — see checklist) | Security review, RLS, OIDC, rate-limit tuning, load test ingestion, perf profiling (Flutter DevTools, API p95), Sentry wiring, deployment pipeline, demo environment | Threat model documented; load test report; staging deploy reproducible from CI |
 
 ## 2. Technical risks
 
@@ -187,3 +187,24 @@ Legend: ✅ done and verified · ⏳ not done (reason given)
 - ✅ Accessibility audit test (22 cases) + reduce-motion transitions; fixes: contrast-safe palette shared with web, 48dp segmented buttons, wrapping buttons/rows, bounded list-tile columns
 - ✅ 97 tests
 - ⏳ Manual VoiceOver/TalkBack pass on a device; tablet layouts
+
+## 8. Phase 6 checklist
+
+**Security** (`docs/SECURITY.md`)
+- ✅ Threat model (STRIDE per boundary), dependency audits clean, findings fixed with tests: client-IP sharing/spoofing behind the BFF, per-email login limit, API security headers + `no-store`, request body limits (incl. chunked), nonce CSP + HSTS on the web, POST-only forms, HTTPS-only mobile release builds
+- ✅ Row-level security on all tenant tables (ADR-026); the whole backend suite runs as a non-superuser role
+- ✅ Abuse limits: registration, password change, invitations, AI start/ask (configurable)
+- ⏳ OIDC SSO / MFA (deferred), container scanning (trivy), external penetration test
+
+**Performance** (`docs/LOAD_TEST.md`)
+- ✅ Load test tool + report: ingestion 17.7k → 27.2k points/s per writer (batched insert), ~65k points/s with 4 API processes; read p95 under ingest ~105–215 ms; rollup lag 52 s → 19 s
+- ⏳ Mobile profiling on a physical device; alert-preview single-query rewrite
+
+**Observability**
+- ✅ Sentry on API, worker, beat, relay, web (server + browser) and mobile — off unless a DSN is set; credentials, cookies, bodies and user data scrubbed (tests on every platform)
+
+**Deployment**
+- ✅ `render.yaml` (free tier), all-in-one supervisor, configurable port/processes/proxy trust, managed-Postgres URL and platform-secret support, `/healthz` reports the release
+- ✅ `deploy-staging.yml`: tests → deploy hooks pinned to the commit → wait for the release → smoke test
+- ✅ Verified locally in the Render shape (smoke test + all Playwright flows, RLS enforced)
+- ⏳ First real Render deploy (needs your Render account and a GitHub remote — DEPLOYMENT.md §5)

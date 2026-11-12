@@ -27,7 +27,7 @@ export function CreateOrgForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
+    <form method="post" onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
       {err && <Alert>{err.message}</Alert>}
       <Field label="Organization name" name="name" required minLength={2} error={err?.fields.name} />
       <Button type="submit" loading={create.isPending} className="self-start">

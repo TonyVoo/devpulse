@@ -148,7 +148,7 @@ function Builder({
   return (
     <Card className="space-y-5">
       <h2 className="font-semibold">{rule ? `Edit “${rule.name}”` : "New alert rule"}</h2>
-      <form
+      <form method="post"
         className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
         onSubmit={(e) => {
           e.preventDefault();

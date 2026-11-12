@@ -215,7 +215,7 @@ export function Comments({ orgId, incidentRef, canAct }: { orgId: string; incide
         ))}
       </ul>
       {canAct && (
-        <form onSubmit={onSubmit} className="space-y-2">
+        <form method="post" onSubmit={onSubmit} className="space-y-2">
           <label htmlFor="comment" className="sr-only">
             Add a comment
           </label>

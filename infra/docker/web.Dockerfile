@@ -10,7 +10,10 @@ RUN pnpm install --frozen-lockfile
 FROM base AS build
 COPY --from=deps /app/node_modules ./node_modules
 COPY apps/web/ ./
-ENV NEXT_TELEMETRY_DISABLED=1
+# Public build-time settings (inlined into the browser bundle). Optional.
+ARG NEXT_PUBLIC_SENTRY_DSN=""
+ARG NEXT_PUBLIC_APP_ENV="local"
+ENV NEXT_TELEMETRY_DISABLED=1 NEXT_PUBLIC_SENTRY_DSN=$NEXT_PUBLIC_SENTRY_DSN NEXT_PUBLIC_APP_ENV=$NEXT_PUBLIC_APP_ENV
 RUN pnpm build
 
 FROM node:24-alpine AS runtime

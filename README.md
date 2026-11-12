@@ -6,7 +6,7 @@ DevPulse is an AI-native engineering observability platform. Engineers monitor s
 track deployments, run incidents and get evidence-based AI root-cause analysis — first-class
 on mobile, with a web dashboard for administration and deep analysis.
 
-**Status: Phase 5 (web & polish) — full web admin (members, alert rules with preview, integrations, audit log), charts and incident correlation, accessibility enforced by tests on web and mobile. Real-model AI needs a (free) `GEMINI_API_KEY`; push delivery awaits a Firebase project.**
+**Status: Phase 6 (production readiness) — security review with fixes, Postgres row-level security, load-tested ingestion, Sentry on every platform, and a Render staging setup deployable from CI (the first real deploy needs your Render account). Real-model AI needs a (free) `GEMINI_API_KEY`; push delivery awaits a Firebase project.**
 Exact status per item: [docs/ROADMAP.md §3](docs/ROADMAP.md).
 
 ## Components
@@ -32,7 +32,9 @@ Exact status per item: [docs/ROADMAP.md §3](docs/ROADMAP.md).
 | [AI_ARCHITECTURE.md](docs/AI_ARCHITECTURE.md) | Investigation pipeline, provider abstraction, grounding/validation, safety, cost tracking |
 | [DEPLOYMENT.md](docs/DEPLOYMENT.md) | Environments, configuration, Docker Compose, CI/CD |
 | [DECISIONS.md](docs/DECISIONS.md) | Architecture decision records (ADRs) and trade-offs |
-| [ROADMAP.md](docs/ROADMAP.md) | Phased roadmap, technical risks, Phase 1 checklist |
+| [SECURITY.md](docs/SECURITY.md) | Threat model, security review findings and fixes |
+| [LOAD_TEST.md](docs/LOAD_TEST.md) | Load test method, results and tuning |
+| [ROADMAP.md](docs/ROADMAP.md) | Phased roadmap, technical risks, per-phase checklists |
 
 ## Running the project
 

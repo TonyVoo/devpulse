@@ -72,8 +72,12 @@ def _settings(**overrides: object) -> Settings:
 
 def test_settings_validation() -> None:
     assert _settings().app_env == "test"  # from env set in conftest
+    # Plain PostgreSQL URLs are switched to the async driver; other databases are rejected.
+    assert _settings(database_url="postgresql://u:p@h/db").database_url.startswith(
+        "postgresql+asyncpg://"
+    )
     with pytest.raises(ValidationError):
-        _settings(database_url="postgresql://u:p@h/db")  # sync driver rejected
+        _settings(database_url="sqlite:///db.sqlite3")
     with pytest.raises(ValidationError):
         _settings(jwt_signing_key="short")
     with pytest.raises(ValidationError):
@@ -107,3 +111,35 @@ async def test_audit_log_is_append_only(client, db_dsn: str) -> None:  # type: i
             await conn.execute("UPDATE audit_logs SET action = 'tampered'")
     finally:
         await conn.close()
+
+
+def test_managed_postgres_urls_are_normalised() -> None:
+    from app.core.config import Settings
+
+    v = Settings._async_driver("postgres://u:p@h:5432/db?sslmode=require")
+    assert v == "postgresql+asyncpg://u:p@h:5432/db?ssl=require"
+    assert Settings._async_driver("postgresql://u@h/db") == "postgresql+asyncpg://u@h/db"
+    import pytest
+
+    with pytest.raises(ValueError):
+        Settings._async_driver("mysql://u@h/db")
+
+
+def test_platform_generated_secrets_become_fernet_keys() -> None:
+    import pytest
+    from cryptography.fernet import Fernet
+
+    from app.modules.integrations.service import fernet_key
+
+    real = Fernet.generate_key().decode()
+    assert fernet_key(real) == real.encode()  # existing keys keep working
+    derived = fernet_key("Z2VuZXJhdGVkK2J5L3JlbmRlcj09LWJhc2U2NC1zZWNyZXQ=")  # has + and /
+    token = Fernet(derived).encrypt(b"webhook-secret")
+    assert Fernet(derived).decrypt(token) == b"webhook-secret"
+    with pytest.raises(ValueError):
+        fernet_key("short")
+
+
+async def test_healthz_reports_the_release(client) -> None:  # type: ignore[no-untyped-def]
+    r = await client.get("http://test/healthz")
+    assert r.json()["status"] == "ok" and r.json()["release"]

@@ -1,0 +1,95 @@
+# DevPulse staging on Render (free tier). Blueprint: Render → New → Blueprint → this repo.
+# docs/DEPLOYMENT.md explains the setup, the free-tier limits and the CI deploy hooks.
+#
+# Free tier shape: two web services + one Postgres + one Key Value. Background workers
+# are paid on Render, so devpulse-api runs the API, Celery (with beat) and the outbox relay
+# in one container (app/scripts/supervise.py). Free services sleep after 15 min without
+# traffic — background jobs pause too. The free Postgres is deleted 30 days after creation.
+
+services:
+  - type: web
+    name: devpulse-api
+    runtime: docker
+    plan: free
+    region: frankfurt
+    dockerfilePath: ./infra/docker/api.Dockerfile
+    dockerContext: .
+    dockerCommand: python -m app.scripts.supervise
+    healthCheckPath: /readyz
+    # CI deploys through the deploy hook after the test suites pass (.github/workflows/deploy-staging.yml).
+    autoDeployTrigger: "off"
+    envVars:
+      - key: APP_ENV
+        value: staging
+      - key: LOG_JSON
+        value: "true"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: devpulse-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: devpulse-redis
+          property: connectionString
+      - key: JWT_SIGNING_KEY
+        generateValue: true
+      - key: ENCRYPTION_KEY # any ≥32-char secret works (turned into a Fernet key)
+        generateValue: true
+      - key: BFF_SHARED_SECRET
+        generateValue: true
+      - key: TRUSTED_PROXY_HOPS # Render's proxy appends the client IP to X-Forwarded-For
+        value: "1"
+      - key: FORWARDED_ALLOW_IPS # only Render's proxy can reach the container
+        value: "*"
+      - key: WEB_CONCURRENCY
+        value: "1"
+      - key: AI_DEFAULT_PROVIDER
+        value: gemini
+      - key: AI_DEFAULT_MODEL
+        value: gemini-3.8-flash
+      - key: GEMINI_API_KEY # free key from https://aistudio.google.com/apikey (optional)
+        sync: false
+      - key: SENTRY_DSN # optional
+        sync: false
+
+  - type: web
+    name: devpulse-web
+    runtime: docker
+    plan: free
+    region: frankfurt
+    dockerfilePath: ./infra/docker/web.Dockerfile
+    dockerContext: .
+    healthCheckPath: /login
+    autoDeployTrigger: "off"
+    envVars:
+      # The API's public URL, e.g. https://devpulse-api.onrender.com (set after the first deploy).
+      - key: API_INTERNAL_URL
+        sync: false
+      - key: API_PUBLIC_URL
+        sync: false
+      - key: SESSION_COOKIE_SECURE
+        value: "true"
+      - key: TRUSTED_PROXY_HOPS
+        value: "1"
+      - key: BFF_SHARED_SECRET
+        fromService:
+          type: web
+          name: devpulse-api
+          envVarKey: BFF_SHARED_SECRET
+      - key: SENTRY_DSN # optional
+        sync: false
+
+  - type: keyvalue
+    name: devpulse-redis
+    plan: free
+    region: frankfurt
+    maxmemoryPolicy: noeviction # it is the Celery broker: never drop queued tasks
+    ipAllowList: [] # internal connections only
+
+databases:
+  - name: devpulse-db
+    plan: free
+    region: frankfurt
+    databaseName: devpulse
+    user: devpulse

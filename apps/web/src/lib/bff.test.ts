@@ -27,3 +27,13 @@ describe("csrfValid", () => {
     expect(csrfValid("abc", "abc123")).toBe(false);
   });
 });
+
+describe("client IP forwarding", () => {
+  it("takes the proxy-appended entry, never a client-supplied one", async () => {
+    const { clientIpFrom } = await import("./backend");
+    const h = new Headers({ "x-forwarded-for": "6.6.6.6, 203.0.113.9" });
+    expect(clientIpFrom(h, 1)).toBe("203.0.113.9"); // rightmost = added by our proxy
+    expect(clientIpFrom(h, 0)).toBeUndefined(); // no trusted proxy configured
+    expect(clientIpFrom(new Headers(), 1)).toBeUndefined();
+  });
+});

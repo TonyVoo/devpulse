@@ -1,5 +1,6 @@
 """Request-scoped dependencies: DB session, current user, request metadata."""
 
+import hmac
 from dataclasses import dataclass
 from typing import Annotated
 from uuid import UUID
@@ -9,6 +10,7 @@ from fastapi import Depends, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import get_settings
 from app.core.db import get_session
 from app.core.errors import Unauthorized
 from app.core.security import AccessClaims, decode_access_token
@@ -26,9 +28,38 @@ class RequestMeta:
     request_id: str | None
 
 
+BFF_CLIENT_IP_HEADER = "x-devpulse-client-ip"
+BFF_SECRET_HEADER = "x-devpulse-bff-secret"  # noqa: S105 - a header name, not a secret
+
+
+def client_ip(request: Request) -> str | None:
+    """The caller's IP, without trusting anything a client can forge.
+
+    1. The web BFF calls the API server-to-server and forwards the browser's IP; accepted
+       only with the shared BFF secret (otherwise anyone could pick their own IP).
+    2. Behind N trusted reverse proxies, the Nth entry from the right of X-Forwarded-For
+       (those are appended by the proxies; anything to the left is client-supplied).
+    3. Otherwise the TCP peer.
+    """
+    s = get_settings()
+    secret = s.bff_shared_secret
+    forwarded_client = request.headers.get(BFF_CLIENT_IP_HEADER)
+    if secret is not None and forwarded_client:
+        presented = request.headers.get(BFF_SECRET_HEADER, "")
+        if hmac.compare_digest(presented.encode(), secret.get_secret_value().encode()):
+            return forwarded_client.strip()[:64]
+    if s.trusted_proxy_hops:
+        chain = [
+            p.strip() for p in request.headers.get("x-forwarded-for", "").split(",") if p.strip()
+        ]
+        if len(chain) >= s.trusted_proxy_hops:
+            return chain[-s.trusted_proxy_hops][:64]
+    return request.client.host if request.client else None
+
+
 def get_request_meta(request: Request) -> RequestMeta:
     return RequestMeta(
-        ip=request.client.host if request.client else None,
+        ip=client_ip(request),
         user_agent=(request.headers.get("user-agent") or "")[:512] or None,
         request_id=getattr(request.state, "request_id", None),
     )

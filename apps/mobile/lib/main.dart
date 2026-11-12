@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 
 import 'app/providers.dart';
 import 'app/router.dart';
 import 'core/design_system/theme.dart';
+import 'core/observability/sentry.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const ProviderScope(child: DevPulseApp()));
+  void run() => runApp(const ProviderScope(child: DevPulseApp()));
+  if (sentryDsn.isEmpty) return run();
+  await SentryFlutter.init(configureSentry, appRunner: run);
 }
 
 class DevPulseApp extends ConsumerWidget {

@@ -13,6 +13,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import get_settings
 from app.core.errors import Conflict, Forbidden, NotFound, Unprocessable
 from app.core.pagination import MAX_LIMIT, Page, decode_cursor, encode_cursor
+from app.core.ratelimit import enforce_rate_limit
+from app.core.redis import get_redis
 from app.core.tenancy import OrgContext, OrgScopedRepository
 from app.modules.ai import pipeline, providers
 from app.modules.ai.evidence import Redactor
@@ -249,7 +251,19 @@ class AIService(OrgScopedRepository):
 
     # ---------------------------------------------------------------------- start
 
+    async def _spend_limit(self, scope: str, limit: int) -> None:
+        """AI calls cost money: cap them per user (in addition to the org's budget)."""
+        await enforce_rate_limit(
+            get_redis(),
+            scope=scope,
+            key=str(self.ctx.user_id),
+            limit=limit,
+            window_s=600,
+            message="Too many AI requests, try again in a few minutes",
+        )
+
     async def start(self, ref: str) -> InvestigationOut:
+        await self._spend_limit("ai_start", get_settings().ai_start_rate_limit)
         inc = await IncidentService(self.session, self.ctx)._load(ref)
         inv = await start_investigation(
             self.session, inc, trigger=Trigger.MANUAL, requested_by=self.ctx.user_id
@@ -275,7 +289,8 @@ class AIService(OrgScopedRepository):
         inv, inc = await self._inv(inv_id, lock=True)
         replay = await self._replay(inv, body.client_id)
         if replay is not None:
-            return replay
+            return replay  # retries of an answered question are free
+        await self._spend_limit("ai_ask", get_settings().ai_ask_rate_limit)
         if inv.status != RunStatus.SUCCEEDED:
             raise Conflict("Follow-up questions need a finished analysis", code="ai.not_ready")
         st = await load_settings(self.session, inv.org_id)

@@ -2,7 +2,7 @@
  * Generic BFF proxy for client-side data fetching: /api/v1/<path> → API /api/v1/<path>,
  * authenticated with the httpOnly session. Token-bearing endpoints are not reachable here.
  */
-import { passThrough, problemResponse } from "@/lib/backend";
+import { clientIpFrom, passThrough, problemResponse } from "@/lib/backend";
 import { authedFetch, checkCsrf, isBlockedPath } from "@/lib/bff";
 
 const MAX_BODY_BYTES = 1_000_000;
@@ -34,7 +34,12 @@ async function handle(request: Request, ctx: RouteContext<"/api/v1/[...path]">) 
 
   let upstream: Response | null;
   try {
-    upstream = await authedFetch(`${path}${search}`, { method, body: body || undefined, headers });
+    upstream = await authedFetch(`${path}${search}`, {
+      method,
+      body: body || undefined,
+      headers,
+      clientIp: clientIpFrom(request.headers),
+    });
   } catch {
     return problemResponse(503, "api_unavailable", "The DevPulse API is unreachable");
   }

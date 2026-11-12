@@ -35,7 +35,14 @@ _base_url = os.environ.get(
 )
 _parts = urlsplit(_base_url)
 TEST_DB = _parts.path.lstrip("/") + "_test"
-TEST_DATABASE_URL = urlunsplit(_parts._replace(path="/" + TEST_DB))
+# The suite runs as an ordinary (non-superuser, no BYPASSRLS) role that owns the test
+# database, like production: row-level security is enforced in every test (ADR-026).
+APP_ROLE = "devpulse_test_app"
+APP_ROLE_PASSWORD = "devpulse-test-app-only"  # test-only credential, local test database
+_host = _parts.netloc.rsplit("@", 1)[-1]
+TEST_DATABASE_URL = urlunsplit(
+    _parts._replace(netloc=f"{APP_ROLE}:{APP_ROLE_PASSWORD}@{_host}", path="/" + TEST_DB)
+)
 
 _redis_parts = urlsplit(os.environ.get("REDIS_URL", "redis://localhost:56379/0"))
 TEST_REDIS_URL = urlunsplit(_redis_parts._replace(path="/15"))
@@ -56,6 +63,8 @@ os.environ.update(
     AI_DEFAULT_PROVIDER="fake",
     ANTHROPIC_API_KEY="",
     GEMINI_API_KEY="",
+    # Tests register many accounts from one test client; abuse limits get dedicated tests.
+    REGISTER_RATE_LIMIT_PER_HOUR="100000",
 )
 
 import httpx  # noqa: E402
@@ -73,7 +82,17 @@ async def _database() -> AsyncIterator[None]:
     admin = await asyncpg.connect(_raw_dsn(urlunsplit(_parts._replace(path="/postgres"))))
     try:
         await admin.execute(f'DROP DATABASE IF EXISTS "{TEST_DB}" WITH (FORCE)')
-        await admin.execute(f'CREATE DATABASE "{TEST_DB}"')
+        await admin.execute(
+            f"""
+            DO $$ BEGIN
+              IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = '{APP_ROLE}') THEN
+                CREATE ROLE {APP_ROLE} LOGIN NOSUPERUSER NOBYPASSRLS
+                  PASSWORD '{APP_ROLE_PASSWORD}';
+              END IF;
+            END $$
+            """  # noqa: S608 - fixed test-only constants, no user input
+        )
+        await admin.execute(f'CREATE DATABASE "{TEST_DB}" OWNER {APP_ROLE}')
     finally:
         await admin.close()
     proc = await asyncio.create_subprocess_exec(

@@ -4,9 +4,11 @@ from celery import Celery
 
 from app.core.config import get_settings
 from app.core.logging import configure_logging
+from app.core.observability import init_sentry
 
 settings = get_settings()
 configure_logging(settings.log_level, json=settings.log_json)
+init_sentry("worker")  # celery integration is enabled automatically
 
 celery = Celery("devpulse", broker=settings.redis_url, backend=None, include=["app.workers.tasks"])
 celery.conf.update(

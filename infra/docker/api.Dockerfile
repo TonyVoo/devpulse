@@ -15,4 +15,8 @@ COPY --from=deps /install /usr/local
 COPY services/api/ ./
 USER devpulse
 EXPOSE 8000
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers"]
+# PORT (Render sets it; default 8000) and WEB_CONCURRENCY (uvicorn worker processes; 1 fits
+# small instances, ~CPU count on larger ones). FORWARDED_ALLOW_IPS limits who may set
+# X-Forwarded-* (the platform's proxy); "*" is only correct behind a trusted proxy.
+ENV PORT=8000 WEB_CONCURRENCY=1 FORWARDED_ALLOW_IPS=127.0.0.1
+CMD ["sh", "-c", "exec uvicorn app.main:app --host 0.0.0.0 --port \"$PORT\" --workers \"$WEB_CONCURRENCY\" --proxy-headers --forwarded-allow-ips \"$FORWARDED_ALLOW_IPS\""]

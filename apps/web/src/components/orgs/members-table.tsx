@@ -55,7 +55,7 @@ function InviteForm({ orgId, myRole }: { orgId: string; myRole: Role }) {
   return (
     <Card className="space-y-4">
       <h2 className="font-semibold">Invite someone</h2>
-      <form onSubmit={onSubmit} className="flex flex-wrap items-end gap-3">
+      <form method="post" onSubmit={onSubmit} className="flex flex-wrap items-end gap-3">
         <div className="min-w-56 flex-1">
           <Field label="Email" name="email" type="email" required autoComplete="off" />
         </div>

@@ -45,7 +45,7 @@ export function ServicesView({ orgId, canManage }: { orgId: string; canManage: b
         <div>
           {open ? (
             <Card>
-              <form onSubmit={onSubmit} className="grid gap-4 sm:grid-cols-2" noValidate>
+              <form method="post" onSubmit={onSubmit} className="grid gap-4 sm:grid-cols-2" noValidate>
                 {err && <Alert className="sm:col-span-2">{err.message}</Alert>}
                 <Field label="Name" name="name" required error={err?.fields.name} />
                 <Field label="Environment" name="environment" defaultValue="production" error={err?.fields.environment} />

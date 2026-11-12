@@ -53,7 +53,7 @@ export function IngestKeysView({ orgId, apiOrigin }: { orgId: string; apiOrigin:
   return (
     <div className="space-y-6">
       <Card>
-        <form onSubmit={onSubmit} className="flex flex-col gap-3 sm:flex-row sm:items-end" noValidate>
+        <form method="post" onSubmit={onSubmit} className="flex flex-col gap-3 sm:flex-row sm:items-end" noValidate>
           <div className="flex-1">
             <Field label="Key name" name="name" placeholder="e.g. checkout production" required error={err?.fields.name} />
           </div>

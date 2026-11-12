@@ -87,7 +87,7 @@ export function IntegrationsView({ orgId, canManage, apiOrigin }: { orgId: strin
             preceded them. Repositories are matched to services by their repository URL; add explicit mappings below
             if the URLs differ.
           </p>
-          <form onSubmit={onSubmit} className="space-y-3">
+          <form method="post" onSubmit={onSubmit} className="space-y-3">
             <Field label="Name" name="name" required defaultValue="GitHub" />
             {repos.map((r, i) => (
               <div key={i} className="flex flex-wrap items-end gap-2">

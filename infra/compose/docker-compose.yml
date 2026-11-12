@@ -15,6 +15,9 @@ x-api-env: &api-env
   GEMINI_API_KEY: ${GEMINI_API_KEY:-}
   ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
   AI_FAKE_ENABLED: ${AI_FAKE_ENABLED:-false}
+  # Web BFF → API: the browser's IP is forwarded with this shared secret (rate limits).
+  BFF_SHARED_SECRET: ${BFF_SHARED_SECRET:?set BFF_SHARED_SECRET in .env}
+  WEB_CONCURRENCY: ${WEB_CONCURRENCY:-1}
 
 # One image for api/worker/beat/migrate. Only `migrate` declares the build so the image is
 # built once; the others reuse it (pull_policy: never avoids registry lookups).
@@ -113,6 +116,8 @@ services:
       API_INTERNAL_URL: http://api:8000
       API_PUBLIC_URL: ${API_PUBLIC_URL:-http://localhost:8000}
       SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
+      BFF_SHARED_SECRET: ${BFF_SHARED_SECRET:?set BFF_SHARED_SECRET in .env}
+      TRUSTED_PROXY_HOPS: ${TRUSTED_PROXY_HOPS:-0}
     ports: ["${WEB_PORT:-3000}:3000"]
     depends_on:
       api: { condition: service_healthy }

@@ -4,7 +4,7 @@ COMPOSE := docker compose --env-file .env -f infra/compose/docker-compose.yml
 API := services/api
 PY := $(API)/.venv/bin
 
-.PHONY: help env up down logs ps migrate seed-demo loadgen ai-eval api-venv api-test api-lint api-typecheck api-check openapi web-install web-dev web-check
+.PHONY: help env up down logs ps migrate seed-demo loadgen ai-eval loadtest smoke api-venv api-test api-lint api-typecheck api-check openapi web-install web-dev web-check
 
 help: ## Show targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-16s %s\n", $$1, $$2}'
@@ -39,6 +39,12 @@ loadgen: ## Synthetic telemetry via the ingest API: make loadgen KEY=dp_ingest_.
 
 ai-eval: ## Golden AI scenarios: make ai-eval [PROVIDER=gemini|anthropic] (real models need a key)
 	$(COMPOSE) run --rm --no-deps api python -m app.scripts.ai_eval --provider $(or $(PROVIDER),fake) $(if $(MODEL),--model $(MODEL),)
+
+loadtest: ## Ingestion + read load test against the local stack (docs/LOAD_TEST.md)
+	cd $(API) && .venv/bin/python -m app.scripts.loadtest --api http://localhost:8000 $(if $(OUT),--out $(OUT),)
+
+smoke: ## Post-deploy smoke test: make smoke API=https://... WEB=https://... [RELEASE=sha]
+	infra/scripts/smoke.sh $(or $(API),http://localhost:8000) $(or $(WEB),http://localhost:3000) $(RELEASE)
 
 api-venv: ## Create backend virtualenv with dev deps
 	test -d $(API)/.venv || python3.12 -m venv $(API)/.venv

@@ -2,7 +2,7 @@ import "server-only";
 
 import { cookies } from "next/headers";
 
-import { backendFetch, passThrough, problemResponse } from "./backend";
+import { backendFetch, clientIpFrom, passThrough, problemResponse } from "./backend";
 import { writeSession, type TokenPair } from "./session";
 
 /**
@@ -18,7 +18,11 @@ export async function credentialExchange(request: Request, apiPath: string): Pro
   }
   let upstream: Response;
   try {
-    upstream = await backendFetch(apiPath, { method: "POST", body: await request.text() });
+    upstream = await backendFetch(apiPath, {
+      method: "POST",
+      body: await request.text(),
+      clientIp: clientIpFrom(request.headers),
+    });
   } catch {
     return problemResponse(503, "api_unavailable", "The DevPulse API is unreachable");
   }

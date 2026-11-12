@@ -3,6 +3,10 @@
 The `org_id` in a URL is only a *request*. `require_org(permission)` verifies the caller's
 membership and permission and yields an `OrgContext`. Org-scoped repositories take an
 `OrgContext` and cannot query without it. Non-members get 404 (no existence leak).
+
+Defence in depth (ADR-026): once the org is verified, every transaction of the request runs
+with `app.org_id` set, so Postgres row-level security hides other orgs' rows even if a query
+forgets its `org_id` filter.
 """
 
 from collections.abc import Awaitable, Callable
@@ -12,8 +16,9 @@ from uuid import UUID
 
 import structlog
 from fastapi import Depends
-from sqlalchemy import Select, select
+from sqlalchemy import Connection, Select, event, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session, SessionTransaction
 
 from app.core.deps import CurrentUser, SessionDep, get_current_user
 from app.core.errors import Forbidden, NotFound
@@ -59,6 +64,25 @@ async def load_org_context(session: AsyncSession, org_id: UUID, user_id: UUID) -
     return OrgContext(org_id=org_id, user_id=user_id, role=role, permissions=ROLE_PERMISSIONS[role])
 
 
+RLS_ORG_KEY = "rls_org_id"
+_SET_ORG = text("SELECT set_config('app.org_id', :org, true)")  # true: transaction-local
+
+
+@event.listens_for(Session, "after_begin")
+def _apply_rls_org(session: Session, _tx: SessionTransaction, connection: Connection) -> None:
+    """Re-applies the org at the start of every transaction (services commit mid-request).
+    Transaction-local, so it can never leak to the next user of a pooled connection."""
+    org = session.info.get(RLS_ORG_KEY)
+    if org:
+        connection.execute(_SET_ORG, {"org": org})
+
+
+async def bind_rls_org(session: AsyncSession, org_id: UUID) -> None:
+    session.info[RLS_ORG_KEY] = str(org_id)
+    if session.in_transaction():  # already begun: apply now; later ones use the listener
+        await session.execute(_SET_ORG, {"org": str(org_id)})
+
+
 def require_org(
     permission: Permission = Permission.ORG_READ,
 ) -> Callable[..., Awaitable[OrgContext]]:
@@ -70,6 +94,7 @@ def require_org(
         ctx = await load_org_context(session, org_id, current.user.id)
         if not ctx.can(permission):
             raise Forbidden(f"Requires permission '{permission}'")
+        await bind_rls_org(session, org_id)
         structlog.contextvars.bind_contextvars(org_id=str(org_id))
         return ctx
 

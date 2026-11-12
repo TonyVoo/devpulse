@@ -51,7 +51,7 @@ function SettingsForm({ orgId, s }: { orgId: string; s: Settings }) {
   const configured = s.providers.find((p) => p.name === providerName)?.configured ?? false;
 
   return (
-    <form
+    <form method="post"
       className="space-y-4"
       onSubmit={(e) => {
         e.preventDefault();

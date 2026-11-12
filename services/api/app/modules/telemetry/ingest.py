@@ -1,6 +1,7 @@
 """Telemetry ingestion: validation, service resolution, bulk insert, rollup scheduling."""
 
 import hashlib
+import json
 import re
 from datetime import UTC, datetime, timedelta
 from typing import Annotated, Any, Literal
@@ -8,7 +9,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, status
 from pydantic import BaseModel, Field, StringConstraints, field_validator
-from sqlalchemy import insert, update
+from sqlalchemy import insert, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
@@ -19,7 +20,7 @@ from app.modules.services.models import Service, Tier
 from app.modules.services.schemas import Environment, ServiceSlug
 from app.modules.services.service import find_by_slug
 from app.modules.telemetry.ingest_auth import IngestPrincipal, require_ingest_key
-from app.modules.telemetry.models import log_events, metric_points
+from app.modules.telemetry.models import log_events
 
 router = APIRouter(prefix="/ingest/v1", tags=["ingest"])
 
@@ -124,6 +125,18 @@ async def _touch_service(session: AsyncSession, svc: Service, latest: datetime) 
         )
 
 
+_INSERT_POINTS = text(
+    """
+    INSERT INTO metric_points (org_id, service_id, name, ts, value, labels, is_demo)
+    SELECT :org_id, :service_id, u.name, u.ts, u.value, u.labels::jsonb, :is_demo
+    FROM unnest(
+        CAST(:names AS text[]), CAST(:ts AS timestamptz[]),
+        CAST(:values AS double precision[]), CAST(:labels AS text[])
+    ) AS u(name, ts, value, labels)
+    """
+)
+
+
 @router.post("/metrics", response_model=IngestAccepted, status_code=status.HTTP_202_ACCEPTED)
 async def ingest_metrics(
     body: MetricsIn,
@@ -134,19 +147,22 @@ async def ingest_metrics(
         raise Unprocessable("Too many points in one request", code="ingest.too_many_points")
     _check_timestamps([p.ts for p in body.points])
     svc = await resolve_service(session, principal, body.service, body.environment)
-    rows = [
+    # One statement for the whole batch (arrays + unnest) instead of a row-by-row
+    # executemany: ~3x faster in the Phase 6 load test. COPY would be faster still, but
+    # Postgres doesn't allow COPY FROM into tables with row-level security.
+    await session.execute(
+        _INSERT_POINTS,
         {
             "org_id": principal.org_id,
             "service_id": svc.id,
-            "name": p.name,
-            "ts": p.ts,
-            "value": p.value,
-            "labels": p.labels,
             "is_demo": principal.is_demo,
-        }
-        for p in body.points
-    ]
-    await session.execute(insert(metric_points), rows)
+            "names": [p.name for p in body.points],
+            "ts": [p.ts for p in body.points],
+            "values": [p.value for p in body.points],
+            "labels": [json.dumps(p.labels) for p in body.points],
+        },
+    )
+    rows = body.points
     await _touch_service(session, svc, max(p.ts for p in body.points))
     await session.commit()
 

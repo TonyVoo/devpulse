@@ -73,7 +73,7 @@ export function AuthForm({ mode, next }: { mode: Mode; next?: string }) {
   }
 
   return (
-    <form onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
+    <form method="post" onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
       <h1 className="text-xl font-semibold">{copy.title}</h1>
       {error && <Alert>{error.message}</Alert>}
       {mode === "register" && (

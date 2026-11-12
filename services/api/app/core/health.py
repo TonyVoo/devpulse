@@ -8,6 +8,7 @@ from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
+from app.core.config import get_settings
 from app.core.db import get_engine
 from app.core.redis import get_redis
 
@@ -24,7 +25,7 @@ def _head_revisions() -> set[str]:
 
 @router.get("/healthz")
 async def healthz() -> dict[str, str]:
-    return {"status": "ok"}
+    return {"status": "ok", "release": get_settings().release or "dev"}
 
 
 @router.get("/readyz")

@@ -121,6 +121,16 @@ Format: Context → Decision → Consequences. Status: **Accepted** unless noted
 **Decision:** Mobile runs Flutter's accessibility guideline matchers (tap targets, labels, contrast) on the main screens in both themes, plus a 2× text-size layout test; web runs axe on every page visited by the Playwright flows, in both colour schemes. A serious/critical violation fails CI.
 **Consequences:** The first run found real defects (light-theme contrast at 3.3–4.4:1, 40dp segmented buttons, button labels overflowing on a 390pt phone even at normal text size, prohibited ARIA on loading skeletons) — all fixed. New screens must be added to the audit lists; the guideline matchers don't replace a manual screen-reader pass (VoiceOver/TalkBack), which is still open.
 
+### ADR-026 Postgres row-level security as a second tenant wall (Phase 6)
+**Decision:** All 27 tables with `org_id` plus `organizations` have `FORCE ROW LEVEL SECURITY` and one policy: when the transaction sets `app.org_id`, only that org's rows are visible or writable. `require_org` sets it (transaction-local, re-applied after every commit by an `after_begin` listener). Workers and account-level endpoints set nothing and rely on their explicit filters, as before.
+**Why not "deny unless set":** workers, the relay, auth and `/me` legitimately span orgs; requiring every path to opt out would add risk without adding protection to the org-scoped routes, which is where a forgotten `WHERE org_id` would leak.
+**Consequences:** a forgotten filter in an org-scoped route can no longer leak or write across tenants. `COPY FROM` is impossible on these tables (ingest uses a batched `INSERT … unnest`). Superusers and BYPASSRLS roles skip RLS: the test suite and staging use ordinary roles, and the API logs `rls_not_enforced` otherwise.
+
+### ADR-027 Render free tier for staging, one container for the backend (Phase 6)
+**Context:** The product owner chose Render and needs $0. Render's free tier has web services, one Postgres and one Key Value; workers, cron and pre-deploy commands are paid.
+**Decision:** `devpulse-api` runs `app/scripts/supervise.py` (migrations, API, Celery with embedded beat on a solo pool, relay) and exits if any child exits so Render restarts it. Deploys happen only from CI via deploy hooks after tests pass (`autoDeployTrigger: off`), pinned to the tested commit, then smoke-tested.
+**Consequences:** staging sleeps when idle (background jobs pause), its database expires after 30 days, Redis is in-memory. Production uses separate services (DEPLOYMENT.md §6). Fly.io was not chosen because new organizations need a card.
+
 ### Resolved open questions
 - Python dependency tool: **pip + pyproject with pinned compatible ranges** for Phase 1 (uv was not installed; avoided adding system tools). A lockfile (uv or pip-tools) should be added before Phase 6.
 - Node version: `.nvmrc` pins **24 LTS**; Docker and CI use Node 24. Local development was verified on Node 25.

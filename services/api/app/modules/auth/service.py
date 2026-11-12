@@ -14,6 +14,7 @@ from app.core.deps import RequestMeta
 from app.core.errors import Conflict, NotFound, Unauthorized
 from app.core.ids import uuid7
 from app.core.ratelimit import enforce_rate_limit
+from app.core.redis import get_redis
 from app.core.security import (
     create_access_token,
     hash_password,
@@ -66,6 +67,14 @@ async def _issue(
 async def register(
     session: AsyncSession, *, email: str, password: str, display_name: str, meta: RequestMeta
 ) -> tuple[User, TokenPair]:
+    await enforce_rate_limit(
+        get_redis(),
+        scope="register",
+        key=meta.ip or "unknown",
+        limit=get_settings().register_rate_limit_per_hour,
+        window_s=3600,
+        message="Too many sign-ups from this network, try again later",
+    )
     user = User(email=email, password_hash=hash_password(password), display_name=display_name)
     session.add(user)
     try:
@@ -90,6 +99,14 @@ async def login(
         key=f"{email}|{meta.ip}",
         limit=s.login_rate_limit,
         window_s=s.login_rate_window_s,
+    )
+    # Also per email from any IP: rotating (or spoofing) IPs can't brute-force one account.
+    await enforce_rate_limit(
+        redis,
+        scope="login_email",
+        key=email,
+        limit=s.login_email_rate_limit,
+        window_s=900,
     )
     user = await session.scalar(select(User).where(User.email == email))
     # verify_password runs a hash even when the user is missing (timing equalisation).
@@ -214,6 +231,13 @@ async def change_password(
     new_password: str,
     meta: RequestMeta,
 ) -> TokenPair:
+    await enforce_rate_limit(
+        get_redis(),
+        scope="password_change",
+        key=str(user.id),
+        limit=get_settings().password_change_rate_limit,
+        window_s=900,
+    )
     if not verify_password(current_password, user.password_hash):
         raise Unauthorized("Current password is incorrect", code="auth.invalid_credentials")
     user.password_hash = hash_password(new_password)

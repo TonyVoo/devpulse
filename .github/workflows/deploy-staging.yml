@@ -1,0 +1,41 @@
+name: deploy-staging
+
+# Every push to main: run the API and web suites, then deploy that exact commit to the
+# Render staging services and smoke-test it. Reproducible from CI only (render.yaml has
+# autoDeployTrigger: off). Setup: docs/DEPLOYMENT.md § Render.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: false # never interrupt a deploy halfway
+
+jobs:
+  api:
+    uses: ./.github/workflows/api.yml
+  web:
+    uses: ./.github/workflows/web.yml
+
+  deploy:
+    needs: [api, web]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: staging
+    # Skipped (not failed) until the staging environment is configured.
+    if: ${{ vars.STAGING_API_URL != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Trigger Render deploys of this commit
+        env:
+          API_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_API }}
+          WEB_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_WEB }}
+        run: |
+          if [ -z "$API_HOOK" ] || [ -z "$WEB_HOOK" ]; then
+            echo "::error::Set the RENDER_DEPLOY_HOOK_API and RENDER_DEPLOY_HOOK_WEB secrets"; exit 1
+          fi
+          curl -fsS -X POST "${API_HOOK}&ref=${GITHUB_SHA}" -o /dev/null
+          curl -fsS -X POST "${WEB_HOOK}&ref=${GITHUB_SHA}" -o /dev/null
+      - name: Wait for the release and smoke-test it
+        run: infra/scripts/smoke.sh "${{ vars.STAGING_API_URL }}" "${{ vars.STAGING_WEB_URL }}" "${GITHUB_SHA}" 1200
