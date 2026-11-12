@@ -217,19 +217,19 @@ class _DetailBodyState extends ConsumerState<_DetailBody> {
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(DpSpace.lg),
       children: [
-        Row(
+        // Wraps at large text sizes instead of overflowing.
+        Wrap(
+          spacing: DpSpace.sm,
+          runSpacing: DpSpace.xs,
+          crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             DpSeverityChip(i.severity),
-            const SizedBox(width: DpSpace.sm),
             Text(
               i.status.label,
               style: t.bodyMedium?.copyWith(fontWeight: FontWeight.w600, color: i.status.isOpen ? p.fg : p.healthy),
             ),
-            if (i.escalationLevel > 0) ...[
-              const SizedBox(width: DpSpace.sm),
+            if (i.escalationLevel > 0)
               Text('Escalated ×${i.escalationLevel}', style: t.bodySmall?.copyWith(color: p.degraded)),
-            ],
-            const Spacer(),
             if (i.isDemo) const DpDemoTag(),
           ],
         ),

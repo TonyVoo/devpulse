@@ -20,6 +20,8 @@ class DpPalette extends ThemeExtension<DpPalette> {
     required this.unknown,
   });
 
+  // Text colours meet WCAG AA (≥ 4.5:1) on canvas, surface and raised; same values as the
+  // web tokens (Phase 5 accessibility audit).
   static const dark = DpPalette(
     canvas: Color(0xFF0A0E1A),
     surface: Color(0xFF111726),
@@ -27,14 +29,14 @@ class DpPalette extends ThemeExtension<DpPalette> {
     line: Color(0xFF232C42),
     fg: Color(0xFFE8ECF5),
     fgMuted: Color(0xFF9AA5BE),
-    fgSubtle: Color(0xFF6B7691),
+    fgSubtle: Color(0xFF8590AA),
     cyan: Color(0xFF22D3EE),
-    violet: Color(0xFF8B5CF6),
+    violet: Color(0xFFA78BFA),
     onAccent: Color(0xFF04121A),
     healthy: Color(0xFF34D399),
     degraded: Color(0xFFFBBF24),
-    critical: Color(0xFFF43F5E),
-    unknown: Color(0xFF64748B),
+    critical: Color(0xFFFB7185),
+    unknown: Color(0xFF8592A6),
   );
 
   static const light = DpPalette(
@@ -44,14 +46,14 @@ class DpPalette extends ThemeExtension<DpPalette> {
     line: Color(0xFFE3E7EF),
     fg: Color(0xFF0E1424),
     fgMuted: Color(0xFF4A5470),
-    fgSubtle: Color(0xFF6B7590),
-    cyan: Color(0xFF0891B2),
-    violet: Color(0xFF7C3AED),
+    fgSubtle: Color(0xFF5D6680),
+    cyan: Color(0xFF0E7490),
+    violet: Color(0xFF6D28D9),
     onAccent: Color(0xFFFFFFFF),
-    healthy: Color(0xFF059669),
-    degraded: Color(0xFFB45309),
+    healthy: Color(0xFF047857),
+    degraded: Color(0xFF92400E),
     critical: Color(0xFFBE123C),
-    unknown: Color(0xFF64748B),
+    unknown: Color(0xFF5B6678),
   );
 
   final Color canvas, surface, raised, line;

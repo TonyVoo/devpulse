@@ -35,7 +35,8 @@ class DpButton extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               if (icon != null) ...[Icon(icon, size: 18), const SizedBox(width: DpSpace.sm)],
-              Text(label),
+              // Wraps instead of overflowing in narrow places and at large text sizes.
+              Flexible(child: Text(label, textAlign: TextAlign.center)),
             ],
           );
     final button = switch (variant) {

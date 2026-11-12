@@ -101,10 +101,13 @@ class _Tile extends StatelessWidget {
         children: [
           Text(subtitle, maxLines: 2, overflow: TextOverflow.ellipsis),
           const SizedBox(height: DpSpace.xs),
-          Row(
+          Wrap(
+            spacing: DpSpace.sm,
+            runSpacing: DpSpace.xs,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               Text('${s.trigger == 'auto' ? 'Automatic' : 'Requested'} · ${timeAgo(s.createdAt)}', style: t.bodySmall),
-              if (s.isDemoProvider) ...[const SizedBox(width: DpSpace.sm), const DemoAnalyzerTag()],
+              if (s.isDemoProvider) const DemoAnalyzerTag(),
             ],
           ),
         ],

@@ -153,15 +153,8 @@ async def delete_rule(
     await session.commit()
 
 
-@router.post("/{rule_id}/preview", response_model=PreviewOut)
-async def preview_rule(
-    rule_id: UUID,
-    ctx: Read,
-    session: SessionDep,
-    hours: Annotated[int, Query(ge=1, le=24)] = 24,
-) -> PreviewOut:
-    """Replays the rule over recent raw data (every 5 minutes) without changing any state."""
-    rule = await AlertRules(session, ctx).get(rule_id)
+async def _replay(session: SessionDep, rule: AlertRule, hours: int) -> PreviewOut:
+    """Replays a rule over recent raw data (every 5 minutes) without changing any state."""
     now = datetime.now(UTC).replace(second=0, microsecond=0)
     points = []
     for i in range(hours * 12, -1, -1):
@@ -180,3 +173,28 @@ async def preview_rule(
         if cur.breached and not (prev and prev.breached)
     )
     return PreviewOut(points=points, breach_windows=windows)
+
+
+@router.post("/preview", response_model=PreviewOut)
+async def preview_draft(
+    body: AlertRuleIn,
+    ctx: Read,
+    session: SessionDep,
+    hours: Annotated[int, Query(ge=1, le=24)] = 6,
+) -> PreviewOut:
+    """Preview an unsaved rule (rule builder). Read-only; nothing is stored."""
+    await ServiceCatalog(session, ctx).get(body.service_id)  # 404 for other orgs' services
+    draft = AlertRule(org_id=ctx.org_id, **body.model_dump())
+    return await _replay(session, draft, hours)
+
+
+@router.post("/{rule_id}/preview", response_model=PreviewOut)
+async def preview_rule(
+    rule_id: UUID,
+    ctx: Read,
+    session: SessionDep,
+    hours: Annotated[int, Query(ge=1, le=24)] = 24,
+) -> PreviewOut:
+    """Would this saved rule have fired recently?"""
+    rule = await AlertRules(session, ctx).get(rule_id)
+    return await _replay(session, rule, hours)

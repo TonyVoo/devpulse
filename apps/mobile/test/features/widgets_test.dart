@@ -24,6 +24,7 @@ Future<FakeAuthRepository> pumpApp(
   FakeOpsRepository? ops,
   FakeServer? server,
   FakeAiRepository? ai,
+  String? theme,
 }) async {
   final srv = server ?? FakeServer();
   if (size != null) {
@@ -33,6 +34,7 @@ Future<FakeAuthRepository> pumpApp(
   }
   final db = AppDatabase(DatabaseConnection(NativeDatabase.memory(), closeStreamsSynchronously: true));
   addTearDown(db.close);
+  if (theme != null) await db.writeString(KvKeys.theme, theme);
   await tester.pumpWidget(
     ProviderScope(
       overrides: [

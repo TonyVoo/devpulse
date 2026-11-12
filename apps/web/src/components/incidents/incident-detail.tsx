@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 
 import { AiPanel } from "@/components/ai/ai-panel";
+import { ActionsBar, Comments, CorrelationPanel } from "@/components/incidents/incident-panels";
 import { Button } from "@/components/ui/button";
 import { Alert, EmptyState } from "@/components/ui/card";
 import { DemoTag, SeverityChip, timeAgo } from "@/components/ui/status";
@@ -49,11 +50,13 @@ export function IncidentDetail({
   incidentRef,
   canAct,
   isAdmin,
+  myUserId,
 }: {
   orgId: string;
   incidentRef: string;
   canAct: boolean;
   isAdmin: boolean;
+  myUserId: string;
 }) {
   const incident = useQuery({
     queryKey: ["orgs", orgId, "incident", incidentRef],
@@ -67,7 +70,7 @@ export function IncidentDetail({
   });
 
   if (incident.isPending) {
-    return <div className="h-32 animate-pulse rounded-md bg-surface" aria-busy aria-label="Loading incident" />;
+    return <div className="h-32 animate-pulse rounded-md bg-surface" role="status" aria-busy aria-label="Loading incident" />;
   }
   if (incident.isError) {
     return incident.error instanceof ApiError && incident.error.status === 404 ? (
@@ -102,11 +105,13 @@ export function IncidentDetail({
           {i.root_cause_confirmed && (
             <Alert tone="info">Root cause confirmed by the team: {i.root_cause_confirmed}</Alert>
           )}
+          {canAct && <ActionsBar orgId={orgId} incident={i} myUserId={myUserId} />}
         </header>
+        <CorrelationPanel orgId={orgId} incident={i} />
         <AiPanel orgId={orgId} incidentRef={i.key} canAct={canAct} isAdmin={isAdmin} />
       </div>
-      <aside aria-labelledby="timeline" className="space-y-2">
-        <h2 id="timeline" className="text-sm font-semibold">Timeline</h2>
+      <aside aria-label="Timeline and comments" className="space-y-6">
+        <h2 className="text-sm font-semibold">Timeline</h2>
         {timeline.isError ? (
           <Alert>Couldn&apos;t load the timeline.</Alert>
         ) : (
@@ -119,6 +124,7 @@ export function IncidentDetail({
             ))}
           </ol>
         )}
+        <Comments orgId={orgId} incidentRef={i.key} canAct={canAct} />
       </aside>
     </div>
   );

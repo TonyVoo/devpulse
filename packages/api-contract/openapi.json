@@ -675,6 +675,17 @@
             ],
             "title": "Actor Id"
           },
+          "actor_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor Name"
+          },
           "actor_type": {
             "title": "Actor Type",
             "type": "string"
@@ -6057,6 +6068,77 @@
         ]
       }
     },
+    "/api/v1/orgs/{org_id}/alert-rules/preview": {
+      "post": {
+        "description": "Preview an unsaved rule (rule builder). Read-only; nothing is stored.",
+        "operationId": "preview_draft_api_v1_orgs__org_id__alert_rules_preview_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Org Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "hours",
+            "required": false,
+            "schema": {
+              "default": 6,
+              "maximum": 24,
+              "minimum": 1,
+              "title": "Hours",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlertRuleIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreviewOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Preview Draft",
+        "tags": [
+          "alerts"
+        ]
+      }
+    },
     "/api/v1/orgs/{org_id}/alert-rules/{rule_id}": {
       "delete": {
         "operationId": "delete_rule_api_v1_orgs__org_id__alert_rules__rule_id__delete",
@@ -6248,7 +6330,7 @@
     },
     "/api/v1/orgs/{org_id}/alert-rules/{rule_id}/preview": {
       "post": {
-        "description": "Replays the rule over recent raw data (every 5 minutes) without changing any state.",
+        "description": "Would this saved rule have fired recently?",
         "operationId": "preview_rule_api_v1_orgs__org_id__alert_rules__rule_id__preview_post",
         "parameters": [
           {
@@ -6319,6 +6401,7 @@
     },
     "/api/v1/orgs/{org_id}/audit-logs": {
       "get": {
+        "description": "`action` matches exactly; `action_prefix` filters a family, e.g. `member.` or `ai.`.",
         "operationId": "list_audit_logs_api_v1_orgs__org_id__audit_logs_get",
         "parameters": [
           {
@@ -6373,6 +6456,23 @@
                 }
               ],
               "title": "Action"
+            }
+          },
+          {
+            "in": "query",
+            "name": "action_prefix",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 40,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Action Prefix"
             }
           }
         ],

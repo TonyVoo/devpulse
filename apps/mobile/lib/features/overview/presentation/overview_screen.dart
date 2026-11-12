@@ -50,7 +50,6 @@ class OverviewScreen extends ConsumerWidget {
             padding: const EdgeInsets.only(right: DpSpace.md),
             child: SegmentedButton<OverviewWindow>(
               showSelectedIcon: false,
-              style: const ButtonStyle(visualDensity: VisualDensity.compact),
               segments: [for (final w in OverviewWindow.values) ButtonSegment(value: w, label: Text(w.label))],
               selected: {window},
               onSelectionChanged: (s) => ref.read(overviewWindowProvider.notifier).set(s.first),

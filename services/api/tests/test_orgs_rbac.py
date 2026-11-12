@@ -183,7 +183,19 @@ async def test_audit_log_records_changes(
     assert page["items"][0]["action"] == "member.role_changed"
     assert page["items"][0]["before"] == {"role": "engineer"}
     assert page["items"][0]["after"] == {"role": "admin"}
+    assert page["items"][0]["actor_name"] == "Owner"
     assert page["next_cursor"]
+
+    fam = await client.get(
+        f"/orgs/{org}/audit-logs", params={"action_prefix": "member."}, headers=owner.h
+    )
+    assert fam.json()["items"] and all(
+        i["action"].startswith("member.") for i in fam.json()["items"]
+    )
+    none = await client.get(
+        f"/orgs/{org}/audit-logs", params={"action_prefix": "member%"}, headers=owner.h
+    )
+    assert none.json()["items"] == []  # LIKE wildcards are escaped
 
     actions = []
     cursor = None

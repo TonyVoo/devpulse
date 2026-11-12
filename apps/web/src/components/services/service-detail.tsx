@@ -1,0 +1,205 @@
+"use client";
+
+import { useQuery } from "@tanstack/react-query";
+import Link from "next/link";
+import { useState } from "react";
+
+import { fmt, type Marker, TimeSeriesChart, toPoints } from "@/components/charts/time-series";
+import { Button } from "@/components/ui/button";
+import { Alert, EmptyState } from "@/components/ui/card";
+import { DemoTag, HealthPill, SeverityChip, timeAgo } from "@/components/ui/status";
+import { api, ApiError } from "@/lib/api-client";
+import type { components } from "@/lib/api-types";
+
+type Service = components["schemas"]["ServiceOut"];
+type Metrics = components["schemas"]["MetricsOut"];
+type Deployment = components["schemas"]["DeploymentOut"];
+type Incident = components["schemas"]["IncidentOut"];
+
+export const RANGES = [
+  { label: "1h", ms: 3_600_000 },
+  { label: "6h", ms: 6 * 3_600_000 },
+  { label: "24h", ms: 24 * 3_600_000 },
+  { label: "7d", ms: 7 * 24 * 3_600_000 },
+] as const;
+
+export const CHARTS = [
+  { spec: "http.server.duration_ms:p95", title: "Latency p95", format: fmt.ms },
+  { spec: "http.server.error_rate", title: "Error rate", format: fmt.pct },
+  { spec: "http.server.requests:sum", title: "Requests", format: fmt.count },
+  { spec: "process.cpu.utilization:avg", title: "CPU", format: fmt.pct },
+] as const;
+
+/** Metric query string for `/metrics` (repeated `names`). */
+export function metricsQuery(specs: readonly string[], from: Date, to: Date): string {
+  const p = new URLSearchParams({ from: from.toISOString(), to: to.toISOString() });
+  specs.forEach((s) => p.append("names", s));
+  return p.toString();
+}
+
+export function ServiceDetail({ orgId, serviceId }: { orgId: string; serviceId: string }) {
+  const [range, setRange] = useState<(typeof RANGES)[number]>(RANGES[1]);
+  // Fixed per range selection so query keys stay stable between renders.
+  const [now, setNow] = useState(() => Date.now());
+  const from = new Date(now - range.ms);
+  const to = new Date(now);
+
+  const service = useQuery({
+    queryKey: ["orgs", orgId, "service", serviceId],
+    queryFn: () => api.get<Service>(`orgs/${orgId}/services/${serviceId}`),
+  });
+  const metrics = useQuery({
+    queryKey: ["orgs", orgId, "service", serviceId, "metrics", range.label, now],
+    queryFn: () =>
+      api.get<Metrics>(`orgs/${orgId}/services/${serviceId}/metrics?${metricsQuery(CHARTS.map((c) => c.spec), from, to)}`),
+    enabled: service.isSuccess,
+  });
+  const deployments = useQuery({
+    queryKey: ["orgs", orgId, "service", serviceId, "deployments"],
+    queryFn: () => api.get<{ items: Deployment[] }>(`orgs/${orgId}/deployments?service_id=${serviceId}&limit=100`),
+    enabled: service.isSuccess,
+  });
+  const incidents = useQuery({
+    queryKey: ["orgs", orgId, "service", serviceId, "incidents"],
+    queryFn: () => api.get<{ items: Incident[] }>(`orgs/${orgId}/incidents?service_id=${serviceId}&limit=50`),
+    enabled: service.isSuccess,
+  });
+
+  if (service.isPending) return <div className="h-32 animate-pulse rounded-md bg-surface" role="status" aria-busy aria-label="Loading service" />;
+  if (service.isError) {
+    return service.error instanceof ApiError && service.error.status === 404 ? (
+      <EmptyState title="Service not found" description="It may have been deleted or belong to another organization." />
+    ) : (
+      <Alert>Couldn&apos;t load the service: {service.error.message}</Alert>
+    );
+  }
+  const s = service.data;
+  const inRange = (iso: string) => {
+    const t = new Date(iso).getTime();
+    return t >= from.getTime() && t <= to.getTime();
+  };
+  const markers: Marker[] = [
+    ...(deployments.data?.items ?? [])
+      .filter((d) => inRange(d.started_at))
+      .map((d) => ({ t: new Date(d.started_at).getTime(), label: d.version, tone: "deploy" as const })),
+    ...(incidents.data?.items ?? [])
+      .filter((i) => inRange(i.started_at))
+      .map((i) => ({ t: new Date(i.started_at).getTime(), label: i.key, tone: "incident" as const })),
+  ];
+  const series = new Map((metrics.data?.series ?? []).map((x) => [`${x.name}:${x.aggregation}`, x]));
+  const find = (spec: string) =>
+    series.get(spec) ?? (metrics.data?.series ?? []).find((x) => spec.startsWith(x.name));
+
+  return (
+    <div className="space-y-6">
+      <header className="space-y-2">
+        <Link href={`/o/${orgId}/services`} className="text-xs text-fg-subtle hover:text-fg">
+          ← Services
+        </Link>
+        <div className="flex flex-wrap items-center gap-2">
+          <h1 className="text-2xl font-semibold">{s.name}</h1>
+          <HealthPill health={s.health} />
+          {s.is_demo && <DemoTag />}
+        </div>
+        <p className="text-xs text-fg-subtle">
+          <span className="font-mono">{s.slug}</span> · {s.environment} · tier {s.tier}
+          {s.owner_team && ` · ${s.owner_team}`} · last data {timeAgo(s.last_seen_at)}
+        </p>
+      </header>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <div role="radiogroup" aria-label="Time range" className="flex gap-1">
+          {RANGES.map((r) => (
+            <button
+              key={r.label}
+              role="radio"
+              aria-checked={r.label === range.label}
+              onClick={() => {
+                setRange(r);
+                setNow(Date.now());
+              }}
+              className={
+                r.label === range.label ? "rounded-md bg-raised px-3 py-1.5 text-sm text-fg" : "rounded-md px-3 py-1.5 text-sm text-fg-muted hover:text-fg"
+              }
+            >
+              {r.label}
+            </button>
+          ))}
+        </div>
+        <Button size="sm" variant="ghost" onClick={() => setNow(Date.now())}>
+          Refresh
+        </Button>
+        <span className="text-xs text-fg-subtle">
+          <span className="text-violet">┆ deploy</span> · <span className="text-critical">│ incident</span>
+        </span>
+      </div>
+
+      {metrics.isError ? (
+        <Alert>Couldn&apos;t load metrics: {metrics.error.message}</Alert>
+      ) : (
+        <div className="grid gap-6 lg:grid-cols-2" aria-busy={metrics.isPending}>
+          {CHARTS.map((c) => (
+            <div key={c.spec} className="rounded-lg border border-line bg-surface p-4">
+              <TimeSeriesChart
+                title={c.title}
+                points={toPoints(find(c.spec)?.points)}
+                format={c.format}
+                markers={markers}
+                domain={[from.getTime(), to.getTime()]}
+                loading={metrics.isPending}
+              />
+            </div>
+          ))}
+        </div>
+      )}
+      {metrics.data?.approximate_percentiles && (
+        <p className="text-xs text-fg-subtle">
+          Percentiles over more than a minute are approximations (count-weighted from per-minute values).
+        </p>
+      )}
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <section aria-labelledby="deploys" className="space-y-2">
+          <h2 id="deploys" className="text-sm font-semibold">Recent deployments</h2>
+          {(deployments.data?.items ?? []).length === 0 ? (
+            <p className="text-sm text-fg-subtle">No deployments recorded.</p>
+          ) : (
+            <ul className="divide-y divide-line rounded-lg border border-line bg-surface text-sm">
+              {deployments.data!.items.slice(0, 10).map((d) => (
+                <li key={d.id} className="flex justify-between gap-2 px-3 py-2">
+                  <span className="min-w-0 truncate">
+                    <span className="font-mono">{d.version}</span>{" "}
+                    <span className="text-fg-subtle">{d.commit_message?.split("\n")[0]}</span>
+                  </span>
+                  <span className="shrink-0 text-xs text-fg-subtle">
+                    {d.status} · {timeAgo(d.started_at)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+        <section aria-labelledby="incs" className="space-y-2">
+          <h2 id="incs" className="text-sm font-semibold">Incidents</h2>
+          {(incidents.data?.items ?? []).length === 0 ? (
+            <p className="text-sm text-fg-subtle">No incidents for this service.</p>
+          ) : (
+            <ul className="divide-y divide-line rounded-lg border border-line bg-surface text-sm">
+              {incidents.data!.items.slice(0, 10).map((i) => (
+                <li key={i.id} className="flex items-center gap-2 px-3 py-2">
+                  <SeverityChip severity={i.severity} />
+                  <Link href={`/o/${orgId}/incidents/${i.key}`} className="min-w-0 flex-1 truncate hover:underline">
+                    {i.title}
+                  </Link>
+                  <span className="shrink-0 text-xs capitalize text-fg-subtle">
+                    {i.status} · {timeAgo(i.started_at)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      </div>
+    </div>
+  );
+}

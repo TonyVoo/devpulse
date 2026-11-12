@@ -6,7 +6,7 @@ DevPulse is an AI-native engineering observability platform. Engineers monitor s
 track deployments, run incidents and get evidence-based AI root-cause analysis — first-class
 on mobile, with a web dashboard for administration and deep analysis.
 
-**Status: Phase 4 (AI investigator) — evidence-grounded incident analysis on mobile and web; real-model analysis needs a (free) `GEMINI_API_KEY`, push delivery awaits a Firebase project.**
+**Status: Phase 5 (web & polish) — full web admin (members, alert rules with preview, integrations, audit log), charts and incident correlation, accessibility enforced by tests on web and mobile. Real-model AI needs a (free) `GEMINI_API_KEY`; push delivery awaits a Firebase project.**
 Exact status per item: [docs/ROADMAP.md §3](docs/ROADMAP.md).
 
 ## Components
@@ -14,7 +14,7 @@ Exact status per item: [docs/ROADMAP.md §3](docs/ROADMAP.md).
 | Component | Path | Stack | Status |
 |---|---|---|---|
 | Mobile app (iOS/Android) | `apps/mobile` | Flutter 3.47, Riverpod 3, go_router 18, Dio, Drift, fl_chart | Offline-first: local cache, delta sync, offline actions with replay, realtime updates; AI analysis, approvals and follow-up questions |
-| Web dashboard | `apps/web` | Next.js 16 (App Router), TypeScript, Tailwind 4, TanStack Query | Auth, orgs, members, overview, services, ingest keys, incidents with AI analysis, AI settings & usage |
+| Web dashboard | `apps/web` | Next.js 16 (App Router), TypeScript, Tailwind 4, TanStack Query | Overview, services with charts, incidents (actions, correlation, AI), alert rules with preview, members & invites, integrations, audit log, AI settings |
 | API (modular monolith) | `services/api` | FastAPI, SQLAlchemy 2.1, Alembic, Pydantic v2, PostgreSQL 16, Redis 7 | Auth, RBAC, telemetry, alerting, incidents, deployments, GitHub, AI investigator |
 | Workers | `services/api` (same codebase, `worker` + `relay` entrypoints) | Celery + Redis | Rollups, alert evaluation, partitions, cleanup, AI investigations; outbox relay → realtime + push + auto-investigate |
 | Infra / observability | `infra/` | Docker Compose; OTel/Prometheus/Grafana planned | Compose stack; Sentry hook (optional DSN) |

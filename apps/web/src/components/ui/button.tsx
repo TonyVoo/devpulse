@@ -9,10 +9,10 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        primary: "bg-cyan text-on-accent hover:bg-cyan/90",
+        primary: "bg-cyan text-on-accent hover:bg-[color-mix(in_oklab,var(--color-cyan)_85%,black)]",
         secondary: "border border-line bg-surface text-fg hover:bg-raised",
         ghost: "text-fg-muted hover:bg-raised hover:text-fg",
-        destructive: "bg-critical text-white hover:bg-critical/90",
+        destructive: "bg-critical text-white hover:bg-[color-mix(in_oklab,var(--color-critical)_85%,black)]",
       },
       size: { sm: "min-h-8 px-3 text-xs", md: "", lg: "min-h-12 px-6 text-base" },
     },

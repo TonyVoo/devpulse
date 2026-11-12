@@ -266,6 +266,45 @@ async def test_rule_preview(client: httpx.AsyncClient, env: dict[str, Any]) -> N
     assert body["points"][0]["value"] is None  # no data → gap, not zero
 
 
+async def test_draft_preview_stores_nothing_and_is_tenant_scoped(
+    client: httpx.AsyncClient, env: dict[str, Any]
+) -> None:
+    now = datetime.now(UTC)
+    await ingest_points(
+        client, env["key"], "checkout", latency_points(now - timedelta(minutes=3), 20, 900)
+    )
+    draft = {
+        "name": "Draft",
+        "service_id": env["svc"]["id"],
+        "metric": "http.server.duration_ms",
+        "aggregation": "p95",
+        "comparator": "gt",
+        "threshold": 500,
+        "window_s": 300,
+        "for_s": 0,
+        "severity": "sev3",
+    }
+    url = f"/orgs/{env['org']}/alert-rules/preview"
+    r = await client.post(url, params={"hours": 1}, json=draft, headers=env["owner"].h)
+    assert r.status_code == 200, r.text
+    assert len(r.json()["points"]) == 13 and r.json()["breach_windows"] == 1
+    # A higher threshold never breaches.
+    r = await client.post(
+        url, params={"hours": 1}, json={**draft, "threshold": 5000}, headers=env["owner"].h
+    )
+    assert r.json()["breach_windows"] == 0
+    rules = await client.get(f"/orgs/{env['org']}/alert-rules", headers=env["owner"].h)
+    assert rules.json() == []  # nothing stored
+    # Same validation as creating a rule.
+    bad = await client.post(url, json={**draft, "aggregation": "ratio"}, headers=env["owner"].h)
+    assert bad.status_code == 422
+    # Another org's service is not found, not previewed.
+    other = await register(client, "preview-other@example.com")
+    other_org = await create_org(client, other, "Other")
+    r = await client.post(f"/orgs/{other_org}/alert-rules/preview", json=draft, headers=other.h)
+    assert r.status_code == 404
+
+
 async def test_deployment_ingest_is_idempotent(
     client: httpx.AsyncClient, env: dict[str, Any]
 ) -> None:

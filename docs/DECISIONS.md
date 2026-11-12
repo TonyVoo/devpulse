@@ -117,6 +117,10 @@ Format: Context → Decision → Consequences. Status: **Accepted** unless noted
 **Decision:** Add `GeminiProvider` (official `google-genai` SDK) and make it the default (`gemini-3.8-flash`, free on the Gemini API). Claude stays available as an option (`ANTHROPIC_API_KEY`, provider "anthropic"); no business logic changed — only a new adapter behind the existing port.
 **Consequences:** Real analysis at zero cost. Free-tier requests may be used by Google to improve its products, so the settings page warns admins before enabling; a paid Gemini key or Claude avoids that. Free-tier rate limits surface as `ai.rate_limited` (retried by the SDK first). Budget tracking uses paid list prices, so it overstates free-tier spend unless `AI_PRICING` is zeroed.
 
+### ADR-025 Accessibility is a test gate, not a checklist (Phase 5)
+**Decision:** Mobile runs Flutter's accessibility guideline matchers (tap targets, labels, contrast) on the main screens in both themes, plus a 2× text-size layout test; web runs axe on every page visited by the Playwright flows, in both colour schemes. A serious/critical violation fails CI.
+**Consequences:** The first run found real defects (light-theme contrast at 3.3–4.4:1, 40dp segmented buttons, button labels overflowing on a 390pt phone even at normal text size, prohibited ARIA on loading skeletons) — all fixed. New screens must be added to the audit lists; the guideline matchers don't replace a manual screen-reader pass (VoiceOver/TalkBack), which is still open.
+
 ### Resolved open questions
 - Python dependency tool: **pip + pyproject with pinned compatible ranges** for Phase 1 (uv was not installed; avoided adding system tools). A lockfile (uv or pip-tools) should be added before Phase 6.
 - Node version: `.nvmrc` pins **24 LTS**; Docker and CI use Node 24. Local development was verified on Node 25.

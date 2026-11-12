@@ -14,10 +14,19 @@ const ORG_NAV = [
   { href: "", label: "Overview" },
   { href: "/services", label: "Services" },
   { href: "/incidents", label: "Incidents" },
+  { href: "/alerts", label: "Alert rules" },
   { href: "/ai", label: "AI" },
+  { href: "/integrations", label: "Integrations" },
   { href: "/ingest-keys", label: "Ingest keys" },
   { href: "/members", label: "Members" },
+  { href: "/audit", label: "Audit log" },
 ] as const;
+
+/** Section is active on its own page and on nested pages (e.g. an incident). */
+export function isActive(pathname: string, href: string, base: string): boolean {
+  const full = `${base}${href}`;
+  return pathname === full || (href !== "" && pathname.startsWith(`${full}/`));
+}
 
 export function Shell({
   user,
@@ -68,7 +77,7 @@ export function Shell({
           <nav aria-label="Organization" className="mt-4 flex flex-col gap-0.5 px-3">
             {ORG_NAV.map((item) => {
               const href = `/o/${current.id}${item.href}`;
-              const active = pathname === href;
+              const active = isActive(pathname, item.href, `/o/${current.id}`);
               return (
                 <Link
                   key={item.label}
@@ -118,18 +127,16 @@ export function Shell({
           </Button>
         </header>
         {current && (
-          <nav aria-label="Organization" className="flex gap-1 border-b border-line px-3 py-1 md:hidden">
+          <nav aria-label="Organization" className="flex gap-1 overflow-x-auto whitespace-nowrap border-b border-line px-3 py-1 md:hidden">
             {ORG_NAV.map((item) => {
               const href = `/o/${current.id}${item.href}`;
+              const active = isActive(pathname, item.href, `/o/${current.id}`);
               return (
                 <Link
                   key={item.label}
                   href={href}
-                  aria-current={pathname === href ? "page" : undefined}
-                  className={cn(
-                    "rounded-md px-3 py-2 text-sm",
-                    pathname === href ? "bg-raised text-fg" : "text-fg-muted",
-                  )}
+                  aria-current={active ? "page" : undefined}
+                  className={cn("shrink-0 rounded-md px-3 py-2 text-sm", active ? "bg-raised text-fg" : "text-fg-muted")}
                 >
                   {item.label}
                 </Link>

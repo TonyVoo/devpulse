@@ -19,6 +19,7 @@ export default async function IncidentPage({ params }: PageProps<"/o/[orgId]/inc
         incidentRef={decodeURIComponent(ref)}
         canAct={role !== "viewer"}
         isAdmin={role === "owner" || role === "admin"}
+        myUserId={me.id}
       />
     </div>
   );

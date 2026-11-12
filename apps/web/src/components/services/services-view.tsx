@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import Link from "next/link";
 import { useState, type FormEvent } from "react";
 
 import { describeError } from "@/components/auth/auth-form";
@@ -63,7 +64,7 @@ export function ServicesView({ orgId, canManage }: { orgId: string; canManage: b
       )}
 
       {services.isPending ? (
-        <div className="space-y-2" aria-busy aria-label="Loading services">
+        <div className="space-y-2" role="status" aria-busy aria-label="Loading services">
           {[0, 1, 2].map((i) => <div key={i} className="h-14 animate-pulse rounded-md bg-surface" />)}
         </div>
       ) : services.isError ? (
@@ -92,7 +93,9 @@ export function ServicesView({ orgId, canManage }: { orgId: string; canManage: b
               {services.data.items.map((s) => (
                 <tr key={s.id}>
                   <td className="px-4 py-3">
-                    <span className="font-medium">{s.name}</span>{" "}
+                    <Link href={`/o/${orgId}/services/${s.id}`} className="font-medium hover:underline">
+                      {s.name}
+                    </Link>{" "}
                     {s.is_demo && <DemoTag />}
                     <div className="font-mono text-xs text-fg-subtle">{s.slug}</div>
                   </td>

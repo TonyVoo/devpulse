@@ -54,7 +54,7 @@ OIDC (`/auth/oidc/{provider}/start|callback`) is a Phase 6 addition behind the s
 | DELETE | `/orgs/{org_id}/invitations/{id}` | members.manage |
 | POST | `/invitations/{token}/accept` | authenticated |
 | PATCH/DELETE | `/orgs/{org_id}/members/{user_id}` | members.manage (cannot remove last owner) |
-| GET | `/orgs/{org_id}/audit-logs` | audit.read |
+| GET | `/orgs/{org_id}/audit-logs?action=&action_prefix=&cursor=` | audit.read — entries include `actor_name`; `action_prefix` filters a family (e.g. `member.`) |
 
 ## 4. Product resources (all under `/orgs/{org_id}`)
 
@@ -80,7 +80,7 @@ OIDC (`/auth/oidc/{provider}/start|callback`) is a Phase 6 addition behind the s
 - `GET /deployments?service_id=&status=&from=&to=&cursor=` · `GET /deployments/{id}`
 - `POST /ingest/v1/deployments` (ingest key; CI pipelines) — idempotent on `external_id`
 
-**Alert rules** — `GET|POST /alert-rules`, `GET|PATCH|DELETE /alert-rules/{id}`, `POST /alert-rules/{id}/preview` (evaluates against last 24h, returns would-have-fired windows).
+**Alert rules** — `GET|POST /alert-rules`, `GET|PATCH|DELETE /alert-rules/{id}`, `POST /alert-rules/{id}/preview` (evaluates against last 24h, returns would-have-fired windows), `POST /alert-rules/preview?hours=` (Phase 5: same replay for an unsaved draft — body is a full rule; nothing is stored; the service must belong to the org).
 
 **Integrations** — `GET|POST /integrations`, `PATCH|DELETE /integrations/{id}`, `POST /integrations/{id}/test`. GitHub webhook: `POST /webhooks/github/{integration_id}` verified with `X-Hub-Signature-256` HMAC (constant-time compare), deduped on `X-GitHub-Delivery`. Handles `deployment`, `deployment_status`, `workflow_run`, `push`.
 

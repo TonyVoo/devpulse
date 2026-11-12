@@ -323,7 +323,8 @@ class _IncidentAiSectionState extends ConsumerState<IncidentAiSection> {
             ],
           ),
           if (canDecide)
-            Row(
+            Wrap(
+              spacing: DpSpace.sm,
               children: [
                 TextButton(
                   onPressed: busy ? null : () => _decide(inv, proposal, approve: true),

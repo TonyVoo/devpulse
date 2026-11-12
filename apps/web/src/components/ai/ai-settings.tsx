@@ -164,7 +164,7 @@ export function AiSettingsView({ orgId, canConfigure }: { orgId: string; canConf
     enabled: canConfigure,
   });
 
-  if (settings.isPending) return <div className="h-40 animate-pulse rounded-md bg-surface" aria-busy aria-label="Loading AI settings" />;
+  if (settings.isPending) return <div className="h-40 animate-pulse rounded-md bg-surface" role="status" aria-busy aria-label="Loading AI settings" />;
   if (settings.isError) return <Alert>Couldn&apos;t load AI settings: {settings.error.message}</Alert>;
   const s = settings.data;
   const pct = s.monthly_budget_micros > 0 ? Math.min(100, (s.month_to_date_cost_micros / s.monthly_budget_micros) * 100) : 100;

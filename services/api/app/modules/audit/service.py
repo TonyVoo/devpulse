@@ -6,13 +6,14 @@ from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
-from sqlalchemy import and_, or_
+from sqlalchemy import and_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import RequestMeta
 from app.core.pagination import MAX_LIMIT, Page, decode_cursor, encode_cursor
 from app.core.tenancy import OrgContext, OrgScopedRepository
 from app.modules.audit.models import AuditLog
+from app.modules.users.models import User
 
 
 class AuditLogOut(BaseModel):
@@ -29,6 +30,7 @@ class AuditLogOut(BaseModel):
     ip: str | None
     request_id: str | None
     created_at: datetime
+    actor_name: str | None = None  # display name of the acting user, if any
 
 
 def record(
@@ -63,26 +65,42 @@ def record(
 
 class AuditRepository(OrgScopedRepository):
     async def list(
-        self, *, limit: int, cursor: str | None, action: str | None
+        self,
+        *,
+        limit: int,
+        cursor: str | None,
+        action: str | None,
+        action_prefix: str | None = None,
     ) -> Page[AuditLogOut]:
         limit = max(1, min(limit, MAX_LIMIT))
-        stmt = self.select(AuditLog).order_by(AuditLog.created_at.desc(), AuditLog.id.desc())
+        stmt = (
+            select(AuditLog, User.display_name)
+            .outerjoin(User, User.id == AuditLog.actor_id)
+            .where(AuditLog.org_id == self.ctx.org_id)
+            .order_by(AuditLog.created_at.desc(), AuditLog.id.desc())
+        )
         if action:
             stmt = stmt.where(AuditLog.action == action)
+        if action_prefix:
+            escaped = action_prefix.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+            stmt = stmt.where(AuditLog.action.like(f"{escaped}%", escape="\\"))
         if cursor:
             ts, id_ = decode_cursor(cursor)
             stmt = stmt.where(
                 or_(AuditLog.created_at < ts, and_(AuditLog.created_at == ts, AuditLog.id < id_))
             )
-        rows = list((await self.session.scalars(stmt.limit(limit + 1))).all())
+        rows = list((await self.session.execute(stmt.limit(limit + 1))).all())
         next_cursor = (
-            encode_cursor(rows[limit - 1].created_at, rows[limit - 1].id)
+            encode_cursor(rows[limit - 1][0].created_at, rows[limit - 1][0].id)
             if len(rows) > limit
             else None
         )
-        return Page(
-            items=[AuditLogOut.model_validate(r) for r in rows[:limit]], next_cursor=next_cursor
-        )
+        items = []
+        for log, name in rows[:limit]:
+            out = AuditLogOut.model_validate(log)
+            out.actor_name = name
+            items.append(out)
+        return Page(items=items, next_cursor=next_cursor)
 
 
 def audit_repo(session: AsyncSession, ctx: OrgContext) -> AuditRepository:

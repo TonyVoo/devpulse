@@ -45,6 +45,7 @@ test("wrong password shows an error and stays on login", async ({ page }) => {
   await page.getByLabel("Work email").fill("nobody@example.com");
   await page.getByLabel("Password").fill("not-the-password");
   await page.getByRole("button", { name: "Sign in" }).click();
-  await expect(page.getByRole("alert")).toContainText("Email or password is incorrect");
+  // (Next.js's route announcer is also role="alert"; target the form's message.)
+  await expect(page.getByRole("alert").filter({ hasText: "Email or password is incorrect" })).toBeVisible();
   await expect(page).toHaveURL(/\/login/);
 });

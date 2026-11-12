@@ -65,12 +65,29 @@ class IncidentTile extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: DpSpace.sm),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(i.status.label, style: t.bodySmall?.copyWith(color: i.status.isOpen ? p.fg : p.fgSubtle)),
-                  if (i.assigneeName != null) Text(i.assigneeName!, style: t.bodySmall),
-                ],
+              // Flexible: at large text sizes the status wraps instead of overflowing.
+              Flexible(
+                flex: 0,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 120),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        i.status.label,
+                        textAlign: TextAlign.end,
+                        style: t.bodySmall?.copyWith(color: i.status.isOpen ? p.fg : p.fgSubtle),
+                      ),
+                      if (i.assigneeName != null)
+                        Text(
+                          i.assigneeName!,
+                          textAlign: TextAlign.end,
+                          overflow: TextOverflow.ellipsis,
+                          style: t.bodySmall,
+                        ),
+                    ],
+                  ),
+                ),
               ),
             ],
           ),

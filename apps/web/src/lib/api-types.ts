@@ -365,6 +365,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/orgs/{org_id}/alert-rules/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview Draft
+         * @description Preview an unsaved rule (rule builder). Read-only; nothing is stored.
+         */
+        post: operations["preview_draft_api_v1_orgs__org_id__alert_rules_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/orgs/{org_id}/alert-rules/{rule_id}": {
         parameters: {
             query?: never;
@@ -395,7 +415,7 @@ export interface paths {
         put?: never;
         /**
          * Preview Rule
-         * @description Replays the rule over recent raw data (every 5 minutes) without changing any state.
+         * @description Would this saved rule have fired recently?
          */
         post: operations["preview_rule_api_v1_orgs__org_id__alert_rules__rule_id__preview_post"];
         delete?: never;
@@ -411,7 +431,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List Audit Logs */
+        /**
+         * List Audit Logs
+         * @description `action` matches exactly; `action_prefix` filters a family, e.g. `member.` or `ai.`.
+         */
         get: operations["list_audit_logs_api_v1_orgs__org_id__audit_logs_get"];
         put?: never;
         post?: never;
@@ -1301,6 +1324,8 @@ export interface components {
             action: string;
             /** Actor Id */
             actor_id: string | null;
+            /** Actor Name */
+            actor_name?: string | null;
             /** Actor Type */
             actor_type: string;
             /** After */
@@ -3638,6 +3663,43 @@ export interface operations {
             };
         };
     };
+    preview_draft_api_v1_orgs__org_id__alert_rules_preview_post: {
+        parameters: {
+            query?: {
+                hours?: number;
+            };
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AlertRuleIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PreviewOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_rule_api_v1_orgs__org_id__alert_rules__rule_id__get: {
         parameters: {
             query?: never;
@@ -3778,6 +3840,7 @@ export interface operations {
                 limit?: number;
                 cursor?: string | null;
                 action?: string | null;
+                action_prefix?: string | null;
             };
             header?: never;
             path: {

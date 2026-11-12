@@ -20,7 +20,7 @@ const TABS = [
   { label: "All", query: "" },
 ] as const;
 
-/** Incident list for the dashboard (incident actions live in the mobile app for now). */
+/** Incident list for the dashboard; each incident opens its detail page. */
 export function IncidentsView({ orgId }: { orgId: string }) {
   const [tab, setTab] = useState<(typeof TABS)[number]>(TABS[0]);
   const incidents = useQuery({
@@ -48,7 +48,7 @@ export function IncidentsView({ orgId }: { orgId: string }) {
         ))}
       </div>
       {incidents.isPending ? (
-        <div className="h-32 animate-pulse rounded-md bg-surface" aria-busy aria-label="Loading incidents" />
+        <div className="h-32 animate-pulse rounded-md bg-surface" role="status" aria-busy aria-label="Loading incidents" />
       ) : incidents.isError ? (
         <Alert>
           Couldn&apos;t load incidents: {incidents.error.message}{" "}

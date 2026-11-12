@@ -15,17 +15,20 @@ Tokens are defined once (`core/design_system/tokens.dart` and `apps/web/src/styl
 | `border.subtle` | `#232C42` | `#E3E7EF` | dividers |
 | `text.primary` | `#E8ECF5` | `#0E1424` | 14.9:1 on base |
 | `text.secondary` | `#9AA5BE` | `#4A5470` | ≥ 7:1 |
-| `text.tertiary` | `#6B7691` | `#6B7590` | ≥ 4.5:1, metadata only |
-| `accent.cyan` | `#22D3EE` | `#0891B2` | primary actions, focus, live data |
-| `accent.violet` | `#8B5CF6` | `#7C3AED` | AI surfaces |
+| `text.tertiary` | `#8590AA` | `#5D6680` | ≥ 5:1 on every surface, metadata only |
+| `accent.cyan` | `#22D3EE` | `#0E7490` | primary actions, focus, live data (white on light cyan: 5.4:1) |
+| `accent.violet` | `#A78BFA` | `#6D28D9` | AI surfaces |
 | `gradient.ai` | cyan → violet 135° | same, darker | AI badges, Copilot header (not text backgrounds) |
-| `status.healthy` | `#34D399` | `#059669` | |
-| `status.degraded` | `#FBBF24` | `#B45309` | |
-| `status.critical` | `#F43F5E` | `#BE123C` | |
-| `status.unknown` | `#64748B` | `#64748B` | |
-| `sev.1..4` | critical red · orange `#FB923C` · amber · slate | | severity chips |
+| `status.healthy` | `#34D399` | `#047857` | |
+| `status.degraded` | `#FBBF24` | `#92400E` | |
+| `status.major` | `#FB923C` | `#C2410C` | SEV2 |
+| `status.critical` | `#FB7185` | `#BE123C` | |
+| `status.unknown` | `#8592A6` | `#5B6678` | |
+| `sev.1..4` | critical · major · degraded · unknown tokens | | severity chips |
 
 Status is never color-only: every status pairs color with an icon and a label (colorblind-safe).
+
+All text tokens are ≥ 4.5:1 on canvas, surface and raised in both themes (re-checked in the Phase 5 audit; several Phase 0 values were 3.3–4.4:1). Web and mobile use the same values.
 
 ## 2. Typography
 
@@ -72,3 +75,8 @@ Status is never color-only: every status pairs color with an icon and a label (c
 ## 6. Accessibility
 
 WCAG 2.2 AA contrast, 48dp touch targets, Semantics labels for all icon buttons and charts, focus order, screen-reader announcements for live status changes (polite) and sev1 (assertive), no information conveyed by color alone.
+
+**Enforced by tests (Phase 5):**
+- Mobile `test/features/a11y_test.dart`: Flutter's guideline checks on overview, incidents, incident detail, services, Copilot, AI chat, settings and sign-in, in dark and light: tap targets ≥ 48dp (Android) / 44pt (iOS), every tap target labelled, text contrast ≥ 4.5:1. Every screen also lays out at 2× text size without overflow. Reduce motion: page transitions are skipped (`ReduceMotionTransitionsBuilder`); the loading skeleton and charts stop animating.
+- Web Playwright specs run axe (WCAG 2.0/2.1 A + AA) on every page they visit, in light and dark; any serious or critical violation fails the build. Loading skeletons are `role="status"`; charts are summarised for screen readers (the SVG is `aria-hidden`); button hover darkens instead of fading (fading broke contrast).
+- Layout rules that came out of the audit: buttons wrap their label instead of overflowing; header and metadata rows use `Wrap`; list-tile trailing columns are bounded.

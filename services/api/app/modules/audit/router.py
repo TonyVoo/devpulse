@@ -18,5 +18,9 @@ async def list_audit_logs(
     limit: Annotated[int, Query(ge=1, le=200)] = 50,
     cursor: str | None = None,
     action: str | None = None,
+    action_prefix: Annotated[str | None, Query(max_length=40)] = None,
 ) -> Page[AuditLogOut]:
-    return await AuditRepository(session, ctx).list(limit=limit, cursor=cursor, action=action)
+    """`action` matches exactly; `action_prefix` filters a family, e.g. `member.` or `ai.`."""
+    return await AuditRepository(session, ctx).list(
+        limit=limit, cursor=cursor, action=action, action_prefix=action_prefix
+    )

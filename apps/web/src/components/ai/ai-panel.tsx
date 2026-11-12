@@ -388,7 +388,7 @@ export function AiPanel({
       </div>
       {startError && <Alert className="mb-4">{startError}</Alert>}
       {latest.isPending ? (
-        <div className="h-24 animate-pulse rounded-md bg-raised" aria-busy aria-label="Loading AI analysis" />
+        <div className="h-24 animate-pulse rounded-md bg-raised" role="status" aria-busy aria-label="Loading AI analysis" />
       ) : latest.isError ? (
         <Alert>
           Couldn&apos;t load the AI analysis.{" "}

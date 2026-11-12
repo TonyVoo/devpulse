@@ -23,7 +23,7 @@ export function HealthPill({ health }: { health: Health }) {
 
 const SEV: Record<Severity, string> = {
   sev1: "border-critical/60 text-critical",
-  sev2: "border-orange-400/60 text-orange-400",
+  sev2: "border-major/60 text-major",
   sev3: "border-degraded/60 text-degraded",
   sev4: "border-unknown/60 text-unknown",
 };

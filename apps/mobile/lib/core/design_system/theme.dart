@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoPageTransitionsBuilder;
 import 'package:flutter/material.dart';
 
 import 'tokens.dart';
@@ -57,6 +58,13 @@ ThemeData buildTheme(Brightness brightness) {
       ),
     ),
     dividerTheme: DividerThemeData(color: p.line, space: 1, thickness: 1),
+    pageTransitionsTheme: const PageTransitionsTheme(
+      builders: {
+        TargetPlatform.android: ReduceMotionTransitionsBuilder(FadeForwardsPageTransitionsBuilder()),
+        TargetPlatform.iOS: ReduceMotionTransitionsBuilder(CupertinoPageTransitionsBuilder()),
+        TargetPlatform.macOS: ReduceMotionTransitionsBuilder(CupertinoPageTransitionsBuilder()),
+      },
+    ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: p.canvas,
@@ -137,6 +145,9 @@ ThemeData buildTheme(Brightness brightness) {
         ),
         foregroundColor: WidgetStateProperty.all(p.fg),
         side: WidgetStateProperty.all(BorderSide(color: p.line)),
+        // 48dp minimum touch target (Android guideline; iOS asks for 44pt).
+        minimumSize: WidgetStateProperty.all(const Size(48, 48)),
+        tapTargetSize: MaterialTapTargetSize.padded,
       ),
     ),
     snackBarTheme: SnackBarThemeData(
@@ -145,4 +156,24 @@ ThemeData buildTheme(Brightness brightness) {
       contentTextStyle: TextStyle(color: p.fg),
     ),
   );
+}
+
+/// Platform page transitions, except when the OS asks to reduce motion: then pages switch
+/// instantly (no slide or fade).
+class ReduceMotionTransitionsBuilder extends PageTransitionsBuilder {
+  const ReduceMotionTransitionsBuilder(this.inner);
+
+  final PageTransitionsBuilder inner;
+
+  @override
+  Widget buildTransitions<T>(
+    PageRoute<T> route,
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    if (MediaQuery.maybeDisableAnimationsOf(context) ?? false) return child;
+    return inner.buildTransitions(route, context, animation, secondaryAnimation, child);
+  }
 }

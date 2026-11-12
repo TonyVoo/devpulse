@@ -9,7 +9,7 @@
 | **2 Core product** ✅ | Services CRUD, ingest keys, metrics ingestion + rollups, overview endpoint, alert rules + evaluation, incident lifecycle/timeline/comments, deployments + GitHub webhooks, correlation; mobile Overview/Services/Incidents/Deployments screens (online) | Synthetic load generator drives an alert → incident end-to-end; lifecycle tests green |
 | **3 Realtime & mobile excellence** ✅ (push delivery pending Firebase) | Outbox relay, WS gateway, sync feed, Drift offline model, outbox writes, backoff, conflict handling, FCM, deep links, lifecycle, tablet layouts, integration tests | Airplane-mode ack replays correctly; WS drop → no lost/duplicate items; push tap cold-start opens incident |
 | **4 AI** ✅ (real-model eval pending a key; OpenAI adapter not built) | Provider port + Anthropic/OpenAI/Fake adapters, context collector, evidence registry, investigation task, validation/repair, usage & budget, Copilot UI (mobile + web), follow-up chat with read-only tools, proposals/approval | Golden scenarios pass with FakeProvider in CI; schema/grounding tests green; manual eval run documented |
-| **5 Web & polish** | Members/RBAC admin, alert rule builder with preview, integrations, AI config, audit log viewer, advanced charts & correlation timeline; accessibility & motion pass on mobile | Playwright critical flows green; a11y audit fixes landed |
+| **5 Web & polish** ✅ (manual screen-reader pass open) | Members/RBAC admin, alert rule builder with preview, integrations, AI config, audit log viewer, advanced charts & correlation timeline; accessibility & motion pass on mobile | Playwright critical flows green; a11y audit fixes landed |
 | **6 Production readiness** | Security review, RLS, OIDC, rate-limit tuning, load test ingestion, perf profiling (Flutter DevTools, API p95), Sentry wiring, deployment pipeline, demo environment | Threat model documented; load test report; staging deploy reproducible from CI |
 
 ## 2. Technical risks
@@ -77,7 +77,7 @@ Legend: ✅ done and verified · ⏳ not done (reason given)
 - ✅ Vitest + Testing Library: 18 tests; eslint, `tsc`, production build clean
 - ✅ Verified in a browser against the running stack (dark/light, 375px width) and by curl (refresh, CSRF, blocked paths)
 - ⏳ Playwright critical flow is written (`e2e/auth-org.spec.ts`) and runs in CI; **not run locally** (Chromium download not installed on this machine)
-- ⏳ Member management actions in the UI (invite, change role, remove) — API is ready; UI is Phase 5 admin work
+- ✅ Member management actions in the UI (invite, change role, remove) — done in Phase 5
 
 **CI**
 - ✅ `api.yml` (lint, mypy, migrations round-trip + drift, tests, OpenAPI drift), `web.yml` (contract drift, lint, typecheck, unit tests, build, Playwright e2e), `compose.yml` (full-stack smoke), `security.yml` (gitleaks, pip-audit, pnpm audit) — YAML validated locally; **not yet run on GitHub** (no remote configured)
@@ -115,7 +115,7 @@ Legend: ✅ done and verified · ⏳ not done (reason given)
 **Web**
 - ✅ Overview with real data, Services (list + create), Ingest keys (create shown-once with curl example, revoke), Incidents (read-only list); checked in the browser against the demo org
 - ✅ 25 vitest tests; lint, typecheck clean
-- ⏳ Alert rule builder, GitHub integration UI, incident actions on web — Phase 5 (APIs exist)
+- ✅ Alert rule builder, GitHub integration UI, incident actions on web — done in Phase 5
 
 ## 5. Phase 3 checklist
 
@@ -167,3 +167,23 @@ Legend: ✅ done and verified · ⏳ not done (reason given)
 - ✅ Incident detail page (header, timeline, AI panel with evidence, approvals, feedback, follow-up questions); incident list links to it
 - ✅ AI settings & usage page (admins edit; others read); no key fields
 - ✅ 31 vitest tests (6 new), typecheck + lint clean
+
+## 7. Phase 5 checklist
+
+**Web**
+- ✅ Members admin: invite (one-time link), pending invitations + revoke, role changes (never above your own), remove; `/invite/[token]` accept page
+- ✅ Alert rules: list with live state, enable/disable, delete, builder with live draft preview (threshold line, shaded breaches, "would have fired N times"), optimistic concurrency on edit
+- ✅ GitHub integration setup: webhook URL + secret shown once, repo → service mapping, step-by-step instructions
+- ✅ AI config (Phase 4) and audit log viewer (families, paging, before/after diff, actor names)
+- ✅ Service detail: 1h/6h/24h/7d charts (latency, error rate, throughput, CPU) with deploy and incident markers; gaps shown as gaps
+- ✅ Incident: correlation charts around the incident with suspected deploys and lifecycle markers; acknowledge / resolve / assign / escalate / reopen (If-Match + Idempotency-Key); comments
+- ✅ Bugs found by checking against real data: chart x-axis spanning only the data, overlapping marker labels, a correlation query that refetched in a loop (window derived from "now" on every render)
+- ✅ 40 vitest tests; **Playwright: 4 critical flows green locally** with axe in light + dark (admin flow, invite acceptance, incident actions, auth)
+
+**Backend**
+- ✅ `POST /alert-rules/preview` for drafts; audit log `actor_name` + `action_prefix`; 1 new test + 1 extended (135 total)
+
+**Mobile**
+- ✅ Accessibility audit test (22 cases) + reduce-motion transitions; fixes: contrast-safe palette shared with web, 48dp segmented buttons, wrapping buttons/rows, bounded list-tile columns
+- ✅ 97 tests
+- ⏳ Manual VoiceOver/TalkBack pass on a device; tablet layouts

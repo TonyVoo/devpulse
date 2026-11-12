@@ -84,7 +84,7 @@ export function IngestKeysView({ orgId, apiOrigin }: { orgId: string; apiOrigin:
       )}
 
       {keys.isPending ? (
-        <div className="h-24 animate-pulse rounded-md bg-surface" aria-busy aria-label="Loading keys" />
+        <div className="h-24 animate-pulse rounded-md bg-surface" role="status" aria-busy aria-label="Loading keys" />
       ) : keys.isError ? (
         <Alert>Couldn&apos;t load keys: {keys.error.message}</Alert>
       ) : keys.data.length === 0 ? (
