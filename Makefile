@@ -4,7 +4,7 @@ COMPOSE := docker compose --env-file .env -f infra/compose/docker-compose.yml
 API := services/api
 PY := $(API)/.venv/bin
 
-.PHONY: help env up down logs ps migrate seed-demo loadgen api-venv api-test api-lint api-typecheck api-check openapi web-install web-dev web-check
+.PHONY: help env up down logs ps migrate seed-demo loadgen ai-eval api-venv api-test api-lint api-typecheck api-check openapi web-install web-dev web-check
 
 help: ## Show targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-16s %s\n", $$1, $$2}'
@@ -36,6 +36,9 @@ seed-demo: ## Create the demo org for an existing user: make seed-demo OWNER=you
 loadgen: ## Synthetic telemetry via the ingest API: make loadgen KEY=dp_ingest_... [INCIDENT_AFTER=120]
 	@test -n "$(KEY)" || (echo "usage: make loadgen KEY=dp_ingest_... [INCIDENT_AFTER=120]" && exit 1)
 	$(COMPOSE) run --rm --no-deps api python -m app.scripts.loadgen --api http://api:8000 --key $(KEY) $(if $(INCIDENT_AFTER),--incident-after $(INCIDENT_AFTER),)
+
+ai-eval: ## Golden AI scenarios: make ai-eval [PROVIDER=anthropic] (anthropic = billed API calls)
+	$(COMPOSE) run --rm --no-deps api python -m app.scripts.ai_eval --provider $(or $(PROVIDER),fake) $(if $(MODEL),--model $(MODEL),)
 
 api-venv: ## Create backend virtualenv with dev deps
 	test -d $(API)/.venv || python3.12 -m venv $(API)/.venv

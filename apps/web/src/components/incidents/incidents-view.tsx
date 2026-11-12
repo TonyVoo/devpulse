@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import Link from "next/link";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -19,7 +20,7 @@ const TABS = [
   { label: "All", query: "" },
 ] as const;
 
-/** Read-only incident list for the dashboard (incident actions live in the mobile app for now). */
+/** Incident list for the dashboard (incident actions live in the mobile app for now). */
 export function IncidentsView({ orgId }: { orgId: string }) {
   const [tab, setTab] = useState<(typeof TABS)[number]>(TABS[0]);
   const incidents = useQuery({
@@ -65,7 +66,10 @@ export function IncidentsView({ orgId }: { orgId: string }) {
               <SeverityChip severity={i.severity} />
               <div className="min-w-0 flex-1">
                 <div className="font-medium">
-                  {i.title} {i.is_demo && <DemoTag />}
+                  <Link href={`/o/${orgId}/incidents/${i.key}`} className="hover:underline">
+                    {i.title}
+                  </Link>{" "}
+                  {i.is_demo && <DemoTag />}
                 </div>
                 <div className="text-xs text-fg-subtle">
                   <span className="font-mono">{i.key}</span>

@@ -107,17 +107,23 @@ Standard metric names (initial): `http.server.requests` (count), `http.server.er
 
 ## AI
 
-**ai_settings** — `org_id PK, enabled, provider, model, monthly_budget_micros, max_tokens_per_run, auto_investigate_min_severity, data_redaction jsonb, updated_by`
+✅ Phase 4 (migration `2cbe7983d3cf`):
 
-**ai_investigations** — `id, org_id, incident_id, trigger enum(auto,manual), status enum(queued,collecting,analyzing,succeeded,failed,rejected), provider, model, prompt_version, context_hash, result jsonb (validated schema), error_code, started_at, finished_at, requested_by`
+**ai_settings** — `org_id PK, enabled (default false), provider NULL (= server default), model NULL, monthly_budget_micros (default $20), max_tokens_per_run, auto_investigate_min_severity NULL (= never), data_redaction jsonb {emails, ips, secrets}, updated_by, version, timestamps`. No API keys: provider keys are server configuration.
 
-**ai_evidence** — `id, org_id, investigation_id, ref ("EV-3"), kind enum(metric,log,deployment,incident,alert), source_query jsonb (how it was fetched → reproducible), excerpt jsonb, observed_at`
+**ai_investigations** — `id, org_id, incident_id, trigger enum(auto,manual), status enum(queued,collecting,analyzing,succeeded,failed,rejected), provider, model, prompt_version, context_hash, result jsonb (validated), data_gaps jsonb, error_code, error_detail, tool_calls_used, tokens_used, started_at, finished_at, requested_by, is_demo, timestamps` · partial UNIQUE `(incident_id) WHERE status IN (queued,collecting,analyzing)` (one active run) · partial UNIQUE `(incident_id) WHERE trigger='auto'` (one automatic run)
 
-**ai_messages** — `id, org_id, investigation_id, role enum(user,assistant,tool), content, tool_name, created_at, author_id`
+**ai_evidence** — `id, org_id, investigation_id, ref ("EV-3"), kind enum(metric,log,deployment,incident,alert), title, excerpt jsonb (computed in Python; always has a one-line "text"), source_query jsonb (reproducible), observed_at` · UNIQUE `(investigation_id, ref)`
 
-**ai_usage** — `id, org_id, investigation_id, provider, model, input_tokens, output_tokens, cached_tokens, cost_micros, latency_ms, attempt, outcome, created_at` · index `(org_id, created_at)` for budget checks
+**ai_messages** — `id, org_id, investigation_id, role enum(user,assistant,tool), content, evidence_refs jsonb, tool_name, author_id, client_id UNIQUE (idempotent asks), created_at (clock_timestamp)`
 
-**ai_action_proposals** — `id, org_id, investigation_id, kind, description, risk enum(read_only,sensitive,destructive), status enum(proposed,approved,rejected,executed), decided_by, decided_at` (v1: proposals are recorded and approved/rejected; no automatic execution)
+**ai_usage** — `id, org_id, investigation_id, purpose (investigate|repair|chat), provider, model, input_tokens, output_tokens, cached_tokens, cache_write_tokens, cost_micros, latency_ms, attempt, outcome (ok | invalid_output | error code), request_id, created_at` · index `(org_id, created_at)` for budget checks. Written for failed calls too (tokens may still be billed).
+
+**ai_action_proposals** — `id, org_id, investigation_id, kind, description, risk enum(read_only,sensitive,destructive), status enum(proposed,approved,rejected), decided_by, decided_at, decision_note, created_at`. There is deliberately no `executed` status: DevPulse never runs actions.
+
+**ai_feedback** — `PK(investigation_id, user_id), org_id, helpful, note, created_at`
+
+`incident_event_type` gains `ai_analysis` (data.kind = `analysis` | `proposal_decision`).
 
 ## Audit
 

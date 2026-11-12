@@ -1,6 +1,15 @@
 """Imports every ORM model so `Base.metadata` is complete (Alembic, tests)."""
 
 from app.core.db import Base
+from app.modules.ai.models import (
+    AIActionProposal,
+    AIEvidence,
+    AIFeedback,
+    AIInvestigation,
+    AIMessage,
+    AISettings,
+    AIUsage,
+)
 from app.modules.alerts.models import AlertInstance, AlertRule
 from app.modules.audit.models import AuditLog
 from app.modules.auth.models import RefreshToken
@@ -21,6 +30,13 @@ from app.modules.telemetry.models import log_events, metric_points, metric_rollu
 from app.modules.users.models import Device, User
 
 __all__ = [
+    "AIActionProposal",
+    "AIEvidence",
+    "AIFeedback",
+    "AIInvestigation",
+    "AIMessage",
+    "AISettings",
+    "AIUsage",
     "AlertInstance",
     "AlertRule",
     "AuditLog",

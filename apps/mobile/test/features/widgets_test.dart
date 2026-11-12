@@ -4,6 +4,7 @@ import 'package:devpulse_mobile/core/database/app_database.dart';
 import 'package:devpulse_mobile/core/result/failure.dart';
 import 'package:devpulse_mobile/features/auth/domain/models.dart';
 import 'package:devpulse_mobile/features/auth/presentation/session_controller.dart';
+import 'package:devpulse_mobile/features/copilot/data/ai_repository.dart';
 import 'package:devpulse_mobile/features/offline/live_sync.dart';
 import 'package:devpulse_mobile/features/ops_repositories.dart';
 import 'package:devpulse_mobile/main.dart';
@@ -22,6 +23,7 @@ Future<FakeAuthRepository> pumpApp(
   Size? size,
   FakeOpsRepository? ops,
   FakeServer? server,
+  FakeAiRepository? ai,
 }) async {
   final srv = server ?? FakeServer();
   if (size != null) {
@@ -37,6 +39,7 @@ Future<FakeAuthRepository> pumpApp(
         authRepositoryProvider.overrideWithValue(repo),
         databaseProvider.overrideWithValue(db),
         opsRepositoryProvider.overrideWithValue(ops ?? FakeOpsRepository()),
+        aiRepositoryProvider.overrideWithValue(ai ?? FakeAiRepository()),
         // Offline sync against the in-memory API; no OS connectivity plugin in tests.
         liveSyncProvider.overrideWith((ref) {
           final session = ref.watch(sessionControllerProvider).value;

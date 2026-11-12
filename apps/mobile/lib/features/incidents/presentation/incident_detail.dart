@@ -13,6 +13,7 @@ import '../../../core/design_system/widgets/status_widgets.dart';
 import '../../../core/result/failure.dart';
 import '../../auth/domain/models.dart';
 import '../../auth/presentation/session_controller.dart';
+import '../../copilot/presentation/incident_ai_section.dart';
 import '../../offline/live_sync.dart';
 import '../../offline/outbox.dart';
 import '../../ops_repositories.dart';
@@ -296,6 +297,11 @@ class _DetailBodyState extends ConsumerState<_DetailBody> {
           const SizedBox(height: DpSpace.md),
           const DpBanner(message: 'Showing the timeline saved on this device.', tone: DpBannerTone.warning),
         ],
+        IncidentAiSection(
+          incident: i,
+          canAct: canAct,
+          isAdmin: session is SignedIn && const {OrgRole.owner, OrgRole.admin}.contains(session.currentOrg?.role),
+        ),
         if ((extras.value?.deployments ?? const []).isNotEmpty) ...[
           const SectionHeader('Possibly related deployments'),
           Card(

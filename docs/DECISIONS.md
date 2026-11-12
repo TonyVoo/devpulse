@@ -99,6 +99,19 @@ Format: Context → Decision → Consequences. Status: **Accepted** unless noted
 - A dedicated `relay` process (LISTEN/NOTIFY + 2 s poll, `SKIP LOCKED`) publishes outbox rows to Redis; at-least-once.
 - Push recipients and payloads are implemented and tested; delivery uses `LoggingPushProvider` until a Firebase project (service account, APNs key) is provided. The mobile side routes push payloads (`route`, `org_id`) behind `PushMessages`, defaulting to `NoPushMessages`.
 
+### ADR-021 AI provider and model defaults (Phase 4)
+**Decision:** Claude via the official `anthropic` SDK (2.x) is the default provider, model `claude-opus-5-5`, effort `high`; structured output + strict read-only tools + server-side refusal fallback. The provider port (`LLMProvider.generate(LLMRequest) → LLMResult`) is the only seam; an OpenAI adapter is planned but not built. Provider keys are server env (`ANTHROPIC_API_KEY`) only — per-org bring-your-own keys are deferred because they need a secret store.
+**Consequences:** One adapter to maintain; changing model is a settings change. Pricing lives in `AI_PRICING` (USD/MTok → micro-dollars per token).
+
+### ADR-022 Demo analyzer instead of fake LLM output (Phase 4)
+**Context:** The AI flow must be demonstrable without a paid key, but showing invented "AI" text would break the no-fake-data rule.
+**Decision:** The `fake` provider has two modes: scripted (tests) and a small rule-based analyzer over the *real* collected evidence. It goes through the same validation, cites real refs, sets `limitations` to say it is not a language model, and every client labels it "Demo analyzer · not an LLM". It must be enabled with `AI_FAKE_ENABLED` and is refused when `APP_ENV=production`.
+**Consequences:** Local demos and CI exercise the whole pipeline honestly; the analyzer's conclusions are only as good as its patterns, and the UI says so.
+
+### ADR-023 Follow-up answers are synchronous (Phase 4)
+**Decision:** `POST …/messages` runs the bounded tool loop in the request (≤ 6 tool calls, 90 s cap) and returns the answer, idempotent on `client_id`, instead of the planned SSE stream.
+**Consequences:** Simple, retry-safe clients on web and mobile; a slow answer holds a request open for up to 90 s. Streaming can be added later without changing the stored data.
+
 ### Resolved open questions
 - Python dependency tool: **pip + pyproject with pinned compatible ranges** for Phase 1 (uv was not installed; avoided adding system tools). A lockfile (uv or pip-tools) should be added before Phase 6.
 - Node version: `.nvmrc` pins **24 LTS**; Docker and CI use Node 24. Local development was verified on Node 25.

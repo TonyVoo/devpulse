@@ -50,6 +50,7 @@ class EventType(StrEnum):
     ALERT_ATTACHED = "alert_attached"
     ALERT_RESOLVED = "alert_resolved"
     DEPLOYMENT_CORRELATED = "deployment_correlated"
+    AI_ANALYSIS = "ai_analysis"
 
 
 class ActorType(StrEnum):

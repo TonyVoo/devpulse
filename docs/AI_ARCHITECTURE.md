@@ -1,5 +1,7 @@
 # DevPulse — AI Incident Investigator
 
+**Status: implemented in Phase 4** (see §9 for what is in, what differs from the original plan, and what is open).
+
 Goal: given an incident, produce an **evidence-grounded** analysis: what is known (evidence), what is suspected (hypotheses with calibrated confidence), what to check next. The AI never confirms root causes and never executes actions.
 
 ## 1. Pipeline
@@ -44,8 +46,8 @@ class LLMProvider(Protocol):
     ) -> LLMResult: ...   # text | parsed | tool_calls, usage{input, output, cached}, raw_id
 ```
 
-- Adapters: `AnthropicProvider` (default, e.g. `claude-sonnet-5-5`), `OpenAIProvider`, `FakeProvider` (deterministic fixtures for tests/CI/offline demo — clearly labelled as such).
-- Selected per org from `ai_settings` + server env (`AI_PROVIDER`, `AI_MODEL`, provider API key in secret store). Keys never leave the backend.
+- Adapters: `AnthropicProvider` (default model `claude-opus-5-5`, official `anthropic` SDK), `FakeProvider` (scripted results for tests; a rule-based *demo analyzer* for offline demos — labelled "not an LLM" in every client, refused in production). An `OpenAIProvider` is **not implemented yet**; the port is the only thing it would need to satisfy.
+- Selected per org from `ai_settings` + server env (`AI_DEFAULT_PROVIDER`, `AI_DEFAULT_MODEL`, `ANTHROPIC_API_KEY`). Keys are server configuration only: never accepted or returned by the API, never sent to web or mobile.
 - Business logic (`InvestigationService`) depends only on the port. Prompt templates are versioned files (`prompt_version` stored per run).
 - Pricing table per (provider, model) lives in config, not code, to compute `cost_micros`.
 
@@ -109,3 +111,25 @@ Every provider call writes `ai_usage` (tokens in/out/cached, cost, latency, atte
 - Schema tests: valid/invalid fixtures, unknown evidence refs, label/confidence mismatch, risk escalation.
 - Golden scenarios (seeded incidents with known injected causes: bad deploy, pool exhaustion, upstream outage, noisy alert): run with `FakeProvider` in CI for pipeline correctness; with a real provider on demand (`make ai-eval`) to score top-1 cause hit rate and citation validity.
 - User feedback (`helpful`) stored per investigation.
+
+## 9. Phase 4 implementation notes
+
+Code: `services/api/app/modules/ai/` — `providers/` (port, Anthropic, Fake), `collector.py`, `evidence.py`, `output.py` (schema + validation), `tools.py`, `pipeline.py` (Celery-side run), `service.py` + `router.py` (API), `scenarios.py` (golden scenarios), `prompts/*.md` (versioned prompts).
+
+**Anthropic adapter.** `client.beta.messages.create` with: the frozen system prompt as a cached block (`cache_control: ephemeral`, so tools + system form a reusable prefix); structured output via `output_config.format` (JSON Schema in `output.py`); `output_config.effort` from `AI_EFFORT` (default `high`; adaptive thinking is on by default on the model); strict read-only tools for follow-ups; the server-side refusal fallback (`fallbacks: "default"`, beta `server-side-fallback-2026-07-01`) on models that support it. No sampling parameters are sent. The SDK does retries (2, exponential backoff + jitter) and the per-call timeout (45 s); SDK errors map to stable codes (`ai.rate_limited`, `ai.timeout`, `ai.provider_auth`, `ai.refused`, `ai.truncated`, …). Assistant turns (including thinking blocks) are replayed verbatim inside a tool loop.
+
+**Collector windows.** Incident window = `started_at − 15 min` → `min(now, resolved_at, started_at + 2 h)`; baseline = the 60 min before that. The 15-minute lead keeps the pre-alert change out of the baseline (alerts fire after their window + `for`). Deployments: same service, 24 h before → 5 min after start. Logs: warn/error/fatal grouped by fingerprint, with a "seen in the previous 6 h" count. Similar incidents: same service, 90 days, resolved first.
+
+**Validation.** Pydantic re-parse of the structured output, then: refs must exist; ≥1 ref per cause; 1–5 causes; confidence ∈ [0,1]; single-evidence causes capped at 0.75 (recorded in `adjustments`, shown to users); `status`, `confidence_label` and `requires_approval` are set by the server, never trusted from the model. One repair attempt with the validation errors; then `ai.invalid_output`.
+
+**Guards & limits.** Per-org opt-in (off by default); provider must be configured on the server; month-to-date cost < budget (checked when queued *and* when the worker starts); `max_tokens_per_run` stops the repair step; 90 s per run; one active run per incident and one automatic run per incident (partial unique indexes); runs stuck > 10 min are failed by the hourly cleanup. A run with no telemetry at all fails with `ai.no_evidence` **without calling the model**.
+
+**Follow-up questions** run synchronously in the request (bounded by the 90 s run timeout, ≤ 6 tool calls per question, ≤ 20 per investigation) instead of the planned SSE stream; answers are idempotent on `client_id`. A failed question stores nothing but its usage rows.
+
+**Auto-trigger.** The outbox relay sees each `created` timeline event and calls `maybe_auto_investigate` (org setting `auto_investigate_min_severity`), which queues `ai.investigate` on Celery. Results reach clients via the `ai_analysis` timeline event (WebSocket hint) plus 3 s polling while a run is active.
+
+**Proposals.** Non-read-only recommended actions become `ai_action_proposals`. Engineers decide sensitive ones, only admins/owners destructive ones; decisions are audited and added to the timeline. Nothing is ever executed (there is no `executed` status).
+
+**Evaluation.** `make ai-eval` runs the four golden scenarios (bad deploy, pool exhaustion, upstream outage, noisy alert) through the real pipeline in a temporary org. With the demo analyzer it is free (4/4 today); `make ai-eval PROVIDER=anthropic` makes billed calls and needs `ANTHROPIC_API_KEY` — it has **not been run yet**.
+
+**Open:** OpenAI adapter; per-org provider keys; SSE streaming of answers; Prometheus token metrics (usage is in `ai_usage` and `GET /ai/usage`); a real-model eval run.

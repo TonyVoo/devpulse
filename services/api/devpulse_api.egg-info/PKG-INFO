@@ -19,6 +19,7 @@ Requires-Dist: celery[redis]<5.8,>=5.7
 Requires-Dist: packaging>=24
 Requires-Dist: cryptography<51,>=46
 Requires-Dist: sentry-sdk<2.75,>=2.74
+Requires-Dist: anthropic<2.9,>=2.8
 Provides-Extra: dev
 Requires-Dist: pytest<9.3,>=9.2; extra == "dev"
 Requires-Dist: pytest-asyncio<1.5,>=1.4; extra == "dev"

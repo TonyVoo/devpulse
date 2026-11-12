@@ -8,7 +8,7 @@
 | **1 Foundation** ✅ | Monorepo scaffold, Compose (pg, redis, api, worker, web), config validation, auth (register/login/refresh/logout), orgs, memberships, RBAC, audit log core, error model, logging, CI; Flutter app shell (theme, router, auth flow, org select, secure storage); Next.js shell (BFF auth, org switch) | `make up` healthy; auth + RBAC + tenant-isolation tests green; mobile logs in against local API; CI green |
 | **2 Core product** ✅ | Services CRUD, ingest keys, metrics ingestion + rollups, overview endpoint, alert rules + evaluation, incident lifecycle/timeline/comments, deployments + GitHub webhooks, correlation; mobile Overview/Services/Incidents/Deployments screens (online) | Synthetic load generator drives an alert → incident end-to-end; lifecycle tests green |
 | **3 Realtime & mobile excellence** ✅ (push delivery pending Firebase) | Outbox relay, WS gateway, sync feed, Drift offline model, outbox writes, backoff, conflict handling, FCM, deep links, lifecycle, tablet layouts, integration tests | Airplane-mode ack replays correctly; WS drop → no lost/duplicate items; push tap cold-start opens incident |
-| **4 AI** | Provider port + Anthropic/OpenAI/Fake adapters, context collector, evidence registry, investigation task, validation/repair, usage & budget, Copilot UI (mobile + web), follow-up chat with read-only tools, proposals/approval | Golden scenarios pass with FakeProvider in CI; schema/grounding tests green; manual eval run documented |
+| **4 AI** ✅ (real-model eval pending a key; OpenAI adapter not built) | Provider port + Anthropic/OpenAI/Fake adapters, context collector, evidence registry, investigation task, validation/repair, usage & budget, Copilot UI (mobile + web), follow-up chat with read-only tools, proposals/approval | Golden scenarios pass with FakeProvider in CI; schema/grounding tests green; manual eval run documented |
 | **5 Web & polish** | Members/RBAC admin, alert rule builder with preview, integrations, AI config, audit log viewer, advanced charts & correlation timeline; accessibility & motion pass on mobile | Playwright critical flows green; a11y audit fixes landed |
 | **6 Production readiness** | Security review, RLS, OIDC, rate-limit tuning, load test ingestion, perf profiling (Flutter DevTools, API p95), Sentry wiring, deployment pipeline, demo environment | Threat model documented; load test report; staging deploy reproducible from CI |
 
@@ -140,3 +140,30 @@ Legend: ✅ done and verified · ⏳ not done (reason given)
 - ⏳ Firebase SDK + universal links (AASA/assetlinks) — need your Firebase project and a domain
 - ⏳ Background fetch (workmanager) — not needed for correctness; deferred
 - ⏳ Exit criterion "push tap cold-start opens incident": routing is implemented and unit-tested; not verifiable end-to-end without Firebase
+
+## 6. Phase 4 checklist
+
+**Backend**
+- ✅ Migration `2cbe7983d3cf`: ai_settings, ai_investigations (one active + one auto run per incident), ai_evidence, ai_messages, ai_usage, ai_action_proposals, ai_feedback; `ai_analysis` timeline event. Up/down round-trip tested
+- ✅ Provider port; `AnthropicProvider` (official SDK 2.8: structured output, strict read-only tools, prompt caching, refusal fallback, SDK retries/timeouts, error-code mapping); `FakeProvider` (scripted + rule-based demo analyzer, refused in production)
+- ⏳ `OpenAIProvider` — not built (the port is ready; ADR-021)
+- ✅ Context collector + evidence registry (metrics vs baseline, log fingerprints with novelty, deployments with timing/correlation, alerts, similar incidents, explicit data gaps), redaction, untrusted-data framing
+- ✅ Validation: grounding (unknown/zero refs rejected), bounds, single-evidence cap, server-set policy fields, one repair attempt
+- ✅ Celery `ai.investigate` with 90 s run cap; budget + provider + opt-in guards (at queue time and run time); token cap; stale-run sweep; auto-trigger from the relay
+- ✅ Usage & cost per call (including failed calls), `/ai/usage`, month-to-date budget
+- ✅ Follow-up questions with bounded read-only tool loop (new evidence refs), idempotent on `client_id`
+- ✅ Proposals: decisions audited + on the timeline; destructive needs an admin; nothing executes
+- ✅ 39 AI tests (123 backend total): validation units, 4 golden scenarios, guards, repair, provider failures, tools (validation, clamping, tenant scope), chat replay, proposals RBAC, auto-trigger, Anthropic adapter wire format and error mapping against a stubbed SDK client
+- ✅ `make ai-eval`: 4/4 golden scenarios with the demo analyzer
+- ⏳ `make ai-eval PROVIDER=anthropic` — needs your `ANTHROPIC_API_KEY` (billed); not run
+- ⏳ Prometheus token metrics, SSE streaming (ADR-023), per-org provider keys
+
+**Mobile**
+- ✅ Incident AI section: start, live progress (realtime + polling), hypotheses with confidence, evidence sheets (computed excerpts + source), risk badges, approve/reject with confirmation, data gaps, limitations, feedback; cached for offline reading
+- ✅ Follow-up chat screen (retry-safe client ids, offline disabled); Copilot tab lists recent investigations; demo analyzer labelled everywhere
+- ✅ 74 unit/widget tests (10 new)
+
+**Web**
+- ✅ Incident detail page (header, timeline, AI panel with evidence, approvals, feedback, follow-up questions); incident list links to it
+- ✅ AI settings & usage page (admins edit; others read); no key fields
+- ✅ 31 vitest tests (6 new), typecheck + lint clean

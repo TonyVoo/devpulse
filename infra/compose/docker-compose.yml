@@ -9,6 +9,11 @@ x-api-env: &api-env
   CORS_ORIGINS: ${CORS_ORIGINS:-[]}
   SENTRY_DSN: ${SENTRY_DSN:-}
   ENCRYPTION_KEY: ${ENCRYPTION_KEY:-}
+  # AI investigator. The provider key stays on the server (api/worker); never in web/mobile.
+  AI_DEFAULT_PROVIDER: ${AI_DEFAULT_PROVIDER:-anthropic}
+  AI_DEFAULT_MODEL: ${AI_DEFAULT_MODEL:-claude-opus-5-5}
+  ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+  AI_FAKE_ENABLED: ${AI_FAKE_ENABLED:-false}
 
 # One image for api/worker/beat/migrate. Only `migrate` declares the build so the image is
 # built once; the others reuse it (pull_policy: never avoids registry lookups).

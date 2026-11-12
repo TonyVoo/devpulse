@@ -11,6 +11,7 @@ from app.core.errors import install_error_handlers
 from app.core.health import router as health_router
 from app.core.logging import RequestContextMiddleware, configure_logging
 from app.core.redis import get_redis
+from app.modules.ai.router import router as ai_router
 from app.modules.alerts.router import router as alerts_router
 from app.modules.audit.router import router as audit_router
 from app.modules.auth.router import router as auth_router
@@ -78,6 +79,7 @@ def create_app() -> FastAPI:
         deployments_router,
         sync_router,
         notifications_router,
+        ai_router,
     ):
         v1.include_router(r)
     app.include_router(v1)

@@ -8,11 +8,12 @@ import '../features/auth/presentation/auth_screens.dart';
 import '../features/auth/presentation/org_select_screen.dart';
 import '../features/auth/presentation/session_controller.dart';
 import '../features/auth/presentation/splash_screen.dart';
+import '../features/copilot/presentation/ai_chat_screen.dart';
+import '../features/copilot/presentation/copilot_screen.dart';
 import '../features/deployments/presentation/deployments_screen.dart';
 import '../features/incidents/presentation/incident_detail.dart';
 import '../features/incidents/presentation/incidents_list.dart';
 import '../features/overview/presentation/overview_screen.dart';
-import '../features/placeholders.dart';
 import '../features/services/presentation/services_screens.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/shell/app_shell.dart';
@@ -124,6 +125,15 @@ final routerProvider = Provider<GoRouter>((ref) {
                   GoRoute(
                     path: ':ref',
                     builder: (_, s) => IncidentDetailScreen(incidentRef: s.pathParameters['ref']!),
+                    routes: [
+                      GoRoute(
+                        path: 'ai/:inv',
+                        builder: (_, s) => AiChatScreen(
+                          incidentRef: s.pathParameters['ref']!,
+                          investigationId: s.pathParameters['inv']!,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),

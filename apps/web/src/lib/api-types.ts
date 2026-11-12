@@ -219,6 +219,134 @@ export interface paths {
         patch: operations["update_org_api_v1_orgs__org_id__patch"];
         trace?: never;
     };
+    "/api/v1/orgs/{org_id}/ai/investigations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Investigations */
+        get: operations["list_investigations_api_v1_orgs__org_id__ai_investigations_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/orgs/{org_id}/ai/investigations/{inv_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Investigation */
+        get: operations["get_investigation_api_v1_orgs__org_id__ai_investigations__inv_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/orgs/{org_id}/ai/investigations/{inv_id}/feedback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Feedback */
+        put: operations["feedback_api_v1_orgs__org_id__ai_investigations__inv_id__feedback_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/orgs/{org_id}/ai/investigations/{inv_id}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Messages */
+        get: operations["list_messages_api_v1_orgs__org_id__ai_investigations__inv_id__messages_get"];
+        put?: never;
+        /**
+         * Ask
+         * @description Follow-up question. The model may call read-only tools; their results become new
+         *     evidence. Idempotent on `client_id` (a retry returns the stored answer).
+         */
+        post: operations["ask_api_v1_orgs__org_id__ai_investigations__inv_id__messages_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/orgs/{org_id}/ai/investigations/{inv_id}/proposals/{proposal_id}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decide
+         * @description Records a human approval/rejection. DevPulse never executes the action.
+         */
+        post: operations["decide_api_v1_orgs__org_id__ai_investigations__inv_id__proposals__proposal_id__decision_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/orgs/{org_id}/ai/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Ai Settings */
+        get: operations["get_ai_settings_api_v1_orgs__org_id__ai_settings_get"];
+        /** Put Ai Settings */
+        put: operations["put_ai_settings_api_v1_orgs__org_id__ai_settings_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/orgs/{org_id}/ai/usage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Ai Usage */
+        get: operations["ai_usage_api_v1_orgs__org_id__ai_usage_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/orgs/{org_id}/alert-rules": {
         parameters: {
             query?: never;
@@ -462,6 +590,28 @@ export interface paths {
         put?: never;
         /** Escalate */
         post: operations["escalate_api_v1_orgs__org_id__incidents__ref__escalate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/orgs/{org_id}/incidents/{ref}/investigations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Incident Investigations */
+        get: operations["incident_investigations_api_v1_orgs__org_id__incidents__ref__investigations_get"];
+        put?: never;
+        /**
+         * Start Investigation
+         * @description Queues an analysis (one active run per incident). Poll the returned investigation or
+         *     listen for the incident's `ai_analysis` timeline event.
+         */
+        post: operations["start_investigation_api_v1_orgs__org_id__incidents__ref__investigations_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -918,6 +1068,81 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AISettingsIn */
+        AISettingsIn: {
+            auto_investigate_min_severity?: components["schemas"]["Severity"] | null;
+            /**
+             * @default {
+             *       "emails": true,
+             *       "ips": true,
+             *       "secrets": true
+             *     }
+             */
+            data_redaction: components["schemas"]["RedactionSettings"];
+            /** Enabled */
+            enabled: boolean;
+            /** Max Tokens Per Run */
+            max_tokens_per_run: number;
+            /** Model */
+            model?: string | null;
+            /** Monthly Budget Micros */
+            monthly_budget_micros: number;
+            /** Provider */
+            provider?: string | null;
+        };
+        /** AISettingsOut */
+        AISettingsOut: {
+            auto_investigate_min_severity?: components["schemas"]["Severity"] | null;
+            /**
+             * @default {
+             *       "emails": true,
+             *       "ips": true,
+             *       "secrets": true
+             *     }
+             */
+            data_redaction: components["schemas"]["RedactionSettings"];
+            /** Effective Model */
+            effective_model: string;
+            /** Effective Provider */
+            effective_provider: string;
+            /** Enabled */
+            enabled: boolean;
+            /** Max Tokens Per Run */
+            max_tokens_per_run: number;
+            /** Model */
+            model?: string | null;
+            /** Month To Date Cost Micros */
+            month_to_date_cost_micros: number;
+            /** Monthly Budget Micros */
+            monthly_budget_micros: number;
+            /** Provider */
+            provider?: string | null;
+            /** Providers */
+            providers: components["schemas"]["ProviderInfo"][];
+            /** Version */
+            version: number;
+        };
+        /** Action */
+        Action: {
+            /** Action */
+            action: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "investigate" | "mitigate" | "remediate" | "communicate";
+            /** Proposal Id */
+            proposal_id?: string | null;
+            /** Rationale */
+            rationale: string;
+            /** Requires Approval */
+            requires_approval: boolean;
+            /**
+             * Risk
+             * @enum {string}
+             */
+            risk: "read_only" | "sensitive" | "destructive";
+        };
         /**
          * ActorType
          * @enum {string}
@@ -1026,6 +1251,45 @@ export interface components {
          * @enum {string}
          */
         AlertState: "pending" | "firing" | "resolved";
+        /** Analysis */
+        Analysis: {
+            /**
+             * Adjustments
+             * @default []
+             */
+            adjustments: string[];
+            /** Data Gaps */
+            data_gaps: string[];
+            /** Impact */
+            impact: string;
+            /** Incident Id */
+            incident_id: string;
+            /** Limitations */
+            limitations: string;
+            /** Probable Causes */
+            probable_causes: components["schemas"]["Cause"][];
+            /** Recommended Actions */
+            recommended_actions: components["schemas"]["Action"][];
+            /** Summary */
+            summary: string;
+        };
+        /** AskIn */
+        AskIn: {
+            /**
+             * Client Id
+             * Format: uuid
+             */
+            client_id: string;
+            /** Question */
+            question: string;
+        };
+        /** AskOut */
+        AskOut: {
+            /** Messages */
+            messages: components["schemas"]["MessageOut"][];
+            /** New Evidence */
+            new_evidence: components["schemas"]["EvidenceOut"][];
+        };
         /** AssignIn */
         AssignIn: {
             /** User Id */
@@ -1092,6 +1356,32 @@ export interface components {
          * @enum {string}
          */
         BuildStatus: "pending" | "running" | "succeeded" | "failed";
+        /** Cause */
+        Cause: {
+            /** Cause */
+            cause: string;
+            /** Confidence */
+            confidence: number;
+            /**
+             * Confidence Label
+             * @enum {string}
+             */
+            confidence_label: "low" | "medium" | "high";
+            /** Counter Evidence Refs */
+            counter_evidence_refs: string[];
+            /** Evidence Refs */
+            evidence_refs: string[];
+            /** How To Verify */
+            how_to_verify: string;
+            /** Reasoning */
+            reasoning: string;
+            /**
+             * Status
+             * @default hypothesis
+             * @constant
+             */
+            status: "hypothesis";
+        };
         /** Change */
         Change: {
             /** Change Seq */
@@ -1187,6 +1477,13 @@ export interface components {
         /** CorrelationIn */
         CorrelationIn: {
             correlation: components["schemas"]["Correlation"];
+        };
+        /** DecisionIn */
+        DecisionIn: {
+            /** Approve */
+            approve: boolean;
+            /** Note */
+            note?: string | null;
         };
         /**
          * DeploySource
@@ -1328,7 +1625,37 @@ export interface components {
          * EventType
          * @enum {string}
          */
-        EventType: "created" | "acknowledged" | "resolved" | "reopened" | "assigned" | "escalated" | "severity_changed" | "comment_added" | "alert_attached" | "alert_resolved" | "deployment_correlated";
+        EventType: "created" | "acknowledged" | "resolved" | "reopened" | "assigned" | "escalated" | "severity_changed" | "comment_added" | "alert_attached" | "alert_resolved" | "deployment_correlated" | "ai_analysis";
+        /**
+         * EvidenceKind
+         * @enum {string}
+         */
+        EvidenceKind: "metric" | "log" | "deployment" | "incident" | "alert";
+        /** EvidenceOut */
+        EvidenceOut: {
+            /** Excerpt */
+            excerpt: {
+                [key: string]: unknown;
+            };
+            kind: components["schemas"]["EvidenceKind"];
+            /** Observed At */
+            observed_at: string | null;
+            /** Ref */
+            ref: string;
+            /** Source Query */
+            source_query: {
+                [key: string]: unknown;
+            };
+            /** Title */
+            title: string;
+        };
+        /** FeedbackIn */
+        FeedbackIn: {
+            /** Helpful */
+            helpful: boolean;
+            /** Note */
+            note?: string | null;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -1561,6 +1888,101 @@ export interface components {
              */
             webhook_path: string;
         };
+        /** InvestigationOut */
+        InvestigationOut: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Data Gaps */
+            data_gaps: string[];
+            /** Error Code */
+            error_code: string | null;
+            /** Error Detail */
+            error_detail: string | null;
+            /** Evidence */
+            evidence: components["schemas"]["EvidenceOut"][];
+            /** Finished At */
+            finished_at: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Incident Id
+             * Format: uuid
+             */
+            incident_id: string;
+            /** Incident Key */
+            incident_key: string;
+            incident_severity: components["schemas"]["Severity"];
+            /** Incident Title */
+            incident_title: string;
+            /** Is Demo Provider */
+            is_demo_provider: boolean;
+            /** Model */
+            model: string;
+            /** My Feedback */
+            my_feedback: boolean | null;
+            /** Prompt Version */
+            prompt_version: string;
+            /** Proposals */
+            proposals: components["schemas"]["ProposalOut"][];
+            /** Provider */
+            provider: string;
+            /** Requested By */
+            requested_by: string | null;
+            result: components["schemas"]["Analysis"] | null;
+            /** Started At */
+            started_at: string | null;
+            status: components["schemas"]["RunStatus"];
+            /** Summary */
+            summary: string | null;
+            /** Tokens Used */
+            tokens_used: number;
+            /** Tool Calls Used */
+            tool_calls_used: number;
+            trigger: components["schemas"]["Trigger"];
+        };
+        /** InvestigationSummary */
+        InvestigationSummary: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Error Code */
+            error_code: string | null;
+            /** Finished At */
+            finished_at: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Incident Id
+             * Format: uuid
+             */
+            incident_id: string;
+            /** Incident Key */
+            incident_key: string;
+            incident_severity: components["schemas"]["Severity"];
+            /** Incident Title */
+            incident_title: string;
+            /** Is Demo Provider */
+            is_demo_provider: boolean;
+            /** Model */
+            model: string;
+            /** Provider */
+            provider: string;
+            status: components["schemas"]["RunStatus"];
+            /** Summary */
+            summary: string | null;
+            trigger: components["schemas"]["Trigger"];
+        };
         /** InvitationAcceptOut */
         InvitationAcceptOut: {
             org: components["schemas"]["OrgWithRoleOut"];
@@ -1712,6 +2134,35 @@ export interface components {
         MemberUpdateIn: {
             role: components["schemas"]["Role"];
         };
+        /** MessageOut */
+        MessageOut: {
+            /** Author Id */
+            author_id: string | null;
+            /** Client Id */
+            client_id: string | null;
+            /** Content */
+            content: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Evidence Refs */
+            evidence_refs: string[];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            role: components["schemas"]["MessageRole"];
+            /** Tool Name */
+            tool_name: string | null;
+        };
+        /**
+         * MessageRole
+         * @enum {string}
+         */
+        MessageRole: "user" | "assistant" | "tool";
         /** MetricPointIn */
         MetricPointIn: {
             /** Labels */
@@ -1872,6 +2323,13 @@ export interface components {
             /** Next Cursor */
             next_cursor: string | null;
         };
+        /** Page[InvestigationSummary] */
+        Page_InvestigationSummary_: {
+            /** Items */
+            items: components["schemas"]["InvestigationSummary"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
         /** Page[ServiceOut] */
         Page_ServiceOut_: {
             /** Items */
@@ -1926,6 +2384,63 @@ export interface components {
             /** Value */
             value: number | null;
         };
+        /** ProposalOut */
+        ProposalOut: {
+            /** Decided At */
+            decided_at: string | null;
+            /** Decided By */
+            decided_by: string | null;
+            /** Decision Note */
+            decision_note: string | null;
+            /** Description */
+            description: string;
+            /**
+             * Executes Automatically
+             * @default false
+             */
+            executes_automatically: boolean;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Kind */
+            kind: string;
+            risk: components["schemas"]["Risk"];
+            status: components["schemas"]["ProposalStatus"];
+        };
+        /**
+         * ProposalStatus
+         * @enum {string}
+         */
+        ProposalStatus: "proposed" | "approved" | "rejected";
+        /** ProviderInfo */
+        ProviderInfo: {
+            /** Configured */
+            configured: boolean;
+            /** Is Demo */
+            is_demo: boolean;
+            /** Name */
+            name: string;
+        };
+        /** RedactionSettings */
+        RedactionSettings: {
+            /**
+             * Emails
+             * @default true
+             */
+            emails: boolean;
+            /**
+             * Ips
+             * @default true
+             */
+            ips: boolean;
+            /**
+             * Secrets
+             * @default true
+             */
+            secrets: boolean;
+        };
         /** RefreshIn */
         RefreshIn: {
             /** Refresh Token */
@@ -1956,10 +2471,20 @@ export interface components {
             root_cause?: string | null;
         };
         /**
+         * Risk
+         * @enum {string}
+         */
+        Risk: "read_only" | "sensitive" | "destructive";
+        /**
          * Role
          * @enum {string}
          */
         Role: "owner" | "admin" | "engineer" | "viewer";
+        /**
+         * RunStatus
+         * @enum {string}
+         */
+        RunStatus: "queued" | "collecting" | "analyzing" | "succeeded" | "failed" | "rejected";
         /** SeriesOut */
         SeriesOut: {
             /** Aggregation */
@@ -2175,12 +2700,60 @@ export interface components {
             /** Requests */
             requests: number | null;
         };
+        /**
+         * Trigger
+         * @enum {string}
+         */
+        Trigger: "auto" | "manual";
         /** UpdateMeIn */
         UpdateMeIn: {
             /** Display Name */
             display_name?: string | null;
             /** Theme Pref */
             theme_pref?: ("system" | "dark" | "light") | null;
+        };
+        /** UsageDay */
+        UsageDay: {
+            /** Cached Tokens */
+            cached_tokens: number;
+            /** Calls */
+            calls: number;
+            /** Cost Micros */
+            cost_micros: number;
+            /**
+             * Day
+             * Format: date
+             */
+            day: string;
+            /** Input Tokens */
+            input_tokens: number;
+            /** Model */
+            model: string;
+            /** Output Tokens */
+            output_tokens: number;
+            /** Provider */
+            provider: string;
+        };
+        /** UsageOut */
+        UsageOut: {
+            /** Days */
+            days: components["schemas"]["UsageDay"][];
+            /**
+             * From
+             * Format: date-time
+             */
+            from_: string;
+            /** Month To Date Cost Micros */
+            month_to_date_cost_micros: number;
+            /** Monthly Budget Micros */
+            monthly_budget_micros: number;
+            /**
+             * To
+             * Format: date-time
+             */
+            to: string;
+            /** Total Cost Micros */
+            total_cost_micros: number;
         };
         /** UserOut */
         UserOut: {
@@ -2679,6 +3252,311 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OrgWithRoleOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_investigations_api_v1_orgs__org_id__ai_investigations_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                cursor?: string | null;
+            };
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_InvestigationSummary_"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_investigation_api_v1_orgs__org_id__ai_investigations__inv_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                inv_id: string;
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvestigationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    feedback_api_v1_orgs__org_id__ai_investigations__inv_id__feedback_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                inv_id: string;
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FeedbackIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_messages_api_v1_orgs__org_id__ai_investigations__inv_id__messages_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                inv_id: string;
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ask_api_v1_orgs__org_id__ai_investigations__inv_id__messages_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                inv_id: string;
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AskIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AskOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    decide_api_v1_orgs__org_id__ai_investigations__inv_id__proposals__proposal_id__decision_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                inv_id: string;
+                proposal_id: string;
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DecisionIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProposalOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_ai_settings_api_v1_orgs__org_id__ai_settings_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AISettingsOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_ai_settings_api_v1_orgs__org_id__ai_settings_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AISettingsIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AISettingsOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ai_usage_api_v1_orgs__org_id__ai_usage_get: {
+        parameters: {
+            query?: {
+                from?: string | null;
+                to?: string | null;
+            };
+            header?: never;
+            path: {
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UsageOut"];
                 };
             };
             /** @description Validation Error */
@@ -3346,6 +4224,70 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["IncidentOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    incident_investigations_api_v1_orgs__org_id__incidents__ref__investigations_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ref: string;
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvestigationSummary"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_investigation_api_v1_orgs__org_id__incidents__ref__investigations_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ref: string;
+                org_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvestigationOut"];
                 };
             };
             /** @description Validation Error */

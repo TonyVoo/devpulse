@@ -13,6 +13,7 @@ import contextlib
 import json
 import signal
 from datetime import UTC, datetime, timedelta
+from uuid import UUID
 
 import asyncpg
 import structlog
@@ -24,6 +25,7 @@ from app.core.config import get_settings
 from app.core.db import get_sessionmaker
 from app.core.logging import configure_logging
 from app.core.redis import get_redis
+from app.modules.ai.pipeline import maybe_auto_investigate
 from app.modules.notifications.push import (
     LoggingPushProvider,
     PushProvider,
@@ -60,6 +62,8 @@ async def relay_once(session: AsyncSession, redis: Redis, push: PushProvider) ->
                 await dispatch_incident_event(session, push, row.org_id, row.payload)
             except Exception:
                 log.exception("push_dispatch_failed", outbox_id=row.id)
+            if row.payload.get("type") == "created":
+                await _auto_investigate(row.org_id, row.payload["incident_id"])
         else:
             message = {**row.payload, "type": "sync", "collection": row.topic}
         await redis.publish(channel(row.org_id), json.dumps(message, default=str))
@@ -70,6 +74,15 @@ async def relay_once(session: AsyncSession, redis: Redis, push: PushProvider) ->
     )
     await session.commit()
     return len(rows)
+
+
+async def _auto_investigate(org_id: UUID, incident_id: str) -> None:
+    """Opens its own session: the relay's batch transaction must not include the run."""
+    try:
+        async with get_sessionmaker()() as session:
+            await maybe_auto_investigate(session, org_id, UUID(incident_id))
+    except Exception:
+        log.exception("ai_auto_investigate_failed", incident_id=incident_id)
 
 
 async def purge_published(session: AsyncSession, older_than: timedelta = timedelta(days=1)) -> None:

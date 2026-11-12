@@ -8,6 +8,8 @@ import 'package:devpulse_mobile/core/network/org_api.dart';
 import 'package:devpulse_mobile/core/result/failure.dart';
 import 'package:devpulse_mobile/features/auth/data/auth_repository.dart';
 import 'package:devpulse_mobile/features/auth/domain/models.dart';
+import 'package:devpulse_mobile/features/copilot/data/ai_repository.dart';
+import 'package:devpulse_mobile/features/copilot/domain/investigation.dart';
 import 'package:devpulse_mobile/features/deployments/domain/deployment.dart';
 import 'package:devpulse_mobile/features/incidents/domain/incident.dart';
 import 'package:devpulse_mobile/features/ops_repositories.dart';
@@ -226,3 +228,184 @@ Overview emptyOverview() => Overview.fromJson({
   'recent_deployments': <dynamic>[],
   'has_telemetry': false,
 });
+
+/// In-memory AI API. `runs` maps incident id → investigations (latest first).
+class FakeAiRepository implements AiRepository {
+  FakeAiRepository({Map<String, List<Investigation>>? runs, this.startError, this.askError}) : runs = runs ?? {};
+
+  final Map<String, List<Investigation>> runs;
+  Failure? startError;
+  Failure? askError;
+  final List<String> started = [];
+  final List<(String, bool)> decisions = [];
+  final List<(String, String)> asked = [];
+  final Map<String, List<AiMessage>> messagesById = {};
+
+  Investigation _byId(String id) => runs.values.expand((l) => l).firstWhere((i) => i.id == id);
+
+  @override
+  Future<List<InvestigationSummary>> forIncident(String incidentRef) async => [
+    for (final i in runs.values.expand((l) => l))
+      if (i.summary.incidentId == incidentRef || i.summary.incidentKey == incidentRef) i.summary,
+  ];
+
+  @override
+  Future<Paged<InvestigationSummary>> recent({String? cursor}) async =>
+      Paged([for (final i in runs.values.expand((l) => l)) i.summary], null);
+
+  @override
+  Future<Investigation> get(String id) async => _byId(id);
+
+  @override
+  Future<Investigation> start(String incidentRef) async {
+    if (startError != null) throw startError!;
+    started.add(incidentRef);
+    throw const UnknownFailure('not scripted');
+  }
+
+  @override
+  Future<List<AiMessage>> messages(String id) async => messagesById[id] ?? const [];
+
+  @override
+  Future<AskResult> ask(String id, String question, String clientId) async {
+    asked.add((question, clientId));
+    if (askError != null) throw askError!;
+    final now = DateTime.now().toUtc().toIso8601String();
+    final turn = [
+      AiMessage.fromJson({'id': 'u$clientId', 'role': 'user', 'content': question, 'created_at': now}),
+      AiMessage.fromJson({
+        'id': 'a$clientId',
+        'role': 'assistant',
+        'content': 'Errors began right after the deploy.',
+        'evidence_refs': ['EV-1'],
+        'created_at': now,
+      }),
+    ];
+    messagesById.putIfAbsent(id, () => []).addAll(turn);
+    return AskResult(turn, const []);
+  }
+
+  @override
+  Future<Proposal> decide(String id, String proposalId, {required bool approve, String? note}) async {
+    decisions.add((proposalId, approve));
+    final inv = _byId(id);
+    final raw = Map<String, dynamic>.from(inv.raw);
+    raw['proposals'] = [
+      for (final p in (raw['proposals'] as List<dynamic>).cast<Map<String, dynamic>>())
+        p['id'] == proposalId ? <String, dynamic>{...p, 'status': approve ? 'approved' : 'rejected'} : p,
+    ];
+    final updated = Investigation.fromJson(raw);
+    for (final list in runs.values) {
+      final idx = list.indexWhere((i) => i.id == id);
+      if (idx >= 0) list[idx] = updated;
+    }
+    return updated.proposal(proposalId)!;
+  }
+
+  @override
+  Future<void> feedback(String id, {required bool helpful}) async {}
+}
+
+/// API-shaped investigation JSON (see services/api AI schemas).
+Map<String, dynamic> investigationJson({
+  String id = 'inv-1',
+  String incidentId = 'a',
+  String incidentKey = 'INC-1001',
+  String status = 'succeeded',
+  String provider = 'fake',
+  String? errorCode,
+}) => {
+  'id': id,
+  'incident_id': incidentId,
+  'incident_key': incidentKey,
+  'incident_title': 'Checkout latency',
+  'incident_severity': 'sev2',
+  'trigger': 'manual',
+  'status': status,
+  'provider': provider,
+  'model': provider == 'fake' ? 'fake-rules-v1' : 'claude-opus-5-5',
+  'is_demo_provider': provider == 'fake',
+  'summary': status == 'succeeded' ? 'Most likely (hypothesis): regression from v2.14.0.' : null,
+  'error_code': errorCode,
+  'error_detail': null,
+  'created_at': DateTime.utc(2026, 11, 11, 10).toIso8601String(),
+  'finished_at': null,
+  'prompt_version': 'investigate_v1',
+  'data_gaps': ['No traces'],
+  'tool_calls_used': 0,
+  'tokens_used': 0,
+  'started_at': null,
+  'requested_by': null,
+  'my_feedback': null,
+  'evidence': [
+    {
+      'ref': 'EV-1',
+      'kind': 'deployment',
+      'title': 'checkout deploy v2.14.0',
+      'excerpt': {'text': 'checkout v2.14.0 deployed 12 min before the incident'},
+      'source_query': {'type': 'deployment'},
+      'observed_at': null,
+    },
+    {
+      'ref': 'EV-2',
+      'kind': 'metric',
+      'title': 'checkout · p95 latency',
+      'excerpt': {'text': 'baseline 180 → peak 1,400 at 10:02 UTC (+678%)'},
+      'source_query': {'type': 'metric', 'name': 'http.server.duration_ms'},
+      'observed_at': null,
+    },
+  ],
+  'proposals': [
+    {
+      'id': 'p-1',
+      'kind': 'remediate',
+      'description': 'Roll back checkout to v2.13.2',
+      'risk': 'sensitive',
+      'status': 'proposed',
+      'decided_by': null,
+      'decided_at': null,
+      'decision_note': null,
+      'executes_automatically': false,
+    },
+  ],
+  'result': status != 'succeeded'
+      ? null
+      : {
+          'incident_id': incidentKey,
+          'summary': 'Most likely (hypothesis): regression from v2.14.0.',
+          'impact': 'Checkout p95 is 8x baseline',
+          'probable_causes': [
+            {
+              'cause': 'Regression introduced by deployment v2.14.0',
+              'status': 'hypothesis',
+              'confidence': 0.65,
+              'confidence_label': 'medium',
+              'reasoning': 'Latency rose 4 minutes after the deploy.',
+              'evidence_refs': ['EV-1', 'EV-2'],
+              'counter_evidence_refs': <String>[],
+              'how_to_verify': 'Compare latency before and after.',
+            },
+          ],
+          'recommended_actions': [
+            {
+              'action': 'Diff v2.14.0 against v2.13.2',
+              'kind': 'investigate',
+              'risk': 'read_only',
+              'rationale': '',
+              'requires_approval': false,
+              'proposal_id': null,
+            },
+            {
+              'action': 'Roll back checkout to v2.13.2',
+              'kind': 'remediate',
+              'risk': 'sensitive',
+              'rationale': '',
+              'requires_approval': true,
+              'proposal_id': 'p-1',
+            },
+          ],
+          'data_gaps': ['No traces'],
+          'limitations': 'Generated by the demo analyzer, not a language model.',
+          'adjustments': <String>[],
+        },
+};

@@ -129,19 +129,25 @@ Limits: ≤ 1000 points, ≤ 1 MB, labels ≤ 20 keys, timestamps within [now-1h
 - Close codes: `4401` invalid/expired ticket (get a new one), `4403` membership revoked.
 - Delivery is at-least-once and best-effort; always delta-sync after (re)connecting.
 
-## 8. AI
+## 8. AI ✅ Phase 4
 
-| Method | Path | Notes |
-|---|---|---|
-| POST | `/incidents/{id}/investigations` | ai.investigate; `202` → investigation (status `queued`); one active run per incident |
-| GET | `/incidents/{id}/investigations` / `/investigations/{inv_id}` | result + evidence list |
-| POST | `/investigations/{inv_id}/messages` | follow-up question; answer streamed via SSE `GET …/messages/stream` or delivered over WS |
-| POST | `/investigations/{inv_id}/proposals/{p_id}/decision` | `{approve: bool}` — required for any sensitive proposal |
-| POST | `/investigations/{inv_id}/feedback` | `{helpful: bool, note}` (eval signal) |
-| GET/PUT | `/ai/settings` | ai.configure; provider/model/budget; API keys are write-only and never returned |
-| GET | `/ai/usage?from=&to=` | tokens & cost by day/model |
+All under `/orgs/{org_id}`. Errors use stable codes: `ai.disabled`, `ai.provider_unconfigured` (503), `ai.budget_exceeded`, `ai.already_running` (409, includes `investigation_id`), `ai.not_ready`, `ai.investigation_not_found`, `ai.proposal_decided`, `ai.destructive_requires_admin` (403), provider failures as 502 with the provider code (`ai.refused`, `ai.invalid_output`, `ai.rate_limited`, …).
 
-Result schema: see AI_ARCHITECTURE.md §4.
+| Method | Path | Permission | Notes |
+|---|---|---|---|
+| POST | `/incidents/{ref}/investigations` | ai.investigate | `202` → investigation (`queued`); one active run per incident |
+| GET | `/incidents/{ref}/investigations` | org.read | latest 20 runs (summaries) |
+| GET | `/ai/investigations?limit=&cursor=` | org.read | org-wide, newest first (Copilot tab) |
+| GET | `/ai/investigations/{id}` | org.read | result + evidence + proposals + `my_feedback` |
+| GET | `/ai/investigations/{id}/messages` | org.read | follow-up conversation (user / tool / assistant) |
+| POST | `/ai/investigations/{id}/messages` | ai.investigate | `{question, client_id}` → `{messages, new_evidence}`; synchronous, idempotent on `client_id` |
+| POST | `/ai/investigations/{id}/proposals/{p_id}/decision` | ai.investigate (destructive: org.manage) | `{approve, note?}`; records a decision, executes nothing |
+| PUT | `/ai/investigations/{id}/feedback` | org.read | `{helpful, note?}` (one per user, upsert) |
+| GET | `/ai/settings` | org.read | includes effective provider/model, which providers the server has configured, month-to-date cost |
+| PUT | `/ai/settings` | ai.configure | enable, provider, model, monthly budget, auto-investigate threshold, redaction. Provider API keys are server env only — never accepted or returned |
+| GET | `/ai/usage?from=&to=` | ai.configure | calls, tokens and cost per day × model |
+
+Result schema: see AI_ARCHITECTURE.md §4 (plus `adjustments`, and `proposal_id` on actions that need approval). Clients learn about finished runs from the incident's `ai_analysis` timeline event (WebSocket hint) or by polling while a run is active.
 
 ## 9. Health
 

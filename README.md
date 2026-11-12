@@ -6,17 +6,17 @@ DevPulse is an AI-native engineering observability platform. Engineers monitor s
 track deployments, run incidents and get evidence-based AI root-cause analysis — first-class
 on mobile, with a web dashboard for administration and deep analysis.
 
-**Status: Phase 3 (realtime & offline) — live updates over WebSockets and an offline-first mobile app; push delivery awaits a Firebase project.**
+**Status: Phase 4 (AI investigator) — evidence-grounded incident analysis on mobile and web; real-model analysis needs an `ANTHROPIC_API_KEY`, push delivery awaits a Firebase project.**
 Exact status per item: [docs/ROADMAP.md §3](docs/ROADMAP.md).
 
 ## Components
 
 | Component | Path | Stack | Status |
 |---|---|---|---|
-| Mobile app (iOS/Android) | `apps/mobile` | Flutter 3.47, Riverpod 3, go_router 18, Dio, Drift, fl_chart | Offline-first: local cache, delta sync, offline actions with replay, realtime updates |
-| Web dashboard | `apps/web` | Next.js 16 (App Router), TypeScript, Tailwind 4, TanStack Query | Auth, orgs, members, overview, services, ingest keys, incidents (read) |
-| API (modular monolith) | `services/api` | FastAPI, SQLAlchemy 2.1, Alembic, Pydantic v2, PostgreSQL 16, Redis 7 | Auth, RBAC, telemetry, alerting, incidents, deployments, GitHub |
-| Workers | `services/api` (same codebase, `worker` + `relay` entrypoints) | Celery + Redis | Rollups, alert evaluation, partitions, cleanup; outbox relay → realtime + push |
+| Mobile app (iOS/Android) | `apps/mobile` | Flutter 3.47, Riverpod 3, go_router 18, Dio, Drift, fl_chart | Offline-first: local cache, delta sync, offline actions with replay, realtime updates; AI analysis, approvals and follow-up questions |
+| Web dashboard | `apps/web` | Next.js 16 (App Router), TypeScript, Tailwind 4, TanStack Query | Auth, orgs, members, overview, services, ingest keys, incidents with AI analysis, AI settings & usage |
+| API (modular monolith) | `services/api` | FastAPI, SQLAlchemy 2.1, Alembic, Pydantic v2, PostgreSQL 16, Redis 7 | Auth, RBAC, telemetry, alerting, incidents, deployments, GitHub, AI investigator |
+| Workers | `services/api` (same codebase, `worker` + `relay` entrypoints) | Celery + Redis | Rollups, alert evaluation, partitions, cleanup, AI investigations; outbox relay → realtime + push + auto-investigate |
 | Infra / observability | `infra/` | Docker Compose; OTel/Prometheus/Grafana planned | Compose stack; Sentry hook (optional DSN) |
 | API contract | `packages/api-contract` | OpenAPI generated from FastAPI → TS types (Dart later) | Generated, drift-checked in CI |
 
@@ -44,6 +44,14 @@ make up           # builds and starts postgres, redis, migrate, api, worker, bea
 - Web dashboard: http://localhost:3000 (create an account, then an organization)
 - API docs (Swagger UI): http://localhost:8000/docs · readiness: http://localhost:8000/readyz
 - Postgres is published on **55432** and Redis on **56379** to avoid clashing with other local projects.
+
+### AI investigator
+
+Off by default per organization. An admin enables it on the web under **AI** (provider, model, monthly budget, automatic investigation threshold, redaction).
+
+- **Real analysis (Claude):** set `ANTHROPIC_API_KEY` in `.env` and `make up`. The key stays on the API/worker; it is never sent to the web or mobile app.
+- **Without a key:** `AI_FAKE_ENABLED=true` (local only) offers the rule-based *demo analyzer*, labelled "Demo analyzer · not an LLM" everywhere. It is refused in production.
+- `make ai-eval` runs the golden scenarios with the demo analyzer; `make ai-eval PROVIDER=anthropic` scores the real model (billed API calls).
 
 Developing outside Docker:
 

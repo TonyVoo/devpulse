@@ -46,6 +46,27 @@ class Settings(BaseSettings):
     ingest_max_past_s: int = Field(3600, ge=60)
     ingest_max_future_s: int = Field(300, ge=0)
 
+    # --- AI investigator (docs/AI_ARCHITECTURE.md). Provider keys live only here, on the
+    # server; they are never returned by the API or sent to clients.
+    ai_default_provider: Literal["anthropic", "fake"] = "anthropic"
+    ai_default_model: str = "claude-opus-5-5"
+    anthropic_api_key: SecretStr | None = None
+    # The FakeProvider produces deterministic, rule-based analyses for tests and offline
+    # demos. It is labelled as such everywhere and refused in production.
+    ai_fake_enabled: bool = False
+    ai_call_timeout_s: float = Field(45.0, gt=0, le=300)
+    ai_run_timeout_s: float = Field(90.0, gt=0, le=600)
+    ai_max_retries: int = Field(2, ge=0, le=5)
+    ai_effort: Literal["low", "medium", "high", "xhigh", "max"] = "high"
+    # USD per million tokens: input, output, cache read, cache write. Used to compute
+    # cost_micros (1 micro = $0.000001). Override with AI_PRICING='{"model": [..]}'.
+    ai_pricing: dict[str, tuple[float, float, float, float]] = {
+        "claude-opus-5-5": (4.0, 20.0, 0.20, 5.0),
+        "claude-sonnet-5-5": (2.0, 10.0, 0.10, 2.5),
+        "claude-haiku-5-5": (0.10, 0.50, 0.01, 0.125),
+        "fake-rules-v1": (0.0, 0.0, 0.0, 0.0),
+    }
+
     @field_validator("database_url")
     @classmethod
     def _async_driver(cls, v: str) -> str:
@@ -53,12 +74,20 @@ class Settings(BaseSettings):
             raise ValueError("DATABASE_URL must use the postgresql+asyncpg:// driver")
         return v
 
+    @field_validator("anthropic_api_key", mode="before")
+    @classmethod
+    def _blank_key_is_none(cls, v: object) -> object:
+        # `ANTHROPIC_API_KEY=` in an env file means "not configured", not an empty key.
+        return None if isinstance(v, str) and not v.strip() else v
+
     @model_validator(mode="after")
     def _production_guards(self) -> "Settings":
         if self.app_env == "production" and self.jwt_signing_key.get_secret_value().startswith(
             "change-me"
         ):
             raise ValueError("JWT_SIGNING_KEY must be a real secret in production")
+        if self.app_env == "production" and self.ai_fake_enabled:
+            raise ValueError("AI_FAKE_ENABLED must not be set in production")
         return self
 
     @property

@@ -187,6 +187,13 @@ class TimelineEvent {
       'alert_attached' => 'Alert “${data['rule']}” fired again',
       'alert_resolved' => 'Alert “${data['rule']}” recovered',
       'deployment_correlated' => 'Deployment ${data['version']} may be related',
+      'ai_analysis' when data['kind'] == 'proposal_decision' =>
+        '$who ${data['decision']} the AI-proposed step “${data['description']}”',
+      'ai_analysis' => switch (data['status']) {
+        'succeeded' => 'AI analysis ready',
+        'failed' || 'rejected' => 'AI analysis unavailable',
+        _ => 'AI analysis updated',
+      },
       _ => type,
     };
   }

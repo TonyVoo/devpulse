@@ -2,6 +2,7 @@ import asyncio
 from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime, timedelta
 from typing import Any
+from uuid import UUID
 
 import structlog
 from redis.asyncio import Redis
@@ -9,6 +10,7 @@ from sqlalchemy import CursorResult, delete, or_
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.core.config import get_settings
+from app.modules.ai.pipeline import fail_stale_runs, run_investigation
 from app.modules.alerts.evaluator import evaluate_all
 from app.modules.auth.models import RefreshToken
 from app.modules.incidents.idempotency import TTL as IDEMPOTENCY_TTL
@@ -102,6 +104,17 @@ def cleanup() -> dict[str, int]:
         return {
             "idempotency_keys": _rows(idem),
             "webhook_deliveries": _rows(hooks),
+            "stale_ai_runs": await fail_stale_runs(session),
         }
+
+    return _run(go)
+
+
+# Hard limits above the pipeline's own 90 s run timeout, so a hung call can't pin a worker.
+@celery.task(name="ai.investigate", soft_time_limit=150, time_limit=180)
+def investigate(investigation_id: str) -> str | None:
+    async def go(session: AsyncSession) -> str | None:
+        status = await run_investigation(session, UUID(investigation_id))
+        return status.value if status else None
 
     return _run(go)

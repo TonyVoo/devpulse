@@ -14,6 +14,7 @@ const ORG_NAV = [
   { href: "", label: "Overview" },
   { href: "/services", label: "Services" },
   { href: "/incidents", label: "Incidents" },
+  { href: "/ai", label: "AI" },
   { href: "/ingest-keys", label: "Ingest keys" },
   { href: "/members", label: "Members" },
 ] as const;

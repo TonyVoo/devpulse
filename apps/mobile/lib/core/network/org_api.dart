@@ -51,6 +51,10 @@ class OrgApi {
     ], body['next_cursor'] as String?);
   }
 
+  Future<void> put(String path, Object body) => _guard(() async {
+    await _dio.put<void>(_p(path), data: body);
+  });
+
   /// State-changing command. Always sends an Idempotency-Key (safe to retry) and, when
   /// known, the version the user was looking at (`If-Match`) so stale actions are rejected.
   Future<Map<String, dynamic>> command(String path, {Object? body, int? ifMatchVersion, String? idempotencyKey}) =>

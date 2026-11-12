@@ -145,3 +145,7 @@ Every data screen is modelled as `AsyncState { data?, isRefreshing, error?, isSt
 - iOS background execution is not guaranteed → never required for correctness.
 - FCM requires a Firebase project + APNs key (user-provided, Phase 3).
 - Flutter SDK is not installed on this machine yet (ROADMAP R1).
+
+## AI Copilot (Phase 4)
+
+`features/copilot/`: `AiRepository` (REST only — the device never sees a provider key), `incidentAnalysisProvider` (latest run per incident; network first, KV cache `ai_investigation:<incidentId>` for offline reading; refreshed by the incident's realtime events and polled every 3 s while a run is active). UI: `IncidentAiSection` on the incident screen, `AiChatScreen` at `/incidents/:ref/ai/:inv`, `CopilotScreen` tab. Starting runs, asking and deciding need a connection (they are not queued in the outbox: an AI answer is only useful now). Demo-analyzer results carry a "Demo analyzer · not an LLM" tag.

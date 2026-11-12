@@ -1,6 +1,229 @@
 {
   "components": {
     "schemas": {
+      "AISettingsIn": {
+        "properties": {
+          "auto_investigate_min_severity": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Severity"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "data_redaction": {
+            "$ref": "#/components/schemas/RedactionSettings",
+            "default": {
+              "emails": true,
+              "ips": true,
+              "secrets": true
+            }
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "max_tokens_per_run": {
+            "maximum": 2000000.0,
+            "minimum": 5000.0,
+            "title": "Max Tokens Per Run",
+            "type": "integer"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "pattern": "^[a-z0-9][a-z0-9._-]*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
+          "monthly_budget_micros": {
+            "maximum": 10000000000.0,
+            "minimum": 0.0,
+            "title": "Monthly Budget Micros",
+            "type": "integer"
+          },
+          "provider": {
+            "anyOf": [
+              {
+                "maxLength": 32,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider"
+          }
+        },
+        "required": [
+          "enabled",
+          "monthly_budget_micros",
+          "max_tokens_per_run"
+        ],
+        "title": "AISettingsIn",
+        "type": "object"
+      },
+      "AISettingsOut": {
+        "properties": {
+          "auto_investigate_min_severity": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Severity"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "data_redaction": {
+            "$ref": "#/components/schemas/RedactionSettings",
+            "default": {
+              "emails": true,
+              "ips": true,
+              "secrets": true
+            }
+          },
+          "effective_model": {
+            "title": "Effective Model",
+            "type": "string"
+          },
+          "effective_provider": {
+            "title": "Effective Provider",
+            "type": "string"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "max_tokens_per_run": {
+            "maximum": 2000000.0,
+            "minimum": 5000.0,
+            "title": "Max Tokens Per Run",
+            "type": "integer"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "maxLength": 80,
+                "pattern": "^[a-z0-9][a-z0-9._-]*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
+          "month_to_date_cost_micros": {
+            "title": "Month To Date Cost Micros",
+            "type": "integer"
+          },
+          "monthly_budget_micros": {
+            "maximum": 10000000000.0,
+            "minimum": 0.0,
+            "title": "Monthly Budget Micros",
+            "type": "integer"
+          },
+          "provider": {
+            "anyOf": [
+              {
+                "maxLength": 32,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider"
+          },
+          "providers": {
+            "items": {
+              "$ref": "#/components/schemas/ProviderInfo"
+            },
+            "title": "Providers",
+            "type": "array"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "enabled",
+          "monthly_budget_micros",
+          "max_tokens_per_run",
+          "effective_provider",
+          "effective_model",
+          "providers",
+          "month_to_date_cost_micros",
+          "version"
+        ],
+        "title": "AISettingsOut",
+        "type": "object"
+      },
+      "Action": {
+        "properties": {
+          "action": {
+            "title": "Action",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "investigate",
+              "mitigate",
+              "remediate",
+              "communicate"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "proposal_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proposal Id"
+          },
+          "rationale": {
+            "title": "Rationale",
+            "type": "string"
+          },
+          "requires_approval": {
+            "title": "Requires Approval",
+            "type": "boolean"
+          },
+          "risk": {
+            "enum": [
+              "read_only",
+              "sensitive",
+              "destructive"
+            ],
+            "title": "Risk",
+            "type": "string"
+          }
+        },
+        "required": [
+          "action",
+          "kind",
+          "risk",
+          "rationale",
+          "requires_approval"
+        ],
+        "title": "Action",
+        "type": "object"
+      },
       "ActorType": {
         "enum": [
           "user",
@@ -308,6 +531,111 @@
         "title": "AlertState",
         "type": "string"
       },
+      "Analysis": {
+        "properties": {
+          "adjustments": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Adjustments",
+            "type": "array"
+          },
+          "data_gaps": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Data Gaps",
+            "type": "array"
+          },
+          "impact": {
+            "title": "Impact",
+            "type": "string"
+          },
+          "incident_id": {
+            "title": "Incident Id",
+            "type": "string"
+          },
+          "limitations": {
+            "title": "Limitations",
+            "type": "string"
+          },
+          "probable_causes": {
+            "items": {
+              "$ref": "#/components/schemas/Cause"
+            },
+            "title": "Probable Causes",
+            "type": "array"
+          },
+          "recommended_actions": {
+            "items": {
+              "$ref": "#/components/schemas/Action"
+            },
+            "title": "Recommended Actions",
+            "type": "array"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "required": [
+          "incident_id",
+          "summary",
+          "impact",
+          "probable_causes",
+          "recommended_actions",
+          "data_gaps",
+          "limitations"
+        ],
+        "title": "Analysis",
+        "type": "object"
+      },
+      "AskIn": {
+        "properties": {
+          "client_id": {
+            "format": "uuid",
+            "title": "Client Id",
+            "type": "string"
+          },
+          "question": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Question",
+            "type": "string"
+          }
+        },
+        "required": [
+          "question",
+          "client_id"
+        ],
+        "title": "AskIn",
+        "type": "object"
+      },
+      "AskOut": {
+        "properties": {
+          "messages": {
+            "items": {
+              "$ref": "#/components/schemas/MessageOut"
+            },
+            "title": "Messages",
+            "type": "array"
+          },
+          "new_evidence": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceOut"
+            },
+            "title": "New Evidence",
+            "type": "array"
+          }
+        },
+        "required": [
+          "messages",
+          "new_evidence"
+        ],
+        "title": "AskOut",
+        "type": "object"
+      },
       "AssignIn": {
         "properties": {
           "user_id": {
@@ -487,6 +815,66 @@
         ],
         "title": "BuildStatus",
         "type": "string"
+      },
+      "Cause": {
+        "properties": {
+          "cause": {
+            "title": "Cause",
+            "type": "string"
+          },
+          "confidence": {
+            "title": "Confidence",
+            "type": "number"
+          },
+          "confidence_label": {
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ],
+            "title": "Confidence Label",
+            "type": "string"
+          },
+          "counter_evidence_refs": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Counter Evidence Refs",
+            "type": "array"
+          },
+          "evidence_refs": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Evidence Refs",
+            "type": "array"
+          },
+          "how_to_verify": {
+            "title": "How To Verify",
+            "type": "string"
+          },
+          "reasoning": {
+            "title": "Reasoning",
+            "type": "string"
+          },
+          "status": {
+            "const": "hypothesis",
+            "default": "hypothesis",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "cause",
+          "confidence",
+          "confidence_label",
+          "reasoning",
+          "evidence_refs",
+          "counter_evidence_refs",
+          "how_to_verify"
+        ],
+        "title": "Cause",
+        "type": "object"
       },
       "Change": {
         "properties": {
@@ -709,6 +1097,31 @@
           "correlation"
         ],
         "title": "CorrelationIn",
+        "type": "object"
+      },
+      "DecisionIn": {
+        "properties": {
+          "approve": {
+            "title": "Approve",
+            "type": "boolean"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "required": [
+          "approve"
+        ],
+        "title": "DecisionIn",
         "type": "object"
       },
       "DeploySource": {
@@ -1160,10 +1573,94 @@
           "comment_added",
           "alert_attached",
           "alert_resolved",
-          "deployment_correlated"
+          "deployment_correlated",
+          "ai_analysis"
         ],
         "title": "EventType",
         "type": "string"
+      },
+      "EvidenceKind": {
+        "enum": [
+          "metric",
+          "log",
+          "deployment",
+          "incident",
+          "alert"
+        ],
+        "title": "EvidenceKind",
+        "type": "string"
+      },
+      "EvidenceOut": {
+        "properties": {
+          "excerpt": {
+            "additionalProperties": true,
+            "title": "Excerpt",
+            "type": "object"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/EvidenceKind"
+          },
+          "observed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Observed At"
+          },
+          "ref": {
+            "title": "Ref",
+            "type": "string"
+          },
+          "source_query": {
+            "additionalProperties": true,
+            "title": "Source Query",
+            "type": "object"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ref",
+          "kind",
+          "title",
+          "excerpt",
+          "source_query",
+          "observed_at"
+        ],
+        "title": "EvidenceOut",
+        "type": "object"
+      },
+      "FeedbackIn": {
+        "properties": {
+          "helpful": {
+            "title": "Helpful",
+            "type": "boolean"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          }
+        },
+        "required": [
+          "helpful"
+        ],
+        "title": "FeedbackIn",
+        "type": "object"
       },
       "HTTPValidationError": {
         "properties": {
@@ -1764,6 +2261,306 @@
         "title": "IntegrationOut",
         "type": "object"
       },
+      "InvestigationOut": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "data_gaps": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Data Gaps",
+            "type": "array"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "error_detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Detail"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceOut"
+            },
+            "title": "Evidence",
+            "type": "array"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "incident_id": {
+            "format": "uuid",
+            "title": "Incident Id",
+            "type": "string"
+          },
+          "incident_key": {
+            "title": "Incident Key",
+            "type": "string"
+          },
+          "incident_severity": {
+            "$ref": "#/components/schemas/Severity"
+          },
+          "incident_title": {
+            "title": "Incident Title",
+            "type": "string"
+          },
+          "is_demo_provider": {
+            "title": "Is Demo Provider",
+            "type": "boolean"
+          },
+          "model": {
+            "title": "Model",
+            "type": "string"
+          },
+          "my_feedback": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "My Feedback"
+          },
+          "prompt_version": {
+            "title": "Prompt Version",
+            "type": "string"
+          },
+          "proposals": {
+            "items": {
+              "$ref": "#/components/schemas/ProposalOut"
+            },
+            "title": "Proposals",
+            "type": "array"
+          },
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          },
+          "requested_by": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requested By"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Analysis"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "status": {
+            "$ref": "#/components/schemas/RunStatus"
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary"
+          },
+          "tokens_used": {
+            "title": "Tokens Used",
+            "type": "integer"
+          },
+          "tool_calls_used": {
+            "title": "Tool Calls Used",
+            "type": "integer"
+          },
+          "trigger": {
+            "$ref": "#/components/schemas/Trigger"
+          }
+        },
+        "required": [
+          "id",
+          "incident_id",
+          "incident_key",
+          "incident_title",
+          "incident_severity",
+          "trigger",
+          "status",
+          "provider",
+          "model",
+          "is_demo_provider",
+          "summary",
+          "error_code",
+          "created_at",
+          "finished_at",
+          "prompt_version",
+          "result",
+          "data_gaps",
+          "error_detail",
+          "evidence",
+          "proposals",
+          "tool_calls_used",
+          "tokens_used",
+          "started_at",
+          "requested_by",
+          "my_feedback"
+        ],
+        "title": "InvestigationOut",
+        "type": "object"
+      },
+      "InvestigationSummary": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "incident_id": {
+            "format": "uuid",
+            "title": "Incident Id",
+            "type": "string"
+          },
+          "incident_key": {
+            "title": "Incident Key",
+            "type": "string"
+          },
+          "incident_severity": {
+            "$ref": "#/components/schemas/Severity"
+          },
+          "incident_title": {
+            "title": "Incident Title",
+            "type": "string"
+          },
+          "is_demo_provider": {
+            "title": "Is Demo Provider",
+            "type": "boolean"
+          },
+          "model": {
+            "title": "Model",
+            "type": "string"
+          },
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/RunStatus"
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary"
+          },
+          "trigger": {
+            "$ref": "#/components/schemas/Trigger"
+          }
+        },
+        "required": [
+          "id",
+          "incident_id",
+          "incident_key",
+          "incident_title",
+          "incident_severity",
+          "trigger",
+          "status",
+          "provider",
+          "model",
+          "is_demo_provider",
+          "summary",
+          "error_code",
+          "created_at",
+          "finished_at"
+        ],
+        "title": "InvestigationSummary",
+        "type": "object"
+      },
       "InvitationAcceptOut": {
         "properties": {
           "org": {
@@ -2093,6 +2890,90 @@
         ],
         "title": "MemberUpdateIn",
         "type": "object"
+      },
+      "MessageOut": {
+        "properties": {
+          "author_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Author Id"
+          },
+          "client_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Id"
+          },
+          "content": {
+            "title": "Content",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "evidence_refs": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Evidence Refs",
+            "type": "array"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "role": {
+            "$ref": "#/components/schemas/MessageRole"
+          },
+          "tool_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tool Name"
+          }
+        },
+        "required": [
+          "id",
+          "role",
+          "content",
+          "evidence_refs",
+          "tool_name",
+          "author_id",
+          "client_id",
+          "created_at"
+        ],
+        "title": "MessageOut",
+        "type": "object"
+      },
+      "MessageRole": {
+        "enum": [
+          "user",
+          "assistant",
+          "tool"
+        ],
+        "title": "MessageRole",
+        "type": "string"
       },
       "MetricPointIn": {
         "properties": {
@@ -2551,6 +3432,34 @@
         "title": "Page[IncidentOut]",
         "type": "object"
       },
+      "Page_InvestigationSummary_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/InvestigationSummary"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items",
+          "next_cursor"
+        ],
+        "title": "Page[InvestigationSummary]",
+        "type": "object"
+      },
       "Page_ServiceOut_": {
         "properties": {
           "items": {
@@ -2671,6 +3580,134 @@
         "title": "PreviewPoint",
         "type": "object"
       },
+      "ProposalOut": {
+        "properties": {
+          "decided_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decided At"
+          },
+          "decided_by": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decided By"
+          },
+          "decision_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decision Note"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "executes_automatically": {
+            "default": false,
+            "title": "Executes Automatically",
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "risk": {
+            "$ref": "#/components/schemas/Risk"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ProposalStatus"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "description",
+          "risk",
+          "status",
+          "decided_by",
+          "decided_at",
+          "decision_note"
+        ],
+        "title": "ProposalOut",
+        "type": "object"
+      },
+      "ProposalStatus": {
+        "enum": [
+          "proposed",
+          "approved",
+          "rejected"
+        ],
+        "title": "ProposalStatus",
+        "type": "string"
+      },
+      "ProviderInfo": {
+        "properties": {
+          "configured": {
+            "title": "Configured",
+            "type": "boolean"
+          },
+          "is_demo": {
+            "title": "Is Demo",
+            "type": "boolean"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "configured",
+          "is_demo"
+        ],
+        "title": "ProviderInfo",
+        "type": "object"
+      },
+      "RedactionSettings": {
+        "properties": {
+          "emails": {
+            "default": true,
+            "title": "Emails",
+            "type": "boolean"
+          },
+          "ips": {
+            "default": true,
+            "title": "Ips",
+            "type": "boolean"
+          },
+          "secrets": {
+            "default": true,
+            "title": "Secrets",
+            "type": "boolean"
+          }
+        },
+        "title": "RedactionSettings",
+        "type": "object"
+      },
       "RefreshIn": {
         "properties": {
           "refresh_token": {
@@ -2762,6 +3799,15 @@
         "title": "ResolveIn",
         "type": "object"
       },
+      "Risk": {
+        "enum": [
+          "read_only",
+          "sensitive",
+          "destructive"
+        ],
+        "title": "Risk",
+        "type": "string"
+      },
       "Role": {
         "enum": [
           "owner",
@@ -2770,6 +3816,18 @@
           "viewer"
         ],
         "title": "Role",
+        "type": "string"
+      },
+      "RunStatus": {
+        "enum": [
+          "queued",
+          "collecting",
+          "analyzing",
+          "succeeded",
+          "failed",
+          "rejected"
+        ],
+        "title": "RunStatus",
         "type": "string"
       },
       "SeriesOut": {
@@ -3403,6 +4461,14 @@
         "title": "Totals",
         "type": "object"
       },
+      "Trigger": {
+        "enum": [
+          "auto",
+          "manual"
+        ],
+        "title": "Trigger",
+        "type": "string"
+      },
       "UpdateMeIn": {
         "properties": {
           "display_name": {
@@ -3436,6 +4502,98 @@
           }
         },
         "title": "UpdateMeIn",
+        "type": "object"
+      },
+      "UsageDay": {
+        "properties": {
+          "cached_tokens": {
+            "title": "Cached Tokens",
+            "type": "integer"
+          },
+          "calls": {
+            "title": "Calls",
+            "type": "integer"
+          },
+          "cost_micros": {
+            "title": "Cost Micros",
+            "type": "integer"
+          },
+          "day": {
+            "format": "date",
+            "title": "Day",
+            "type": "string"
+          },
+          "input_tokens": {
+            "title": "Input Tokens",
+            "type": "integer"
+          },
+          "model": {
+            "title": "Model",
+            "type": "string"
+          },
+          "output_tokens": {
+            "title": "Output Tokens",
+            "type": "integer"
+          },
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          }
+        },
+        "required": [
+          "day",
+          "provider",
+          "model",
+          "calls",
+          "input_tokens",
+          "output_tokens",
+          "cached_tokens",
+          "cost_micros"
+        ],
+        "title": "UsageDay",
+        "type": "object"
+      },
+      "UsageOut": {
+        "properties": {
+          "days": {
+            "items": {
+              "$ref": "#/components/schemas/UsageDay"
+            },
+            "title": "Days",
+            "type": "array"
+          },
+          "from_": {
+            "format": "date-time",
+            "title": "From",
+            "type": "string"
+          },
+          "month_to_date_cost_micros": {
+            "title": "Month To Date Cost Micros",
+            "type": "integer"
+          },
+          "monthly_budget_micros": {
+            "title": "Monthly Budget Micros",
+            "type": "integer"
+          },
+          "to": {
+            "format": "date-time",
+            "title": "To",
+            "type": "string"
+          },
+          "total_cost_micros": {
+            "title": "Total Cost Micros",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "from_",
+          "to",
+          "total_cost_micros",
+          "month_to_date_cost_micros",
+          "monthly_budget_micros",
+          "days"
+        ],
+        "title": "UsageOut",
         "type": "object"
       },
       "UserOut": {
@@ -4182,6 +5340,595 @@
         "summary": "Update Org",
         "tags": [
           "organizations"
+        ]
+      }
+    },
+    "/api/v1/orgs/{org_id}/ai/investigations": {
+      "get": {
+        "operationId": "list_investigations_api_v1_orgs__org_id__ai_investigations_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Org Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 30,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_InvestigationSummary_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Investigations",
+        "tags": [
+          "ai"
+        ]
+      }
+    },
+    "/api/v1/orgs/{org_id}/ai/investigations/{inv_id}": {
+      "get": {
+        "operationId": "get_investigation_api_v1_orgs__org_id__ai_investigations__inv_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "inv_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Inv Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Org Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvestigationOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Investigation",
+        "tags": [
+          "ai"
+        ]
+      }
+    },
+    "/api/v1/orgs/{org_id}/ai/investigations/{inv_id}/feedback": {
+      "put": {
+        "operationId": "feedback_api_v1_orgs__org_id__ai_investigations__inv_id__feedback_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "inv_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Inv Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Org Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FeedbackIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Feedback",
+        "tags": [
+          "ai"
+        ]
+      }
+    },
+    "/api/v1/orgs/{org_id}/ai/investigations/{inv_id}/messages": {
+      "get": {
+        "operationId": "list_messages_api_v1_orgs__org_id__ai_investigations__inv_id__messages_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "inv_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Inv Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Org Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MessageOut"
+                  },
+                  "title": "Response List Messages Api V1 Orgs  Org Id  Ai Investigations  Inv Id  Messages Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Messages",
+        "tags": [
+          "ai"
+        ]
+      },
+      "post": {
+        "description": "Follow-up question. The model may call read-only tools; their results become new\nevidence. Idempotent on `client_id` (a retry returns the stored answer).",
+        "operationId": "ask_api_v1_orgs__org_id__ai_investigations__inv_id__messages_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "inv_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Inv Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Org Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AskIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AskOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Ask",
+        "tags": [
+          "ai"
+        ]
+      }
+    },
+    "/api/v1/orgs/{org_id}/ai/investigations/{inv_id}/proposals/{proposal_id}/decision": {
+      "post": {
+        "description": "Records a human approval/rejection. DevPulse never executes the action.",
+        "operationId": "decide_api_v1_orgs__org_id__ai_investigations__inv_id__proposals__proposal_id__decision_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "inv_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Inv Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "proposal_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Proposal Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Org Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecisionIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProposalOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Decide",
+        "tags": [
+          "ai"
+        ]
+      }
+    },
+    "/api/v1/orgs/{org_id}/ai/settings": {
+      "get": {
+        "operationId": "get_ai_settings_api_v1_orgs__org_id__ai_settings_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Org Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AISettingsOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Ai Settings",
+        "tags": [
+          "ai"
+        ]
+      },
+      "put": {
+        "operationId": "put_ai_settings_api_v1_orgs__org_id__ai_settings_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Org Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AISettingsIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AISettingsOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Put Ai Settings",
+        "tags": [
+          "ai"
+        ]
+      }
+    },
+    "/api/v1/orgs/{org_id}/ai/usage": {
+      "get": {
+        "operationId": "ai_usage_api_v1_orgs__org_id__ai_usage_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Org Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "From"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "To"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsageOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Ai Usage",
+        "tags": [
+          "ai"
         ]
       }
     },
@@ -5713,6 +7460,123 @@
         "summary": "Escalate",
         "tags": [
           "incidents"
+        ]
+      }
+    },
+    "/api/v1/orgs/{org_id}/incidents/{ref}/investigations": {
+      "get": {
+        "operationId": "incident_investigations_api_v1_orgs__org_id__incidents__ref__investigations_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ref",
+            "required": true,
+            "schema": {
+              "title": "Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Org Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/InvestigationSummary"
+                  },
+                  "title": "Response Incident Investigations Api V1 Orgs  Org Id  Incidents  Ref  Investigations Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Incident Investigations",
+        "tags": [
+          "ai"
+        ]
+      },
+      "post": {
+        "description": "Queues an analysis (one active run per incident). Poll the returned investigation or\nlisten for the incident's `ai_analysis` timeline event.",
+        "operationId": "start_investigation_api_v1_orgs__org_id__incidents__ref__investigations_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ref",
+            "required": true,
+            "schema": {
+              "title": "Ref",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "org_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Org Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvestigationOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Start Investigation",
+        "tags": [
+          "ai"
         ]
       }
     },

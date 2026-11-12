@@ -50,6 +50,11 @@ os.environ.update(
     LOGIN_RATE_LIMIT="5",
     ENCRYPTION_KEY="m3mGd7cAtQyb3H2Z0Gx2mQwqVxWm1n8b4oL9yZ6pT0A=",  # test-only Fernet key
     REFRESH_REUSE_GRACE_S="0",  # strict by default; grace covered by a dedicated test
+    # Tests never call a real LLM: the deterministic FakeProvider is the default and no
+    # provider API key is configured.
+    AI_FAKE_ENABLED="true",
+    AI_DEFAULT_PROVIDER="fake",
+    ANTHROPIC_API_KEY="",
 )
 
 import httpx  # noqa: E402

@@ -161,4 +161,5 @@ abstract final class KvKeys {
   static const theme = 'theme';
   static String overview(String orgId, String window) => 'overview:$orgId:$window';
   static String incidentExtras(String incidentId) => 'incident_extras:$incidentId';
+  static String investigation(String incidentId) => 'ai_investigation:$incidentId';
 }
