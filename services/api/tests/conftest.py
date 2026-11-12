@@ -55,6 +55,7 @@ os.environ.update(
     AI_FAKE_ENABLED="true",
     AI_DEFAULT_PROVIDER="fake",
     ANTHROPIC_API_KEY="",
+    GEMINI_API_KEY="",
 )
 
 import httpx  # noqa: E402

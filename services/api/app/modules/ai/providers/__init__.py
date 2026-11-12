@@ -7,7 +7,7 @@ from app.core.config import Settings, get_settings
 from app.core.errors import AppError
 from app.modules.ai.providers.base import LLMProvider
 
-PROVIDERS = ("anthropic", "fake")
+PROVIDERS = ("gemini", "anthropic", "fake")
 
 
 class ProviderUnavailable(AppError):
@@ -18,6 +18,7 @@ class ProviderUnavailable(AppError):
 def available(settings: Settings | None = None) -> dict[str, bool]:
     s = settings or get_settings()
     return {
+        "gemini": s.gemini_api_key is not None,
         "anthropic": s.anthropic_api_key is not None,
         "fake": s.ai_fake_enabled and not s.is_production,
     }
@@ -29,6 +30,17 @@ def _build(name: str) -> LLMProvider:
         raise ProviderUnavailable(
             f"AI provider '{name}' is not configured on this server",
             code="ai.provider_unconfigured",
+        )
+    if name == "gemini":
+        from app.modules.ai.providers.gemini import GeminiProvider
+
+        gkey = s.gemini_api_key
+        if gkey is None:  # unreachable: available() checked it
+            raise ProviderUnavailable("No Gemini API key", code="ai.provider_unconfigured")
+        return GeminiProvider(
+            api_key=gkey.get_secret_value(),
+            timeout_s=s.ai_call_timeout_s,
+            max_retries=s.ai_max_retries,
         )
     if name == "anthropic":
         from app.modules.ai.providers.anthropic import AnthropicProvider

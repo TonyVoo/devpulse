@@ -183,8 +183,11 @@ def confidence_label(c: float) -> Literal["low", "medium", "high"]:
 def _parse_json(text: str | None) -> Any:
     if not text:
         raise InvalidOutput(["The response was empty; return the JSON object."])
+    stripped = text.strip()
+    if stripped.startswith("```"):  # some models wrap JSON in a code fence
+        stripped = stripped.split("\n", 1)[-1].rsplit("```", 1)[0]
     try:
-        return json.loads(text)
+        return json.loads(stripped)
     except json.JSONDecodeError as e:
         raise InvalidOutput([f"The response is not valid JSON ({e.msg})."]) from e
 

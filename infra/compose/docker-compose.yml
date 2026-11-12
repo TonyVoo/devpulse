@@ -10,8 +10,9 @@ x-api-env: &api-env
   SENTRY_DSN: ${SENTRY_DSN:-}
   ENCRYPTION_KEY: ${ENCRYPTION_KEY:-}
   # AI investigator. The provider key stays on the server (api/worker); never in web/mobile.
-  AI_DEFAULT_PROVIDER: ${AI_DEFAULT_PROVIDER:-anthropic}
-  AI_DEFAULT_MODEL: ${AI_DEFAULT_MODEL:-claude-opus-5-5}
+  AI_DEFAULT_PROVIDER: ${AI_DEFAULT_PROVIDER:-gemini}
+  AI_DEFAULT_MODEL: ${AI_DEFAULT_MODEL:-gemini-3.8-flash}
+  GEMINI_API_KEY: ${GEMINI_API_KEY:-}
   ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
   AI_FAKE_ENABLED: ${AI_FAKE_ENABLED:-false}
 

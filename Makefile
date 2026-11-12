@@ -37,7 +37,7 @@ loadgen: ## Synthetic telemetry via the ingest API: make loadgen KEY=dp_ingest_.
 	@test -n "$(KEY)" || (echo "usage: make loadgen KEY=dp_ingest_... [INCIDENT_AFTER=120]" && exit 1)
 	$(COMPOSE) run --rm --no-deps api python -m app.scripts.loadgen --api http://api:8000 --key $(KEY) $(if $(INCIDENT_AFTER),--incident-after $(INCIDENT_AFTER),)
 
-ai-eval: ## Golden AI scenarios: make ai-eval [PROVIDER=anthropic] (anthropic = billed API calls)
+ai-eval: ## Golden AI scenarios: make ai-eval [PROVIDER=gemini|anthropic] (real models need a key)
 	$(COMPOSE) run --rm --no-deps api python -m app.scripts.ai_eval --provider $(or $(PROVIDER),fake) $(if $(MODEL),--model $(MODEL),)
 
 api-venv: ## Create backend virtualenv with dev deps

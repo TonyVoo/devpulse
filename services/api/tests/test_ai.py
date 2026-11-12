@@ -308,6 +308,7 @@ async def test_unconfigured_provider_cannot_be_enabled(client: httpx.AsyncClient
     assert r.status_code == 422 and problem(r)["code"] == "ai.provider_unconfigured"
     providers_ = (await client.get(f"/orgs/{org}/ai/settings", headers=owner.h)).json()
     assert {p["name"]: p["configured"] for p in providers_["providers"]} == {
+        "gemini": False,
         "anthropic": False,
         "fake": True,
     }

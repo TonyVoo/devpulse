@@ -1,6 +1,7 @@
 """Run the golden AI scenarios against a provider and score them (AI_ARCHITECTURE.md §8).
 
     make ai-eval                      # rule-based demo analyzer (free, deterministic)
+    make ai-eval PROVIDER=gemini      # real model: GEMINI_API_KEY (free tier works)
     make ai-eval PROVIDER=anthropic   # real model: makes billed API calls (ANTHROPIC_API_KEY)
 
 Creates a throwaway organization with synthetic `is_demo` data, runs each scenario through
@@ -107,7 +108,7 @@ async def main(provider: str, model: str | None) -> int:
 
 if __name__ == "__main__":
     p = argparse.ArgumentParser()
-    p.add_argument("--provider", default="fake", choices=["fake", "anthropic"])
+    p.add_argument("--provider", default="fake", choices=["fake", "gemini", "anthropic"])
     p.add_argument("--model", default=None)
     a = p.parse_args()
     raise SystemExit(asyncio.run(main(a.provider, a.model)))

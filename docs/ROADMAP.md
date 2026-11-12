@@ -145,7 +145,7 @@ Legend: ✅ done and verified · ⏳ not done (reason given)
 
 **Backend**
 - ✅ Migration `2cbe7983d3cf`: ai_settings, ai_investigations (one active + one auto run per incident), ai_evidence, ai_messages, ai_usage, ai_action_proposals, ai_feedback; `ai_analysis` timeline event. Up/down round-trip tested
-- ✅ Provider port; `AnthropicProvider` (official SDK 2.8: structured output, strict read-only tools, prompt caching, refusal fallback, SDK retries/timeouts, error-code mapping); `FakeProvider` (scripted + rule-based demo analyzer, refused in production)
+- ✅ Provider port; `GeminiProvider` (default, `google-genai` 3.2: JSON-schema structured output, function declarations, SDK retries/timeouts, thought-signature replay, error mapping; free tier); `AnthropicProvider` (official SDK 2.8: structured output, strict read-only tools, prompt caching, refusal fallback, SDK retries/timeouts, error-code mapping); `FakeProvider` (scripted + rule-based demo analyzer, refused in production)
 - ⏳ `OpenAIProvider` — not built (the port is ready; ADR-021)
 - ✅ Context collector + evidence registry (metrics vs baseline, log fingerprints with novelty, deployments with timing/correlation, alerts, similar incidents, explicit data gaps), redaction, untrusted-data framing
 - ✅ Validation: grounding (unknown/zero refs rejected), bounds, single-evidence cap, server-set policy fields, one repair attempt
@@ -153,9 +153,9 @@ Legend: ✅ done and verified · ⏳ not done (reason given)
 - ✅ Usage & cost per call (including failed calls), `/ai/usage`, month-to-date budget
 - ✅ Follow-up questions with bounded read-only tool loop (new evidence refs), idempotent on `client_id`
 - ✅ Proposals: decisions audited + on the timeline; destructive needs an admin; nothing executes
-- ✅ 39 AI tests (123 backend total): validation units, 4 golden scenarios, guards, repair, provider failures, tools (validation, clamping, tenant scope), chat replay, proposals RBAC, auto-trigger, Anthropic adapter wire format and error mapping against a stubbed SDK client
+- ✅ 50 AI tests (134 backend total): validation units, 4 golden scenarios, guards, repair, provider failures, tools (validation, clamping, tenant scope), chat replay, proposals RBAC, auto-trigger, Gemini and Anthropic adapters' wire format and error mapping against stubbed SDK clients
 - ✅ `make ai-eval`: 4/4 golden scenarios with the demo analyzer
-- ⏳ `make ai-eval PROVIDER=anthropic` — needs your `ANTHROPIC_API_KEY` (billed); not run
+- ⏳ `make ai-eval PROVIDER=gemini` — needs your free `GEMINI_API_KEY`; not run
 - ⏳ Prometheus token metrics, SSE streaming (ADR-023), per-org provider keys
 
 **Mobile**

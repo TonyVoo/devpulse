@@ -19,6 +19,7 @@ export function dollars(micros: number): string {
 }
 
 const PROVIDER_LABEL: Record<string, string> = {
+  gemini: "Google Gemini",
   anthropic: "Anthropic (Claude)",
   fake: "Demo analyzer (rule-based, not an LLM)",
 };
@@ -134,6 +135,12 @@ function SettingsForm({ orgId, s }: { orgId: string; s: Settings }) {
           </label>
         ))}
       </fieldset>
+      {providerName === "gemini" && (
+        <Alert tone="info">
+          On the Gemini API free tier, Google may use the data sent (incident metrics, redacted logs, deployments) to
+          improve its products. Use a paid Gemini key if that isn&apos;t acceptable for your organization.
+        </Alert>
+      )}
       {form.enabled && !configured && (
         <Alert>The selected provider isn&apos;t configured on this server; enabling will be refused.</Alert>
       )}

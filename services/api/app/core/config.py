@@ -48,8 +48,10 @@ class Settings(BaseSettings):
 
     # --- AI investigator (docs/AI_ARCHITECTURE.md). Provider keys live only here, on the
     # server; they are never returned by the API or sent to clients.
-    ai_default_provider: Literal["anthropic", "fake"] = "anthropic"
-    ai_default_model: str = "claude-opus-5-5"
+    ai_default_provider: Literal["gemini", "anthropic", "fake"] = "gemini"
+    # Free tier available on the Gemini API (Google AI Studio key).
+    ai_default_model: str = "gemini-3.8-flash"
+    gemini_api_key: SecretStr | None = None
     anthropic_api_key: SecretStr | None = None
     # The FakeProvider produces deterministic, rule-based analyses for tests and offline
     # demos. It is labelled as such everywhere and refused in production.
@@ -60,7 +62,13 @@ class Settings(BaseSettings):
     ai_effort: Literal["low", "medium", "high", "xhigh", "max"] = "high"
     # USD per million tokens: input, output, cache read, cache write. Used to compute
     # cost_micros (1 micro = $0.000001). Override with AI_PRICING='{"model": [..]}'.
+    # List prices (paid tier). On the Gemini free tier nothing is billed; set AI_PRICING to
+    # zeros if you want the budget to track actual spend instead.
     ai_pricing: dict[str, tuple[float, float, float, float]] = {
+        "gemini-3.8-flash": (0.75, 3.75, 0.075, 0.75),
+        "gemini-3.6-flash": (0.75, 3.75, 0.075, 0.75),
+        "gemini-3.5-flash-lite": (0.30, 2.50, 0.03, 0.30),
+        "gemini-3.1-flash-lite": (0.25, 1.50, 0.025, 0.25),
         "claude-opus-5-5": (4.0, 20.0, 0.20, 5.0),
         "claude-sonnet-5-5": (2.0, 10.0, 0.10, 2.5),
         "claude-haiku-5-5": (0.10, 0.50, 0.01, 0.125),
@@ -74,7 +82,7 @@ class Settings(BaseSettings):
             raise ValueError("DATABASE_URL must use the postgresql+asyncpg:// driver")
         return v
 
-    @field_validator("anthropic_api_key", mode="before")
+    @field_validator("anthropic_api_key", "gemini_api_key", mode="before")
     @classmethod
     def _blank_key_is_none(cls, v: object) -> object:
         # `ANTHROPIC_API_KEY=` in an env file means "not configured", not an empty key.

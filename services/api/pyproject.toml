@@ -20,7 +20,8 @@ dependencies = [
   "packaging>=24",  # required by kombu's redis transport, not declared by it
   "cryptography>=46,<51",  # Fernet encryption of integration secrets
   "sentry-sdk>=2.74,<2.75",
-  "anthropic>=2.8,<2.9",  # AI investigator provider adapter (server-side only)
+  "google-genai>=3.2,<3.3",  # AI investigator: Gemini adapter (default; server-side only)
+  "anthropic>=2.8,<2.9",  # AI investigator: Claude adapter (optional)
 ]
 
 [project.optional-dependencies]

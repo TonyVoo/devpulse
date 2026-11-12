@@ -99,7 +99,7 @@ Format: Context → Decision → Consequences. Status: **Accepted** unless noted
 - A dedicated `relay` process (LISTEN/NOTIFY + 2 s poll, `SKIP LOCKED`) publishes outbox rows to Redis; at-least-once.
 - Push recipients and payloads are implemented and tested; delivery uses `LoggingPushProvider` until a Firebase project (service account, APNs key) is provided. The mobile side routes push payloads (`route`, `org_id`) behind `PushMessages`, defaulting to `NoPushMessages`.
 
-### ADR-021 AI provider and model defaults (Phase 4)
+### ADR-021 AI provider and model defaults (Phase 4) — superseded by ADR-024 for the default
 **Decision:** Claude via the official `anthropic` SDK (2.x) is the default provider, model `claude-opus-5-5`, effort `high`; structured output + strict read-only tools + server-side refusal fallback. The provider port (`LLMProvider.generate(LLMRequest) → LLMResult`) is the only seam; an OpenAI adapter is planned but not built. Provider keys are server env (`ANTHROPIC_API_KEY`) only — per-org bring-your-own keys are deferred because they need a secret store.
 **Consequences:** One adapter to maintain; changing model is a settings change. Pricing lives in `AI_PRICING` (USD/MTok → micro-dollars per token).
 
@@ -111,6 +111,11 @@ Format: Context → Decision → Consequences. Status: **Accepted** unless noted
 ### ADR-023 Follow-up answers are synchronous (Phase 4)
 **Decision:** `POST …/messages` runs the bounded tool loop in the request (≤ 6 tool calls, 90 s cap) and returns the answer, idempotent on `client_id`, instead of the planned SSE stream.
 **Consequences:** Simple, retry-safe clients on web and mobile; a slow answer holds a request open for up to 90 s. Streaming can be added later without changing the stored data.
+
+### ADR-024 Gemini as the default AI provider (Phase 4)
+**Context:** Claude has no free tier; the project owner needs to run real analysis without paying.
+**Decision:** Add `GeminiProvider` (official `google-genai` SDK) and make it the default (`gemini-3.8-flash`, free on the Gemini API). Claude stays available as an option (`ANTHROPIC_API_KEY`, provider "anthropic"); no business logic changed — only a new adapter behind the existing port.
+**Consequences:** Real analysis at zero cost. Free-tier requests may be used by Google to improve its products, so the settings page warns admins before enabling; a paid Gemini key or Claude avoids that. Free-tier rate limits surface as `ai.rate_limited` (retried by the SDK first). Budget tracking uses paid list prices, so it overstates free-tier spend unless `AI_PRICING` is zeroed.
 
 ### Resolved open questions
 - Python dependency tool: **pip + pyproject with pinned compatible ranges** for Phase 1 (uv was not installed; avoided adding system tools). A lockfile (uv or pip-tools) should be added before Phase 6.

@@ -6,7 +6,7 @@ DevPulse is an AI-native engineering observability platform. Engineers monitor s
 track deployments, run incidents and get evidence-based AI root-cause analysis — first-class
 on mobile, with a web dashboard for administration and deep analysis.
 
-**Status: Phase 4 (AI investigator) — evidence-grounded incident analysis on mobile and web; real-model analysis needs an `ANTHROPIC_API_KEY`, push delivery awaits a Firebase project.**
+**Status: Phase 4 (AI investigator) — evidence-grounded incident analysis on mobile and web; real-model analysis needs a (free) `GEMINI_API_KEY`, push delivery awaits a Firebase project.**
 Exact status per item: [docs/ROADMAP.md §3](docs/ROADMAP.md).
 
 ## Components
@@ -49,9 +49,10 @@ make up           # builds and starts postgres, redis, migrate, api, worker, bea
 
 Off by default per organization. An admin enables it on the web under **AI** (provider, model, monthly budget, automatic investigation threshold, redaction).
 
-- **Real analysis (Claude):** set `ANTHROPIC_API_KEY` in `.env` and `make up`. The key stays on the API/worker; it is never sent to the web or mobile app.
+- **Real analysis (Gemini, free tier):** create a key at https://aistudio.google.com/apikey, set `GEMINI_API_KEY` in `.env` and `make up`. Default model `gemini-3.8-flash`. On the free tier Google may use the data sent to improve its products (the settings page says so); a paid key avoids that. Claude is available too via `ANTHROPIC_API_KEY` + provider "Anthropic".
+- Keys stay on the API/worker; they are never sent to the web or mobile app.
 - **Without a key:** `AI_FAKE_ENABLED=true` (local only) offers the rule-based *demo analyzer*, labelled "Demo analyzer · not an LLM" everywhere. It is refused in production.
-- `make ai-eval` runs the golden scenarios with the demo analyzer; `make ai-eval PROVIDER=anthropic` scores the real model (billed API calls).
+- `make ai-eval` runs the golden scenarios with the demo analyzer; `make ai-eval PROVIDER=gemini` scores the real model.
 
 Developing outside Docker:
 
