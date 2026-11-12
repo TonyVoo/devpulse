@@ -1,5 +1,6 @@
 """Password hashing, JWT access tokens and opaque refresh/invitation tokens."""
 
+import asyncio
 import hashlib
 import secrets
 from dataclasses import dataclass
@@ -34,6 +35,22 @@ def verify_password(password: str, password_hash: str | None) -> bool:
 
 def password_needs_rehash(password_hash: str) -> bool:
     return _hasher.check_needs_rehash(password_hash)
+
+
+# argon2id is deliberately slow and memory-hard (~64 MB per hash). Run it in worker threads
+# (the C code releases the GIL) so the event loop keeps serving other requests, and cap the
+# concurrency so a burst of logins can't exhaust memory.
+_HASH_SLOTS = asyncio.Semaphore(4)
+
+
+async def hash_password_async(password: str) -> str:
+    async with _HASH_SLOTS:
+        return await asyncio.to_thread(hash_password, password)
+
+
+async def verify_password_async(password: str, password_hash: str | None) -> bool:
+    async with _HASH_SLOTS:
+        return await asyncio.to_thread(verify_password, password, password_hash)
 
 
 @dataclass(frozen=True)

@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState, type FormEvent } from "react";
 
-import { fmt, type Marker, TimeSeriesChart, toPoints } from "@/components/charts/time-series";
+import { fmt, type Marker, MarkerLegend, TimeSeriesChart, toPoints } from "@/components/charts/time-series";
 import { metricsQuery } from "@/components/services/service-detail";
 import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/card";
@@ -62,8 +62,8 @@ export function CorrelationPanel({ orgId, incident }: { orgId: string; incident:
         Correlation
       </h2>
       <p className="text-xs text-fg-subtle">
-        {svc.name}, 1 hour before the incident until {incident.resolved_at ? "shortly after resolution" : "now"}.{" "}
-        <span className="text-violet">┆ deploys</span> are suspected from timing only.
+        {svc.name}, 1 hour before the incident until {incident.resolved_at ? "shortly after resolution" : "now"}.
+        Deploys are suspected from timing only. <MarkerLegend />
       </p>
       {metrics.isError ? (
         <Alert>Couldn&apos;t load metrics.</Alert>
@@ -131,12 +131,12 @@ export function ActionsBar({ orgId, incident, myUserId }: { orgId: string; incid
     <div className="space-y-2">
       <div className="flex flex-wrap gap-2">
         {incident.status === "triggered" && (
-          <Button loading={run.isPending && run.variables?.path === "acknowledge"} onClick={() => run.mutate({ path: "acknowledge" })}>
+          <Button size="sm" loading={run.isPending && run.variables?.path === "acknowledge"} onClick={() => run.mutate({ path: "acknowledge" })}>
             Acknowledge
           </Button>
         )}
         {open && (
-          <Button
+          <Button size="sm"
             variant="secondary"
             loading={run.isPending && run.variables?.path === "resolve"}
             onClick={() => {
@@ -149,17 +149,17 @@ export function ActionsBar({ orgId, incident, myUserId }: { orgId: string; incid
           </Button>
         )}
         {open && incident.assignee?.id !== myUserId && (
-          <Button variant="ghost" disabled={run.isPending} onClick={() => run.mutate({ path: "assign", body: { user_id: myUserId } })}>
+          <Button size="sm" variant="ghost" disabled={run.isPending} onClick={() => run.mutate({ path: "assign", body: { user_id: myUserId } })}>
             Assign to me
           </Button>
         )}
         {open && (
-          <Button variant="ghost" disabled={run.isPending} onClick={() => run.mutate({ path: "escalate" })}>
+          <Button size="sm" variant="ghost" disabled={run.isPending} onClick={() => run.mutate({ path: "escalate" })}>
             Escalate
           </Button>
         )}
         {!open && (
-          <Button variant="secondary" disabled={run.isPending} onClick={() => run.mutate({ path: "reopen" })}>
+          <Button size="sm" variant="secondary" disabled={run.isPending} onClick={() => run.mutate({ path: "reopen" })}>
             Reopen
           </Button>
         )}

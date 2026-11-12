@@ -65,7 +65,7 @@ export function ServicesView({ orgId, canManage }: { orgId: string; canManage: b
 
       {services.isPending ? (
         <div className="space-y-2" role="status" aria-busy aria-label="Loading services">
-          {[0, 1, 2].map((i) => <div key={i} className="h-14 animate-pulse rounded-md bg-surface" />)}
+          {[0, 1, 2].map((i) => <div key={i} className="h-14 animate-pulse rounded-md bg-raised" />)}
         </div>
       ) : services.isError ? (
         <Alert>
@@ -91,9 +91,9 @@ export function ServicesView({ orgId, canManage }: { orgId: string; canManage: b
             </thead>
             <tbody className="divide-y divide-line">
               {services.data.items.map((s) => (
-                <tr key={s.id}>
+                <tr key={s.id} className="relative hover:bg-raised">
                   <td className="px-4 py-3">
-                    <Link href={`/o/${orgId}/services/${s.id}`} className="font-medium hover:underline">
+                    <Link href={`/o/${orgId}/services/${s.id}`} className="font-medium after:absolute after:inset-0">
                       {s.name}
                     </Link>{" "}
                     {s.is_demo && <DemoTag />}

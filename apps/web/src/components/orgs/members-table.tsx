@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 
 import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/select";
 import { Alert, Card } from "@/components/ui/card";
 import { Field } from "@/components/ui/field";
 import { timeAgo } from "@/components/ui/status";
@@ -61,13 +62,13 @@ function InviteForm({ orgId, myRole }: { orgId: string; myRole: Role }) {
         </div>
         <label className="flex flex-col gap-1.5 text-xs font-medium tracking-wide text-fg-muted">
           Role
-          <select name="role" defaultValue="engineer" className="min-h-10 rounded-md border border-line bg-canvas px-2 text-sm text-fg">
+          <Select name="role" defaultValue="engineer" >
             {grantableRoles(myRole).map((r) => (
               <option key={r} value={r}>
                 {ROLE_LABEL[r]}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
         <Button type="submit" loading={invite.isPending}>
           Create invite link
@@ -155,7 +156,7 @@ export function MembersTable({
     return (
       <div role="status" aria-busy className="space-y-2" aria-label="Loading members">
         {[0, 1, 2].map((i) => (
-          <div key={i} className="h-14 animate-pulse rounded-md bg-surface" />
+          <div key={i} className="h-14 animate-pulse rounded-md bg-raised" />
         ))}
       </div>
     );
@@ -176,13 +177,13 @@ export function MembersTable({
       {canManage && <InviteForm orgId={orgId} myRole={myRole} />}
       {error && <Alert>{errorText(error)}</Alert>}
       <div className="overflow-x-auto rounded-lg border border-line bg-surface">
-        <table className="w-full min-w-[560px] text-sm">
+        <table className="w-full text-sm">
           <thead className="text-left text-xs uppercase tracking-wide text-fg-subtle">
             <tr className="border-b border-line">
               <th scope="col" className="px-4 py-3 font-medium">Name</th>
-              <th scope="col" className="px-4 py-3 font-medium">Email</th>
+              <th scope="col" className="hidden px-4 py-3 font-medium sm:table-cell">Email</th>
               <th scope="col" className="px-4 py-3 font-medium">Role</th>
-              <th scope="col" className="px-4 py-3 font-medium">Joined</th>
+              <th scope="col" className="hidden px-4 py-3 font-medium md:table-cell">Joined</th>
               {canManage && (
                 <th scope="col" className="px-4 py-3 font-medium">
                   <span className="sr-only">Actions</span>
@@ -198,28 +199,30 @@ export function MembersTable({
                   <td className="px-4 py-3">
                     {m.display_name}
                     {m.user_id === myUserId && <span className="ml-1 text-xs text-fg-subtle">(you)</span>}
+                    <div className="break-all text-xs text-fg-muted sm:hidden">{m.email}</div>
                   </td>
-                  <td className="px-4 py-3 text-fg-muted">{m.email}</td>
+                  <td className="hidden break-all px-4 py-3 text-fg-muted sm:table-cell">{m.email}</td>
                   <td className="px-4 py-3">
                     {editable ? (
-                      <select
+                      <Select
+                        className="w-32"
                         aria-label={`Role for ${m.display_name}`}
                         value={m.role}
                         disabled={change.isPending}
                         onChange={(e) => change.mutate({ userId: m.user_id, role: e.target.value as Role })}
-                        className="min-h-9 rounded-md border border-line bg-canvas px-2 text-sm"
+                        size="sm"
                       >
                         {grantableRoles(myRole).map((r) => (
                           <option key={r} value={r}>
                             {ROLE_LABEL[r]}
                           </option>
                         ))}
-                      </select>
+                      </Select>
                     ) : (
                       ROLE_LABEL[m.role]
                     )}
                   </td>
-                  <td className="px-4 py-3 font-mono text-xs text-fg-muted">
+                  <td className="hidden px-4 py-3 font-mono text-xs text-fg-muted md:table-cell">
                     {new Date(m.joined_at).toLocaleDateString()}
                   </td>
                   {canManage && (

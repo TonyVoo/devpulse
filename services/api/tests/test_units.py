@@ -143,3 +143,29 @@ def test_platform_generated_secrets_become_fernet_keys() -> None:
 async def test_healthz_reports_the_release(client) -> None:  # type: ignore[no-untyped-def]
     r = await client.get("http://test/healthz")
     assert r.json()["status"] == "ok" and r.json()["release"]
+
+
+async def test_password_hashing_runs_off_the_event_loop() -> None:
+    import asyncio
+    import time
+
+    from app.core.security import hash_password_async, verify_password_async
+
+    ticks = 0
+
+    async def ticker() -> None:
+        nonlocal ticks
+        while True:
+            await asyncio.sleep(0.005)
+            ticks += 1
+
+    t = asyncio.create_task(ticker())
+    await asyncio.sleep(0.01)
+    start = time.perf_counter()
+    hashes = await asyncio.gather(*(hash_password_async("pw-long-enough-123") for _ in range(4)))
+    elapsed = time.perf_counter() - start
+    t.cancel()
+    assert await verify_password_async("pw-long-enough-123", hashes[0])
+    assert not await verify_password_async("wrong", hashes[0])
+    # While hashing, the loop kept ticking (a blocked loop would tick ~once).
+    assert ticks >= max(3, int(elapsed / 0.005 * 0.3))

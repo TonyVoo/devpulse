@@ -50,3 +50,22 @@ export function timeAgo(iso: string | null | undefined, now = Date.now()): strin
   if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
   return `${Math.floor(s / 86400)}d ago`;
 }
+
+type IncidentStatus = "triggered" | "acknowledged" | "resolved";
+
+const INCIDENT_STATUS: Record<IncidentStatus, { label: string; className: string; icon: string }> = {
+  triggered: { label: "Triggered", className: "text-critical bg-critical/10", icon: "■" },
+  acknowledged: { label: "Acknowledged", className: "text-degraded bg-degraded/10", icon: "▲" },
+  resolved: { label: "Resolved", className: "text-healthy bg-healthy/10", icon: "●" },
+};
+
+/** Incident status with shape + label (never colour alone). */
+export function IncidentStatusBadge({ status }: { status: IncidentStatus }) {
+  const s = INCIDENT_STATUS[status];
+  return (
+    <span className={cn("inline-flex shrink-0 items-center gap-1 rounded-sm px-2 py-0.5 text-xs font-semibold", s.className)}>
+      <span aria-hidden>{s.icon}</span>
+      <span>{s.label}</span>
+    </span>
+  );
+}

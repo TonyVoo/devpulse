@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { fmt, TimeSeriesChart } from "@/components/charts/time-series";
 import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/select";
 import { Alert, Card, EmptyState } from "@/components/ui/card";
 import { Field } from "@/components/ui/field";
 import { SeverityChip } from "@/components/ui/status";
@@ -158,61 +159,61 @@ function Builder({
         <Field label="Name" value={draft.name} onChange={(e) => set({ name: e.target.value })} required placeholder="Checkout p95 latency" />
         <label className="flex flex-col gap-1.5 text-xs font-medium tracking-wide text-fg-muted">
           Service
-          <select
+          <Select
             value={draft.service_id}
             disabled={!!rule}
             onChange={(e) => set({ service_id: e.target.value })}
-            className="min-h-10 rounded-md border border-line bg-canvas px-2 text-sm text-fg"
+            
           >
             {services.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.name} ({s.environment})
               </option>
             ))}
-          </select>
+          </Select>
         </label>
         <label className="flex flex-col gap-1.5 text-xs font-medium tracking-wide text-fg-muted">
           Metric
-          <select
+          <Select
             value={draft.metric}
             onChange={(e) => {
               const m = METRICS.find((x) => x.name === e.target.value)!;
               set({ metric: m.name, aggregation: m.agg, threshold: m.unit === "pct" ? 0.05 : draft.threshold });
             }}
-            className="min-h-10 rounded-md border border-line bg-canvas px-2 text-sm text-fg"
+            
           >
             {METRICS.map((m) => (
               <option key={m.name} value={m.name}>
                 {m.label}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
         <label className="flex flex-col gap-1.5 text-xs font-medium tracking-wide text-fg-muted">
           Aggregation
-          <select
+          <Select
             value={draft.aggregation}
             disabled={isRate}
             onChange={(e) => set({ aggregation: e.target.value as RuleIn["aggregation"] })}
-            className="min-h-10 rounded-md border border-line bg-canvas px-2 text-sm text-fg"
+            
           >
             {isRate ? <option value="ratio">errors ÷ requests</option> : AGGS.map((a) => <option key={a}>{a}</option>)}
-          </select>
+          </Select>
         </label>
         <div className="flex min-w-0 gap-2">
           <label className="flex flex-col gap-1.5 text-xs font-medium tracking-wide text-fg-muted">
             When
-            <select
+            <Select
               value={draft.comparator}
               onChange={(e) => set({ comparator: e.target.value as RuleIn["comparator"] })}
-              className="min-h-10 min-w-16 rounded-md border border-line bg-canvas px-2 text-sm text-fg"
+              className="w-20"
             >
               {COMPARATORS.map((c) => (
                 <option key={c.v} value={c.v}>
                   {c.label}
                 </option>
               ))}
-            </select>
+            </Select>
           </label>
           <div className="min-w-0 flex-1">
             <Field
@@ -227,16 +228,16 @@ function Builder({
         </div>
         <label className="flex flex-col gap-1.5 text-xs font-medium tracking-wide text-fg-muted">
           Severity
-          <select
+          <Select
             value={draft.severity}
             onChange={(e) => set({ severity: e.target.value as RuleIn["severity"] })}
-            className="min-h-10 rounded-md border border-line bg-canvas px-2 text-sm text-fg"
+            
           >
             <option value="sev1">SEV1 — critical</option>
             <option value="sev2">SEV2 — major</option>
             <option value="sev3">SEV3 — minor</option>
             <option value="sev4">SEV4 — low</option>
-          </select>
+          </Select>
         </label>
         <Field
           label="Window (minutes)"
@@ -331,7 +332,7 @@ export function AlertRulesView({ orgId, canManage }: { orgId: string; canManage:
   });
 
   if (rules.isPending || services.isPending) {
-    return <div className="h-40 animate-pulse rounded-md bg-surface" role="status" aria-busy aria-label="Loading alert rules" />;
+    return <div className="h-40 animate-pulse rounded-md bg-raised" role="status" aria-busy aria-label="Loading alert rules" />;
   }
   if (rules.isError || services.isError) {
     return (
@@ -367,7 +368,7 @@ export function AlertRulesView({ orgId, canManage }: { orgId: string; canManage:
           {rules.data.map((r) => (
             <li key={r.id} className="flex flex-wrap items-center gap-3 px-4 py-3 text-sm">
               <SeverityChip severity={r.severity} />
-              <div className="min-w-0 flex-1">
+              <div className="min-w-[12rem] flex-1">
                 <div className="font-medium">
                   {r.name}
                   {r.state === "firing" && <span className="ml-2 text-xs font-semibold text-critical">● Firing</span>}

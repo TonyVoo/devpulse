@@ -61,6 +61,13 @@ describe("pure helpers", () => {
     expect(w.to.getTime()).toBe(now);
   });
 
+  it("breaks the line across gaps instead of bridging them", async () => {
+    const { toPoints } = await import("@/components/charts/time-series");
+    const at = (h: number) => new Date(Date.UTC(2026, 10, 12, h)).toISOString();
+    const pts = toPoints([[at(0), 1], [at(1), 2], [at(2), 3], [at(9), 4], [at(10), 5]]);
+    expect(pts.map((p) => p.v)).toEqual([1, 2, 3, null, 4, 5]);
+  });
+
   it("draws lone points and thins crowded marker labels", () => {
     const pts = [{ t: 0, v: null }, { t: 1, v: 5 }, { t: 2, v: null }, { t: 3, v: 1 }, { t: 4, v: 2 }];
     expect([0, 1, 2, 3, 4].map((i) => isIsolated(pts, i))).toEqual([false, true, false, false, false]);
@@ -138,7 +145,9 @@ describe("AuditLog", () => {
     await userEvent.click(screen.getByRole("button", { name: /Show changes/ }));
     expect(screen.getByText("engineer")).toBeInTheDocument();
     expect(screen.getByText("admin")).toBeInTheDocument();
-    await userEvent.selectOptions(screen.getByLabelText("Show"), "Members");
+    await userEvent.click(screen.getByRole("combobox", { name: "Show" }));
+    await userEvent.click(screen.getByRole("option", { name: "Members" }));
+    expect(screen.getByRole("combobox", { name: "Show" })).toHaveTextContent("Members");
     expect(String(fetchMock.mock.calls.at(-1)?.[0])).toContain("action_prefix=member.");
   });
 });

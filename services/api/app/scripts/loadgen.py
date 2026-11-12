@@ -48,6 +48,9 @@ def post(api: str, key: str, path: str, body: dict[str, Any]) -> int:
     except urllib.error.URLError as e:
         print(f"  {path} → unreachable: {e.reason}", file=sys.stderr)
         return 0
+    except (TimeoutError, ConnectionError) as e:  # a slow moment must not stop the demo
+        print(f"  {path} → {type(e).__name__}; retrying next tick", file=sys.stderr)
+        return 0
 
 
 def tick(api: str, key: str, now: datetime, incident: bool, rng: random.Random) -> None:

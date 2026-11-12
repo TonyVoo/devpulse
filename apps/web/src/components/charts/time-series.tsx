@@ -68,6 +68,11 @@ export function TimeSeriesChart({
   const labelled = thinLabels(markers, span);
   const tickFormat = span[1] - span[0] > 20 * 3_600_000 ? dayClock : clock;
   const values = points.map((p) => p.v).filter((v): v is number => v !== null);
+  // Wide enough for the longest tick label, so labels like "1.65 s" never wrap.
+  const yWidth = Math.max(
+    44,
+    ...[...values, ...(threshold !== undefined ? [threshold] : [])].map((v) => format(v).length * 8 + 18),
+  );
   const summary = values.length
     ? `${title}: ${values.length} points, min ${format(Math.min(...values))}, max ${format(Math.max(...values))}` +
       (markers.length ? `, ${markers.length} markers: ${markers.map((m) => m.label).join("; ")}` : "")
@@ -108,7 +113,7 @@ export function TimeSeriesChart({
                 tickFormatter={format}
                 tick={{ fill: "var(--color-fg-subtle)", fontSize: 11 }}
                 stroke="var(--color-line)"
-                width={56}
+                width={Math.min(yWidth, 88)}
               />
               <Tooltip
                 labelFormatter={(t) => new Date(Number(t)).toLocaleString()}
@@ -139,13 +144,19 @@ export function TimeSeriesChart({
                   strokeDasharray={m.tone === "incident" ? undefined : "2 3"}
                   label={
                     labelled.has(i)
-                      ? { value: m.label, fill: TONE[m.tone ?? "event"], fontSize: 10, position: "insideTopLeft" }
+                      ? {
+                          value: m.label,
+                          fill: TONE[m.tone ?? "event"],
+                          fontSize: 10,
+                          // Labels in the right half sit left of their line so they stay inside.
+                          position: m.t > (span[0] + span[1]) / 2 ? "insideTopRight" : "insideTopLeft",
+                        }
                       : undefined
                   }
                 />
               ))}
               <Line
-                type="monotone"
+                type="linear"
                 dataKey="v"
                 stroke="var(--color-cyan)"
                 strokeWidth={2}
@@ -199,7 +210,35 @@ export const fmt = {
   num: (v: number) => (Math.abs(v) >= 100 ? v.toFixed(0) : v.toFixed(2)),
 };
 
-/** Metric series from the API (`[iso, value|null][]`) → chart points. */
-export function toPoints(series: [string, number | null][] | undefined): Point[] {
-  return (series ?? []).map(([t, v]) => ({ t: new Date(t).getTime(), v }));
+/**
+ * Metric series from the API (`[iso, value|null][]`) → chart points. The API only returns
+ * intervals that have data, so a gap (more than 1.5× the usual step between two points) gets
+ * a `null` in between: the line breaks instead of bridging hours without data.
+ */
+export function toPoints(series: [string, number | null][] | undefined, stepMs?: number): Point[] {
+  const pts = (series ?? []).map(([t, v]) => ({ t: new Date(t).getTime(), v }));
+  if (pts.length < 2) return pts;
+  // The interval is known for fixed-step series; otherwise infer it (median spacing).
+  const diffs = pts.slice(1).map((p, i) => p.t - pts[i].t).sort((a, b) => a - b);
+  const step = stepMs ?? (pts.length >= 3 ? diffs[Math.floor(diffs.length / 2)] : Infinity);
+  const out: Point[] = [pts[0]];
+  for (let i = 1; i < pts.length; i++) {
+    if (pts[i].t - pts[i - 1].t > step * 1.5) out.push({ t: pts[i - 1].t + step, v: null });
+    out.push(pts[i]);
+  }
+  return out;
+}
+
+/** Small legend for chart markers (deploys dashed violet, incidents solid red). */
+export function MarkerLegend() {
+  return (
+    <span className="inline-flex items-center gap-3 text-xs text-fg-subtle">
+      <span className="inline-flex items-center gap-1">
+        <span aria-hidden className="h-3 border-l-2 border-dashed border-violet" /> deploy
+      </span>
+      <span className="inline-flex items-center gap-1">
+        <span aria-hidden className="h-3 border-l-2 border-critical" /> incident
+      </span>
+    </span>
+  );
 }

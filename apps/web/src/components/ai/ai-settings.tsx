@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/select";
 import { Alert, Card } from "@/components/ui/card";
 import { api, ApiError } from "@/lib/api-client";
 import type { components } from "@/lib/api-types";
@@ -73,10 +74,10 @@ function SettingsForm({ orgId, s }: { orgId: string; s: Settings }) {
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="flex min-w-0 flex-col gap-1 text-sm">
           Provider
-          <select
+          <Select
             value={form.provider}
             onChange={(e) => setForm({ ...form, provider: e.target.value })}
-            className="min-h-10 w-full min-w-0 rounded-md border border-line bg-canvas px-2"
+            
           >
             <option value="">Server default ({PROVIDER_LABEL[s.effective_provider] ?? s.effective_provider})</option>
             {s.providers.map((p) => (
@@ -85,7 +86,7 @@ function SettingsForm({ orgId, s }: { orgId: string; s: Settings }) {
                 {!p.configured && " — not configured on this server"}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
         <label className="flex min-w-0 flex-col gap-1 text-sm">
           Model
@@ -93,7 +94,7 @@ function SettingsForm({ orgId, s }: { orgId: string; s: Settings }) {
             value={form.model}
             onChange={(e) => setForm({ ...form, model: e.target.value })}
             placeholder={s.effective_model}
-            className="min-h-10 w-full min-w-0 rounded-md border border-line bg-canvas px-3"
+            
           />
         </label>
         <label className="flex min-w-0 flex-col gap-1 text-sm">
@@ -104,22 +105,22 @@ function SettingsForm({ orgId, s }: { orgId: string; s: Settings }) {
             step="0.01"
             value={form.budget}
             onChange={(e) => setForm({ ...form, budget: e.target.value })}
-            className="min-h-10 w-full min-w-0 rounded-md border border-line bg-canvas px-3"
+            
           />
         </label>
         <label className="flex min-w-0 flex-col gap-1 text-sm">
           Investigate automatically
-          <select
+          <Select
             value={form.auto}
             onChange={(e) => setForm({ ...form, auto: e.target.value })}
-            className="min-h-10 w-full min-w-0 rounded-md border border-line bg-canvas px-2"
+            
           >
             <option value="">Never (manual only)</option>
             <option value="sev1">SEV1 incidents</option>
             <option value="sev2">SEV2 and above</option>
             <option value="sev3">SEV3 and above</option>
             <option value="sev4">All incidents</option>
-          </select>
+          </Select>
         </label>
       </div>
       <fieldset className="space-y-1 text-sm">
@@ -164,7 +165,7 @@ export function AiSettingsView({ orgId, canConfigure }: { orgId: string; canConf
     enabled: canConfigure,
   });
 
-  if (settings.isPending) return <div className="h-40 animate-pulse rounded-md bg-surface" role="status" aria-busy aria-label="Loading AI settings" />;
+  if (settings.isPending) return <div className="h-40 animate-pulse rounded-md bg-raised" role="status" aria-busy aria-label="Loading AI settings" />;
   if (settings.isError) return <Alert>Couldn&apos;t load AI settings: {settings.error.message}</Alert>;
   const s = settings.data;
   const pct = s.monthly_budget_micros > 0 ? Math.min(100, (s.month_to_date_cost_micros / s.monthly_budget_micros) * 100) : 100;

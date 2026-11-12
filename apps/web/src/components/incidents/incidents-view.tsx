@@ -6,7 +6,7 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Alert, EmptyState } from "@/components/ui/card";
-import { DemoTag, SeverityChip, timeAgo } from "@/components/ui/status";
+import { DemoTag, IncidentStatusBadge, SeverityChip, timeAgo } from "@/components/ui/status";
 import { api } from "@/lib/api-client";
 import type { components } from "@/lib/api-types";
 import { cn } from "@/lib/utils";
@@ -48,7 +48,7 @@ export function IncidentsView({ orgId }: { orgId: string }) {
         ))}
       </div>
       {incidents.isPending ? (
-        <div className="h-32 animate-pulse rounded-md bg-surface" role="status" aria-busy aria-label="Loading incidents" />
+        <div className="h-32 animate-pulse rounded-md bg-raised" role="status" aria-busy aria-label="Loading incidents" />
       ) : incidents.isError ? (
         <Alert>
           Couldn&apos;t load incidents: {incidents.error.message}{" "}
@@ -62,11 +62,12 @@ export function IncidentsView({ orgId }: { orgId: string }) {
       ) : (
         <ul className="divide-y divide-line rounded-lg border border-line bg-surface">
           {incidents.data.items.map((i) => (
-            <li key={i.id} className="flex flex-wrap items-center gap-3 px-4 py-3 text-sm">
+            <li key={i.id} className="relative flex flex-wrap items-center gap-3 px-4 py-3 text-sm hover:bg-raised">
               <SeverityChip severity={i.severity} />
               <div className="min-w-0 flex-1">
                 <div className="font-medium">
-                  <Link href={`/o/${orgId}/incidents/${i.key}`} className="hover:underline">
+                  {/* The link covers the whole row (stretched), so the row is one large target. */}
+                  <Link href={`/o/${orgId}/incidents/${i.key}`} className="after:absolute after:inset-0">
                     {i.title}
                   </Link>{" "}
                   {i.is_demo && <DemoTag />}
@@ -77,9 +78,7 @@ export function IncidentsView({ orgId }: { orgId: string }) {
                   {i.assignee && ` · ${i.assignee.display_name}`}
                 </div>
               </div>
-              <span className={cn("text-xs capitalize", i.status === "resolved" ? "text-healthy" : "text-fg")}>
-                {i.status}
-              </span>
+              <IncidentStatusBadge status={i.status} />
             </li>
           ))}
         </ul>

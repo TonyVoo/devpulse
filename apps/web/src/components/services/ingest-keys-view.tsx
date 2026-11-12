@@ -84,7 +84,7 @@ export function IngestKeysView({ orgId, apiOrigin }: { orgId: string; apiOrigin:
       )}
 
       {keys.isPending ? (
-        <div className="h-24 animate-pulse rounded-md bg-surface" role="status" aria-busy aria-label="Loading keys" />
+        <div className="h-24 animate-pulse rounded-md bg-raised" role="status" aria-busy aria-label="Loading keys" />
       ) : keys.isError ? (
         <Alert>Couldn&apos;t load keys: {keys.error.message}</Alert>
       ) : keys.data.length === 0 ? (
@@ -93,11 +93,11 @@ export function IngestKeysView({ orgId, apiOrigin }: { orgId: string; apiOrigin:
         <ul className="divide-y divide-line rounded-lg border border-line bg-surface">
           {keys.data.map((k) => (
             <li key={k.id} className="flex flex-wrap items-center gap-3 px-4 py-3 text-sm">
-              <div className="min-w-0 flex-1">
+              <div className="min-w-[12rem] flex-1">
                 <div className="font-medium">
                   {k.name} {k.is_demo && <DemoTag />}
                 </div>
-                <div className="font-mono text-xs text-fg-subtle">
+                <div className="break-all font-mono text-xs text-fg-subtle">
                   {k.prefix}… · {k.scopes.join(", ")}
                 </div>
               </div>

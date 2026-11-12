@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useParams, usePathname, useRouter } from "next/navigation";
-import { useState, type ReactNode } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/select";
 import { request } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
 
@@ -42,6 +43,13 @@ export function Shell({
   const router = useRouter();
   const [signingOut, setSigningOut] = useState(false);
   const current = orgs.find((o) => o.id === params.orgId);
+  const mobileNav = useRef<HTMLElement>(null);
+  // On phones the section tabs scroll sideways: keep the current one visible.
+  useEffect(() => {
+    mobileNav.current
+      ?.querySelector('[aria-current="page"]')
+      ?.scrollIntoView({ block: "nearest", inline: "center" });
+  }, [pathname]);
 
   async function signOut() {
     setSigningOut(true);
@@ -58,9 +66,9 @@ export function Shell({
         </div>
         <label className="mx-3 flex flex-col gap-1 text-xs text-fg-subtle">
           <span className="px-2">Organization</span>
-          <select
+          <Select
             aria-label="Switch organization"
-            className="min-h-10 rounded-md border border-line bg-canvas px-2 text-sm text-fg"
+            
             value={current?.id ?? ""}
             onChange={(e) => router.push(e.target.value ? `/o/${e.target.value}` : "/orgs")}
           >
@@ -71,7 +79,7 @@ export function Shell({
               </option>
             ))}
             <option value="">Manage organizations…</option>
-          </select>
+          </Select>
         </label>
         {current && (
           <nav aria-label="Organization" className="mt-4 flex flex-col gap-0.5 px-3">
@@ -108,9 +116,9 @@ export function Shell({
           <span className="font-mono text-xs tracking-widest text-fg-muted">
             DEV<span className="text-cyan">PULSE</span>
           </span>
-          <select
+          <Select
             aria-label="Switch organization"
-            className="min-h-10 min-w-0 flex-1 rounded-md border border-line bg-canvas px-2 text-sm text-fg"
+            className="flex-1"
             value={current?.id ?? ""}
             onChange={(e) => router.push(e.target.value ? `/o/${e.target.value}` : "/orgs")}
           >
@@ -121,13 +129,17 @@ export function Shell({
               </option>
             ))}
             <option value="">Manage organizations…</option>
-          </select>
+          </Select>
           <Button variant="ghost" size="sm" onClick={signOut} loading={signingOut}>
             Sign out
           </Button>
         </header>
         {current && (
-          <nav aria-label="Organization" className="flex gap-1 overflow-x-auto whitespace-nowrap border-b border-line px-3 py-1 md:hidden">
+          <nav
+            ref={mobileNav}
+            aria-label="Organization"
+            className="flex gap-1 overflow-x-auto whitespace-nowrap border-b border-line px-3 py-1 md:hidden"
+          >
             {ORG_NAV.map((item) => {
               const href = `/o/${current.id}${item.href}`;
               const active = isActive(pathname, item.href, `/o/${current.id}`);

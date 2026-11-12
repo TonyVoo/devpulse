@@ -59,14 +59,20 @@ test("admin: service → alert rule with preview → GitHub → invite → audit
 
   // Role change, then the audit log shows who did what
   await page.reload();
-  await page.getByLabel("Role for Ivo Invitee").selectOption("viewer");
-  await expect(page.getByLabel("Role for Ivo Invitee")).toHaveValue("viewer");
+  await page.getByRole("combobox", { name: "Role for Ivo Invitee" }).click();
+  await page.getByRole("option", { name: "Viewer" }).click();
+  await expect(page.getByRole("combobox", { name: "Role for Ivo Invitee" })).toHaveText("Viewer");
 
   await page.goto(`/o/${orgId}/audit`);
   for (const action of ["member.role_changed", "member.joined", "integration.created", "alert_rule.updated", "alert_rule.created", "service.created"]) {
     await expect(page.getByText(action, { exact: true }).first()).toBeVisible();
   }
-  await page.getByLabel("Show").selectOption("Members");
+  // Keyboard path: open, type-ahead to "Members", choose.
+  await page.getByRole("combobox", { name: "Show" }).focus();
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.type("Mem");
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("combobox", { name: "Show" })).toHaveText("Members");
   await expect(page.getByText("alert_rule.created")).toHaveCount(0);
   await page.getByRole("button", { name: /Show changes \(role\)/ }).first().click();
   await expect(page.getByRole("cell", { name: "viewer" })).toBeVisible();

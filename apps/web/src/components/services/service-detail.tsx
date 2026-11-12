@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useState } from "react";
 
-import { fmt, type Marker, TimeSeriesChart, toPoints } from "@/components/charts/time-series";
+import { fmt, type Marker, MarkerLegend, TimeSeriesChart, toPoints } from "@/components/charts/time-series";
 import { Button } from "@/components/ui/button";
 import { Alert, EmptyState } from "@/components/ui/card";
 import { DemoTag, HealthPill, SeverityChip, timeAgo } from "@/components/ui/status";
@@ -39,20 +39,25 @@ export function metricsQuery(specs: readonly string[], from: Date, to: Date): st
 
 export function ServiceDetail({ orgId, serviceId }: { orgId: string; serviceId: string }) {
   const [range, setRange] = useState<(typeof RANGES)[number]>(RANGES[1]);
-  // Fixed per range selection so query keys stay stable between renders.
-  const [now, setNow] = useState(() => Date.now());
-  const from = new Date(now - range.ms);
-  const to = new Date(now);
+  // The window moves with time: recomputed on every (auto)refresh, never on re-render.
+  const [tick, setTick] = useState(0);
 
   const service = useQuery({
     queryKey: ["orgs", orgId, "service", serviceId],
     queryFn: () => api.get<Service>(`orgs/${orgId}/services/${serviceId}`),
   });
   const metrics = useQuery({
-    queryKey: ["orgs", orgId, "service", serviceId, "metrics", range.label, now],
-    queryFn: () =>
-      api.get<Metrics>(`orgs/${orgId}/services/${serviceId}/metrics?${metricsQuery(CHARTS.map((c) => c.spec), from, to)}`),
+    queryKey: ["orgs", orgId, "service", serviceId, "metrics", range.label, tick],
+    queryFn: () => {
+      const to = new Date();
+      const from = new Date(to.getTime() - range.ms);
+      return api.get<Metrics>(
+        `orgs/${orgId}/services/${serviceId}/metrics?${metricsQuery(CHARTS.map((c) => c.spec), from, to)}`,
+      );
+    },
     enabled: service.isSuccess,
+    refetchInterval: 60_000, // live: the window slides forward every minute
+    placeholderData: (prev) => prev,
   });
   const deployments = useQuery({
     queryKey: ["orgs", orgId, "service", serviceId, "deployments"],
@@ -65,7 +70,7 @@ export function ServiceDetail({ orgId, serviceId }: { orgId: string; serviceId: 
     enabled: service.isSuccess,
   });
 
-  if (service.isPending) return <div className="h-32 animate-pulse rounded-md bg-surface" role="status" aria-busy aria-label="Loading service" />;
+  if (service.isPending) return <div className="h-32 animate-pulse rounded-md bg-raised" role="status" aria-busy aria-label="Loading service" />;
   if (service.isError) {
     return service.error instanceof ApiError && service.error.status === 404 ? (
       <EmptyState title="Service not found" description="It may have been deleted or belong to another organization." />
@@ -74,6 +79,8 @@ export function ServiceDetail({ orgId, serviceId }: { orgId: string; serviceId: 
     );
   }
   const s = service.data;
+  const to = metrics.data ? new Date(metrics.data.to) : new Date();
+  const from = metrics.data ? new Date(metrics.data.from_) : new Date(to.getTime() - range.ms);
   const inRange = (iso: string) => {
     const t = new Date(iso).getTime();
     return t >= from.getTime() && t <= to.getTime();
@@ -114,10 +121,7 @@ export function ServiceDetail({ orgId, serviceId }: { orgId: string; serviceId: 
               key={r.label}
               role="radio"
               aria-checked={r.label === range.label}
-              onClick={() => {
-                setRange(r);
-                setNow(Date.now());
-              }}
+              onClick={() => setRange(r)}
               className={
                 r.label === range.label ? "rounded-md bg-raised px-3 py-1.5 text-sm text-fg" : "rounded-md px-3 py-1.5 text-sm text-fg-muted hover:text-fg"
               }
@@ -126,23 +130,22 @@ export function ServiceDetail({ orgId, serviceId }: { orgId: string; serviceId: 
             </button>
           ))}
         </div>
-        <Button size="sm" variant="ghost" onClick={() => setNow(Date.now())}>
+        <Button size="sm" variant="ghost" onClick={() => setTick((t) => t + 1)}>
           Refresh
         </Button>
-        <span className="text-xs text-fg-subtle">
-          <span className="text-violet">┆ deploy</span> · <span className="text-critical">│ incident</span>
-        </span>
+        <MarkerLegend />
+        <span className="text-xs text-fg-subtle">Updates every minute</span>
       </div>
 
       {metrics.isError ? (
         <Alert>Couldn&apos;t load metrics: {metrics.error.message}</Alert>
       ) : (
-        <div className="grid gap-6 lg:grid-cols-2" aria-busy={metrics.isPending}>
+        <div className="grid min-w-0 gap-6 lg:grid-cols-2" aria-busy={metrics.isPending}>
           {CHARTS.map((c) => (
-            <div key={c.spec} className="rounded-lg border border-line bg-surface p-4">
+            <div key={c.spec} className="min-w-0 rounded-lg border border-line bg-surface p-4">
               <TimeSeriesChart
                 title={c.title}
-                points={toPoints(find(c.spec)?.points)}
+                points={toPoints(find(c.spec)?.points, (metrics.data?.step_s ?? 0) * 1000 || undefined)}
                 format={c.format}
                 markers={markers}
                 domain={[from.getTime(), to.getTime()]}
@@ -159,7 +162,7 @@ export function ServiceDetail({ orgId, serviceId }: { orgId: string; serviceId: 
       )}
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <section aria-labelledby="deploys" className="space-y-2">
+        <section aria-labelledby="deploys" className="min-w-0 space-y-2">
           <h2 id="deploys" className="text-sm font-semibold">Recent deployments</h2>
           {(deployments.data?.items ?? []).length === 0 ? (
             <p className="text-sm text-fg-subtle">No deployments recorded.</p>
@@ -179,7 +182,7 @@ export function ServiceDetail({ orgId, serviceId }: { orgId: string; serviceId: 
             </ul>
           )}
         </section>
-        <section aria-labelledby="incs" className="space-y-2">
+        <section aria-labelledby="incs" className="min-w-0 space-y-2">
           <h2 id="incs" className="text-sm font-semibold">Incidents</h2>
           {(incidents.data?.items ?? []).length === 0 ? (
             <p className="text-sm text-fg-subtle">No incidents for this service.</p>

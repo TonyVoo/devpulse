@@ -107,3 +107,9 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Transform only: if animations are paused, the menu is still fully visible. */
+@keyframes dp-pop {
+  from { transform: translateY(-4px); }
+  to { transform: none; }
+}

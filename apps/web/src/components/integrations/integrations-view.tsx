@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 
 import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/select";
 import { Alert, Card, EmptyState } from "@/components/ui/card";
 import { Field } from "@/components/ui/field";
 import { timeAgo } from "@/components/ui/status";
@@ -101,10 +102,10 @@ export function IntegrationsView({ orgId, canManage, apiOrigin }: { orgId: strin
                 </div>
                 <label className="flex flex-col gap-1.5 text-xs font-medium text-fg-muted">
                   Service
-                  <select
+                  <Select
                     value={r.service}
                     onChange={(e) => setRepos(repos.map((x, j) => (j === i ? { ...x, service: e.target.value } : x)))}
-                    className="min-h-10 rounded-md border border-line bg-canvas px-2 text-sm text-fg"
+                    
                   >
                     <option value="">Choose…</option>
                     {(services.data?.items ?? []).map((s) => (
@@ -112,7 +113,7 @@ export function IntegrationsView({ orgId, canManage, apiOrigin }: { orgId: strin
                         {s.name}
                       </option>
                     ))}
-                  </select>
+                  </Select>
                 </label>
                 <Button type="button" variant="ghost" size="sm" onClick={() => setRepos(repos.filter((_, j) => j !== i))}>
                   Remove
@@ -133,7 +134,7 @@ export function IntegrationsView({ orgId, canManage, apiOrigin }: { orgId: strin
         </Card>
       )}
       {list.isPending ? (
-        <div className="h-24 animate-pulse rounded-md bg-surface" role="status" aria-busy aria-label="Loading integrations" />
+        <div className="h-24 animate-pulse rounded-md bg-raised" role="status" aria-busy aria-label="Loading integrations" />
       ) : list.isError ? (
         <Alert>Couldn&apos;t load integrations.</Alert>
       ) : list.data.length === 0 ? (

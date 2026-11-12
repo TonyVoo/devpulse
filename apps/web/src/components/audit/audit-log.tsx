@@ -4,6 +4,7 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/select";
 import { Alert, EmptyState } from "@/components/ui/card";
 import { timeAgo } from "@/components/ui/status";
 import { api } from "@/lib/api-client";
@@ -58,7 +59,7 @@ function Row({ e }: { e: Entry }) {
             type="button"
             aria-expanded={open}
             onClick={() => setOpen((o) => !o)}
-            className="mt-1 text-xs text-fg-muted underline-offset-2 hover:underline"
+            className="mt-1 block text-left text-xs text-fg-muted underline-offset-2 hover:underline"
           >
             {open ? "Hide" : "Show"} changes ({keys.join(", ")})
           </button>
@@ -107,18 +108,18 @@ export function AuditLog({ orgId }: { orgId: string }) {
     <div className="space-y-4">
       <label className="flex max-w-xs flex-col gap-1.5 text-xs font-medium tracking-wide text-fg-muted">
         Show
-        <select
+        <Select
           value={family.label}
           onChange={(e) => setFamily(FAMILIES.find((f) => f.label === e.target.value) ?? FAMILIES[0])}
-          className="min-h-10 rounded-md border border-line bg-canvas px-2 text-sm text-fg"
+          
         >
           {FAMILIES.map((f) => (
             <option key={f.label}>{f.label}</option>
           ))}
-        </select>
+        </Select>
       </label>
       {q.isPending ? (
-        <div className="h-40 animate-pulse rounded-md bg-surface" role="status" aria-busy aria-label="Loading audit log" />
+        <div className="h-40 animate-pulse rounded-md bg-raised" role="status" aria-busy aria-label="Loading audit log" />
       ) : q.isError ? (
         <Alert>
           Couldn&apos;t load the audit log: {q.error.message}{" "}

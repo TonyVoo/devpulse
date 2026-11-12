@@ -17,11 +17,11 @@ from app.core.ratelimit import enforce_rate_limit
 from app.core.redis import get_redis
 from app.core.security import (
     create_access_token,
-    hash_password,
+    hash_password_async,
     hash_token,
     new_opaque_token,
     password_needs_rehash,
-    verify_password,
+    verify_password_async,
 )
 from app.modules.auth.models import RefreshToken
 from app.modules.auth.schemas import SessionOut, TokenPair
@@ -75,7 +75,9 @@ async def register(
         window_s=3600,
         message="Too many sign-ups from this network, try again later",
     )
-    user = User(email=email, password_hash=hash_password(password), display_name=display_name)
+    user = User(
+        email=email, password_hash=await hash_password_async(password), display_name=display_name
+    )
     session.add(user)
     try:
         await session.flush()
@@ -110,12 +112,15 @@ async def login(
     )
     user = await session.scalar(select(User).where(User.email == email))
     # verify_password runs a hash even when the user is missing (timing equalisation).
-    if not verify_password(password, user.password_hash if user else None) or user is None:
+    if (
+        not await verify_password_async(password, user.password_hash if user else None)
+        or user is None
+    ):
         raise _invalid_credentials()
     if user.disabled_at is not None:
         raise _invalid_credentials()
     if user.password_hash and password_needs_rehash(user.password_hash):
-        user.password_hash = hash_password(password)
+        user.password_hash = await hash_password_async(password)
     user.last_login_at = _now()
     tokens = await _issue(session, user, meta)
     await session.commit()
@@ -238,9 +243,9 @@ async def change_password(
         limit=get_settings().password_change_rate_limit,
         window_s=900,
     )
-    if not verify_password(current_password, user.password_hash):
+    if not await verify_password_async(current_password, user.password_hash):
         raise Unauthorized("Current password is incorrect", code="auth.invalid_credentials")
-    user.password_hash = hash_password(new_password)
+    user.password_hash = await hash_password_async(new_password)
     # Invalidate outstanding access tokens. iat has 1s precision, so tokens minted in this
     # same second stay valid — including the new one below (accepted 1s window).
     user.tokens_valid_after = _now().replace(microsecond=0)
