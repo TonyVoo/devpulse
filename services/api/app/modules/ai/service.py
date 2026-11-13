@@ -18,6 +18,7 @@ from app.core.redis import get_redis
 from app.core.tenancy import OrgContext, OrgScopedRepository
 from app.modules.ai import pipeline, providers
 from app.modules.ai.evidence import Redactor
+from app.modules.ai.language import Language, instruction
 from app.modules.ai.models import (
     AIActionProposal,
     AIEvidence,
@@ -133,6 +134,7 @@ def _summary(inv: AIInvestigation, inc: Incident) -> InvestigationSummary:
         provider=inv.provider,
         model=inv.model,
         is_demo_provider=inv.provider == "fake",
+        language=inv.language,
         summary=(inv.result or {}).get("summary"),
         error_code=inv.error_code,
         created_at=inv.created_at,
@@ -262,11 +264,15 @@ class AIService(OrgScopedRepository):
             message="Too many AI requests, try again in a few minutes",
         )
 
-    async def start(self, ref: str) -> InvestigationOut:
+    async def start(self, ref: str, language: Language) -> InvestigationOut:
         await self._spend_limit("ai_start", get_settings().ai_start_rate_limit)
         inc = await IncidentService(self.session, self.ctx)._load(ref)
         inv = await start_investigation(
-            self.session, inc, trigger=Trigger.MANUAL, requested_by=self.ctx.user_id
+            self.session,
+            inc,
+            trigger=Trigger.MANUAL,
+            requested_by=self.ctx.user_id,
+            language=language,
         )
         if inv is None:  # manual triggers raise instead; defensive
             raise Conflict("Could not start the investigation", code="ai.not_started")
@@ -285,7 +291,7 @@ class AIService(OrgScopedRepository):
 
     # ----------------------------------------------------------------------- chat
 
-    async def ask(self, inv_id: UUID, body: AskIn) -> AskOut:
+    async def ask(self, inv_id: UUID, body: AskIn, language: Language | None = None) -> AskOut:
         inv, inc = await self._inv(inv_id, lock=True)
         replay = await self._replay(inv, body.client_id)
         if replay is not None:
@@ -329,17 +335,20 @@ class AIService(OrgScopedRepository):
             )
         messages.append(Message("user", text=body.question))
 
+        # Answer in the asker's language (explicit, else their Accept-Language, else the run's).
+        answer_language = body.language or language or inv.language
         provider = providers.get_provider(inv.provider)
         executor = ToolExecutor(self.session, inv.org_id, reg, redact, datetime.now(UTC))
         request = LLMRequest(
             model=inv.model,
-            system=prompt(CHAT_PROMPT),
+            system=prompt(CHAT_PROMPT) + instruction(answer_language),
             messages=messages,
             tools=TOOLS,
             response_schema=ANSWER_SCHEMA,
             max_output_tokens=CHAT_MAX_OUTPUT_TOKENS,
             context={**context, "question": body.question},
             purpose="chat",
+            language=answer_language,
         )
         usage_rows: list[AIUsage] = []
         tool_msgs: list[AIMessage] = []
@@ -640,6 +649,7 @@ class AIService(OrgScopedRepository):
             max_tokens_per_run=st.max_tokens_per_run,
             auto_investigate_min_severity=st.auto_investigate_min_severity,
             data_redaction=RedactionSettings.model_validate(st.data_redaction),
+            language=st.language or "en",
             effective_provider=provider,
             effective_model=model,
             providers=[
@@ -667,6 +677,7 @@ class AIService(OrgScopedRepository):
                     "model",
                     "monthly_budget_micros",
                     "auto_investigate_min_severity",
+                    "language",
                 },
             )
         row.enabled = body.enabled
@@ -676,6 +687,7 @@ class AIService(OrgScopedRepository):
         row.max_tokens_per_run = body.max_tokens_per_run
         row.auto_investigate_min_severity = body.auto_investigate_min_severity
         row.data_redaction = body.data_redaction.model_dump()
+        row.language = body.language
         row.updated_by = self.ctx.user_id
         row.version = (row.version or 0) + 1
         provider, _ = effective(row)

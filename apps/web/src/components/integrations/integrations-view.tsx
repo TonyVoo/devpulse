@@ -7,9 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { Alert, Card, EmptyState } from "@/components/ui/card";
 import { Field } from "@/components/ui/field";
-import { timeAgo } from "@/components/ui/status";
-import { api, ApiError } from "@/lib/api-client";
+import { api } from "@/lib/api-client";
 import type { components } from "@/lib/api-types";
+import { useI18n } from "@/lib/i18n/client";
+import { errorText } from "@/lib/i18n/errors";
 
 type Integration = components["schemas"]["IntegrationOut"];
 type Created = components["schemas"]["IntegrationCreatedOut"];
@@ -17,13 +18,14 @@ type Service = components["schemas"]["ServiceOut"];
 
 function Copyable({ label, value }: { label: string; value: string }) {
   const [copied, setCopied] = useState(false);
+  const { t } = useI18n();
   return (
     <div className="space-y-1">
       <p className="text-xs font-medium text-fg-muted">{label}</p>
       <div className="flex items-center gap-2">
         <code className="min-w-0 flex-1 break-all rounded bg-canvas px-2 py-1 text-xs">{value}</code>
         <Button size="sm" variant="secondary" onClick={() => void navigator.clipboard.writeText(value).then(() => setCopied(true))}>
-          {copied ? "Copied" : "Copy"}
+          {copied ? t("common.copied") : t("common.copy")}
         </Button>
       </div>
     </div>
@@ -31,15 +33,21 @@ function Copyable({ label, value }: { label: string; value: string }) {
 }
 
 function Setup({ created, apiOrigin }: { created: Created; apiOrigin: string }) {
+  const { t } = useI18n();
   return (
     <Alert tone="info" className="space-y-3">
-      <p className="font-medium">Finish the setup in GitHub (Settings → Webhooks → Add webhook):</p>
-      <Copyable label="Payload URL" value={`${apiOrigin}${created.webhook_path}`} />
-      <Copyable label="Secret (shown once; DevPulse stores it encrypted)" value={created.webhook_secret} />
+      <p className="font-medium">{t("integrations.finish")}</p>
+      <Copyable label={t("integrations.payloadUrl")} value={`${apiOrigin}${created.webhook_path}`} />
+      <Copyable label={t("integrations.secret")} value={created.webhook_secret} />
       <ol className="list-decimal space-y-1 pl-5 text-xs">
-        <li>Content type: <code>application/json</code>.</li>
-        <li>Events: choose “Let me select individual events”, then <strong>Deployments</strong> and <strong>Deployment statuses</strong>.</li>
-        <li>GitHub sends a ping; it should show a green check.</li>
+        <li>{t("integrations.stepContentType", { value: "application/json" })}</li>
+        <li>
+          {t("integrations.stepEvents", {
+            deployments: t("integrations.deployments"),
+            statuses: t("integrations.deploymentStatuses"),
+          })}
+        </li>
+        <li>{t("integrations.stepPing")}</li>
       </ol>
     </Alert>
   );
@@ -47,6 +55,7 @@ function Setup({ created, apiOrigin }: { created: Created; apiOrigin: string }) 
 
 export function IntegrationsView({ orgId, canManage, apiOrigin }: { orgId: string; canManage: boolean; apiOrigin: string }) {
   const qc = useQueryClient();
+  const { t, ago } = useI18n();
   const [created, setCreated] = useState<Created | null>(null);
   const [repos, setRepos] = useState<{ repo: string; service: string }[]>([]);
   const list = useQuery({
@@ -82,32 +91,28 @@ export function IntegrationsView({ orgId, canManage, apiOrigin }: { orgId: strin
     <div className="space-y-6">
       {canManage && (
         <Card className="space-y-4">
-          <h2 className="font-semibold">Connect GitHub deployments</h2>
-          <p className="text-sm text-fg-muted">
-            DevPulse records GitHub deployment events and links them to services, so incidents can show which release
-            preceded them. Repositories are matched to services by their repository URL; add explicit mappings below
-            if the URLs differ.
-          </p>
+          <h2 className="font-semibold">{t("integrations.connect")}</h2>
+          <p className="text-sm text-fg-muted">{t("integrations.intro")}</p>
           <form method="post" onSubmit={onSubmit} className="space-y-3">
-            <Field label="Name" name="name" required defaultValue="GitHub" />
+            <Field label={t("common.name")} name="name" required defaultValue="GitHub" />
             {repos.map((r, i) => (
               <div key={i} className="flex flex-wrap items-end gap-2">
                 <div className="min-w-48 flex-1">
                   <Field
-                    label="Repository (owner/name)"
+                    label={t("integrations.repo")}
                     value={r.repo}
                     placeholder="acme/checkout"
                     onChange={(e) => setRepos(repos.map((x, j) => (j === i ? { ...x, repo: e.target.value } : x)))}
                   />
                 </div>
                 <label className="flex flex-col gap-1.5 text-xs font-medium text-fg-muted">
-                  Service
+                  {t("common.service")}
                   <Select
                     value={r.service}
                     onChange={(e) => setRepos(repos.map((x, j) => (j === i ? { ...x, service: e.target.value } : x)))}
                     
                   >
-                    <option value="">Choose…</option>
+                    <option value="">{t("common.choose")}</option>
                     {(services.data?.items ?? []).map((s) => (
                       <option key={s.id} value={s.id}>
                         {s.name}
@@ -116,29 +121,29 @@ export function IntegrationsView({ orgId, canManage, apiOrigin }: { orgId: strin
                   </Select>
                 </label>
                 <Button type="button" variant="ghost" size="sm" onClick={() => setRepos(repos.filter((_, j) => j !== i))}>
-                  Remove
+                  {t("common.remove")}
                 </Button>
               </div>
             ))}
             <div className="flex flex-wrap gap-2">
               <Button type="button" variant="secondary" onClick={() => setRepos([...repos, { repo: "", service: "" }])}>
-                Add repository mapping
+                {t("integrations.addMapping")}
               </Button>
               <Button type="submit" loading={create.isPending}>
-                Create webhook
+                {t("integrations.createWebhook")}
               </Button>
             </div>
           </form>
-          {create.isError && <Alert>{create.error instanceof ApiError ? create.error.problem.detail : create.error.message}</Alert>}
+          {create.isError && <Alert>{errorText(create.error, t)}</Alert>}
           {created && <Setup created={created} apiOrigin={apiOrigin} />}
         </Card>
       )}
       {list.isPending ? (
-        <div className="h-24 animate-pulse rounded-md bg-raised" role="status" aria-busy aria-label="Loading integrations" />
+        <div className="h-24 animate-pulse rounded-md bg-raised" role="status" aria-busy aria-label={t("integrations.loading")} />
       ) : list.isError ? (
-        <Alert>Couldn&apos;t load integrations.</Alert>
+        <Alert>{t("integrations.loadError")}</Alert>
       ) : list.data.length === 0 ? (
-        <EmptyState title="No integrations yet" description="Connect GitHub to record deployments automatically." />
+        <EmptyState title={t("integrations.emptyTitle")} description={t("integrations.emptyBody")} />
       ) : (
         <ul className="divide-y divide-line rounded-lg border border-line bg-surface text-sm">
           {list.data.map((i) => {
@@ -151,7 +156,7 @@ export function IntegrationsView({ orgId, canManage, apiOrigin }: { orgId: strin
                   </div>
                   <div className="break-all text-xs text-fg-subtle">
                     {apiOrigin}
-                    {i.webhook_path} · added {timeAgo(i.created_at)}
+                    {i.webhook_path} · {t("integrations.added", { ago: ago(i.created_at) })}
                     {mapped.length > 0 && ` · ${mapped.join(", ")}`}
                   </div>
                 </div>
@@ -160,10 +165,10 @@ export function IntegrationsView({ orgId, canManage, apiOrigin }: { orgId: strin
                     size="sm"
                     variant="ghost"
                     onClick={() => {
-                      if (window.confirm(`Delete “${i.name}”? GitHub deliveries to its URL will be rejected.`)) remove.mutate(i.id);
+                      if (window.confirm(t("integrations.confirmDelete", { name: i.name }))) remove.mutate(i.id);
                     }}
                   >
-                    Delete
+                    {t("common.delete")}
                   </Button>
                 )}
               </li>

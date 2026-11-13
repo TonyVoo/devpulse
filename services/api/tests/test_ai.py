@@ -807,3 +807,110 @@ async def test_missing_baseline_is_reported_as_a_gap(
     assert any("No baseline" in g for g in inv["result"]["data_gaps"])
     metric = next(e for e in inv["evidence"] if e["kind"] == "metric")
     assert metric["excerpt"]["baseline"] is None  # never invented
+
+
+# ------------------------------------------------------------------------- language
+
+
+def test_language_resolution() -> None:
+    from app.modules.ai.language import from_accept_language, instruction, normalize
+
+    assert normalize("vi-VN") == "vi" and normalize("EN") == "en" and normalize("fr") is None
+    assert from_accept_language("vi-VN,vi;q=0.9,en;q=0.8") == "vi"
+    assert from_accept_language("fr-FR,en;q=0.5,vi;q=0.9") == "vi"  # best supported wins
+    assert from_accept_language("fr-FR") == "en" and from_accept_language(None) == "en"
+    assert instruction("en") == ""
+    assert "Vietnamese" in instruction("vi") and "EV-1" in instruction("vi")
+
+
+async def test_analysis_and_answers_follow_the_requesters_language(
+    client: httpx.AsyncClient,
+    queued: list[UUID],
+    use_provider: Callable[[FakeProvider], FakeProvider],
+) -> None:
+    provider = use_provider(FakeProvider())
+    owner, org = await _ai_org(client)
+    inc = await _scenario(org, SCENARIOS[0])
+
+    # Explicit language in the body (what the web and mobile apps send).
+    r = await client.post(
+        f"/orgs/{org}/incidents/{inc.key}/investigations", json={"language": "vi"}, headers=owner.h
+    )
+    assert r.status_code == 202, r.text
+    assert r.json()["language"] == "vi"
+    await _run_all(queued)
+    inv = (
+        await client.get(f"/orgs/{org}/ai/investigations/{r.json()['id']}", headers=owner.h)
+    ).json()
+    assert inv["status"] == "succeeded" and inv["language"] == "vi"
+    # The model was told to write Vietnamese; identifiers and refs stay as they are.
+    assert "Vietnamese" in provider.requests[-1].system
+    assert provider.requests[-1].language == "vi"
+    result = inv["result"]
+    assert result["summary"].startswith("Nhiều khả năng nhất")
+    assert "v2.14.0" in result["probable_causes"][0]["cause"]
+    assert all(ref.startswith("EV-") for ref in result["probable_causes"][0]["evidence_refs"])
+    assert {a["risk"] for a in result["recommended_actions"]} <= {"read_only", "sensitive"}
+    # What DevPulse could not see is written in the same language (no English leftovers).
+    assert any(g.startswith("DevPulse chưa mô hình hóa") for g in result["data_gaps"])
+    assert not any("not modelled" in g for g in result["data_gaps"])
+    assert "phút trước sự cố" in result["probable_causes"][0]["reasoning"]
+
+    # Follow-ups: the asker's language (explicit > Accept-Language > the run's language).
+    ask = f"/orgs/{org}/ai/investigations/{inv['id']}/messages"
+    r = await client.post(
+        ask, json={"question": "deploy?", "client_id": str(uuid4())}, headers=owner.h
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()["messages"][-1]["content"].startswith("Các bằng chứng liên quan nhất")
+    r = await client.post(
+        ask,
+        json={"question": "deploy?", "client_id": str(uuid4()), "language": "en"},
+        headers=owner.h,
+    )
+    assert r.json()["messages"][-1]["content"].startswith("The most relevant evidence")
+    assert "Vietnamese" not in provider.requests[-1].system
+
+
+async def test_language_defaults_to_accept_language_then_english(
+    client: httpx.AsyncClient, queued: list[UUID], use_provider: Any
+) -> None:
+    owner, org = await _ai_org(client)
+    inc = await _scenario(org, SCENARIOS[0])
+    r = await client.post(
+        f"/orgs/{org}/incidents/{inc.key}/investigations",
+        headers={**owner.h, "Accept-Language": "vi-VN,vi;q=0.9"},
+    )
+    assert r.json()["language"] == "vi"
+    await _run_all(queued)
+
+    inc2 = await _scenario(org, SCENARIOS[1])
+    inv = await _investigate(client, owner, org, inc2.key, queued)
+    assert inv["language"] == "en" and inv["result"]["limitations"] == FAKE_LABEL
+    r = await client.post(
+        f"/orgs/{org}/incidents/{inc2.key}/investigations", json={"language": "fr"}, headers=owner.h
+    )
+    assert r.status_code == 422  # only supported languages
+
+
+async def test_automatic_runs_use_the_org_language_setting(
+    client: httpx.AsyncClient, queued: list[UUID], use_provider: Any
+) -> None:
+    owner, org = await _ai_org(client, auto_investigate_min_severity="sev2", language="vi")
+    r = await client.get(f"/orgs/{org}/ai/settings", headers=owner.h)
+    assert r.json()["language"] == "vi"
+    async with get_sessionmaker()() as s:
+        await create_incident(
+            s,
+            org_id=UUID(org),
+            title="hot",
+            severity=Severity.SEV1,
+            source=IncidentSource.ALERT,
+            service_id=None,
+        )
+        await s.commit()
+    async with get_sessionmaker()() as s:
+        while await relay_once(s, get_redis(), RecordingPushProvider()):
+            pass
+    runs = await client.get(f"/orgs/{org}/ai/investigations", headers=owner.h)
+    assert [i["language"] for i in runs.json()["items"]] == ["vi"]

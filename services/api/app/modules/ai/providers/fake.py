@@ -21,6 +21,94 @@ FAKE_LABEL = (
     "it only matches simple patterns in the evidence."
 )
 
+# Analyzer text per language (identifiers such as versions and EV refs are filled in).
+_TEXT: dict[str, dict[str, str]] = {
+    "en": {
+        "label": FAKE_LABEL,
+        "the_service": "the service",
+        "deploy_cause": "Regression introduced by deployment {version} of {svc}",
+        "deploy_reason": "{version} was deployed {minutes} min before the incident and the cited "
+        "metrics/logs changed after it.",
+        "deploy_verify": "Compare the cited metrics before and after {version}; check whether the "
+        "new errors only come from the new version.",
+        "diff": "Diff {version} against the previous release",
+        "diff_why": "Find the change that matches the failure mode.",
+        "rollback": "Roll back {svc} to the version before {version}",
+        "rollback_why": "Changes production; only if the deploy is the likely cause.",
+        "pool_cause": "Database connection pool exhaustion",
+        "pool_reason": "Logs and/or pool metrics point at connections running out.",
+        "pool_verify": "Compare db.pool.connections_in_use with the configured pool maximum "
+        "during the incident.",
+        "pool_action": "Inspect database connection utilisation and slow queries",
+        "pool_why": "Confirms or rules out pool exhaustion.",
+        "up_cause": "Failure or slowness of an upstream dependency",
+        "up_reason": "Error logs mention timeouts or unavailable upstream services.",
+        "up_verify": "Check the health of the dependency named in the logs.",
+        "up_action": "Check the status of the upstream service named in the error logs",
+        "up_why": "Separates a local fault from a dependency outage.",
+        "noisy_cause": "Noisy alert: the metric barely moved from its baseline",
+        "noisy_reason": "No notable metric change or error logs accompany the alert.",
+        "noisy_verify": "Review the alert threshold against the metric's normal range.",
+        "noisy_action": "Review the alert rule's threshold and window",
+        "noisy_why": "Changing an alert rule changes what pages people.",
+        "none_cause": "Not enough evidence to point at a specific cause",
+        "none_reason": "None of the analyzer's patterns matched the evidence.",
+        "none_verify": "Look at the cited evidence and add missing telemetry.",
+        "summary": "Most likely (hypothesis): {cause}.",
+        "no_change": "No notable metric change found.",
+        "no_answer": "There is no evidence to answer this. ",
+        "answer": "The most relevant evidence:\n",
+    },
+    "vi": {
+        "label": "Do bộ phân tích demo theo quy tắc của DevPulse (FakeProvider) tạo ra, không "
+        "phải mô hình ngôn ngữ; nó chỉ khớp các mẫu đơn giản trong bằng chứng.",
+        "the_service": "dịch vụ",
+        "deploy_cause": "Lỗi hồi quy do lượt triển khai {version} của {svc}",
+        "deploy_reason": "{version} được triển khai {minutes} phút trước sự cố và các chỉ số/log "
+        "được dẫn đã thay đổi sau đó.",
+        "deploy_verify": "So sánh các chỉ số được dẫn trước và sau {version}; kiểm tra xem lỗi "
+        "mới có chỉ đến từ phiên bản mới hay không.",
+        "diff": "So sánh {version} với bản phát hành trước",
+        "diff_why": "Tìm thay đổi khớp với kiểu lỗi.",
+        "rollback": "Rollback {svc} về phiên bản trước {version}",
+        "rollback_why": "Thay đổi môi trường production; chỉ làm nếu lượt triển khai nhiều khả "
+        "năng là nguyên nhân.",
+        "pool_cause": "Cạn kiệt connection pool của cơ sở dữ liệu",
+        "pool_reason": "Log và/hoặc chỉ số pool cho thấy kết nối đang bị dùng hết.",
+        "pool_verify": "So sánh db.pool.connections_in_use với giới hạn pool đã cấu hình trong "
+        "thời gian xảy ra sự cố.",
+        "pool_action": "Kiểm tra mức sử dụng kết nối cơ sở dữ liệu và các truy vấn chậm",
+        "pool_why": "Xác nhận hoặc loại trừ khả năng cạn kiệt pool.",
+        "up_cause": "Một dịch vụ phụ thuộc phía trên bị lỗi hoặc chậm",
+        "up_reason": "Log lỗi nhắc đến timeout hoặc dịch vụ phía trên không khả dụng.",
+        "up_verify": "Kiểm tra tình trạng của dịch vụ phụ thuộc được nêu trong log.",
+        "up_action": "Kiểm tra trạng thái của dịch vụ phía trên được nêu trong log lỗi",
+        "up_why": "Phân biệt lỗi cục bộ với sự cố của dịch vụ phụ thuộc.",
+        "noisy_cause": "Cảnh báo nhiễu: chỉ số gần như không lệch khỏi mức nền",
+        "noisy_reason": "Không có thay đổi chỉ số đáng kể hay log lỗi nào đi kèm cảnh báo.",
+        "noisy_verify": "Xem lại ngưỡng cảnh báo so với khoảng giá trị bình thường của chỉ số.",
+        "noisy_action": "Xem lại ngưỡng và cửa sổ của quy tắc cảnh báo",
+        "noisy_why": "Thay đổi quy tắc cảnh báo sẽ thay đổi việc ai bị gọi trực.",
+        "none_cause": "Chưa đủ bằng chứng để chỉ ra nguyên nhân cụ thể",
+        "none_reason": "Không mẫu nào của bộ phân tích khớp với bằng chứng.",
+        "none_verify": "Xem các bằng chứng được dẫn và bổ sung dữ liệu giám sát còn thiếu.",
+        "summary": "Nhiều khả năng nhất (giả thuyết): {cause}.",
+        "no_change": "Không thấy thay đổi chỉ số đáng kể.",
+        "no_answer": "Không có bằng chứng để trả lời câu hỏi này. ",
+        "answer": "Các bằng chứng liên quan nhất:\n",
+    },
+}
+
+
+def _num(value: float, language: str) -> str:
+    text = f"{value:g}"
+    return text.replace(".", ",") if language == "vi" else text
+
+
+def _t(language: str) -> dict[str, str]:
+    return _TEXT.get(language, _TEXT["en"])
+
+
 Scripted = LLMResult | ProviderError | Callable[[LLMRequest], LLMResult]
 
 _POOL = re.compile(r"pool|too many connections|connection limit|exhausted", re.I)
@@ -59,8 +147,8 @@ class FakeProvider:
             return item(request) if callable(item) else item
         ctx = request.context or {}
         if request.purpose == "chat":
-            return _result(_answer(ctx), request)
-        return _result(analyze(ctx), request)
+            return _result(_answer(ctx, request.language), request)
+        return _result(analyze(ctx, request.language), request)
 
 
 # --------------------------------------------------------------------- rule-based mode
@@ -76,9 +164,10 @@ def _notable(ev: dict[str, Any]) -> bool:
     return change is not None and abs(change) >= 50
 
 
-def analyze(ctx: dict[str, Any]) -> dict[str, Any]:
+def analyze(ctx: dict[str, Any], language: str = "en") -> dict[str, Any]:
+    t = _t(language)
     evidence: list[dict[str, Any]] = ctx.get("evidence", [])
-    svc = (ctx.get("incident") or {}).get("service") or "the service"
+    svc = (ctx.get("incident") or {}).get("service") or t["the_service"]
     metrics = [e for e in evidence if _notable(e)]
     logs = [e for e in evidence if e.get("kind") == "log" and e.get("level") in ("error", "fatal")]
     new_logs = [e for e in logs if e.get("seen_in_previous_6h") == 0]
@@ -100,28 +189,29 @@ def analyze(ctx: dict[str, Any]) -> dict[str, Any]:
         conf = 0.45 + 0.1 * bool(metrics) + 0.1 * bool(new_logs)
         causes.append(
             {
-                "cause": f"Regression introduced by deployment {d['version']} of {svc}",
+                "cause": t["deploy_cause"].format(version=d["version"], svc=svc),
                 "confidence": round(conf, 2),
-                "reasoning": f"{d['version']} was deployed {d['minutes_before_incident']:g} min "
-                "before the incident and the cited metrics/logs changed after it.",
+                "reasoning": t["deploy_reason"].format(
+                    version=d["version"],
+                    minutes=_num(float(d["minutes_before_incident"]), language),
+                ),
                 "evidence_refs": refs(support),
                 "counter_evidence_refs": [],
-                "how_to_verify": f"Compare the cited metrics before and after {d['version']}; "
-                "check whether the new errors only come from the new version.",
+                "how_to_verify": t["deploy_verify"].format(version=d["version"]),
             }
         )
         actions += [
             {
-                "action": f"Diff {d['version']} against the previous release",
+                "action": t["diff"].format(version=d["version"]),
                 "kind": "investigate",
                 "risk": "read_only",
-                "rationale": "Find the change that matches the failure mode.",
+                "rationale": t["diff_why"],
             },
             {
-                "action": f"Roll back {svc} to the version before {d['version']}",
+                "action": t["rollback"].format(svc=svc, version=d["version"]),
                 "kind": "remediate",
                 "risk": "sensitive",
-                "rationale": "Changes production; only if the deploy is the likely cause.",
+                "rationale": t["rollback_why"],
             },
         ]
     pool_logs = [e for e in logs if _POOL.search(e.get("sample_message", ""))]
@@ -129,21 +219,20 @@ def analyze(ctx: dict[str, Any]) -> dict[str, Any]:
     if pool_logs or pool_metric:
         causes.append(
             {
-                "cause": "Database connection pool exhaustion",
+                "cause": t["pool_cause"],
                 "confidence": 0.5 if pool_logs and pool_metric else 0.35,
-                "reasoning": "Logs and/or pool metrics point at connections running out.",
+                "reasoning": t["pool_reason"],
                 "evidence_refs": refs(pool_logs[:2] + pool_metric[:1]),
                 "counter_evidence_refs": [],
-                "how_to_verify": "Compare db.pool.connections_in_use with the configured pool "
-                "maximum during the incident.",
+                "how_to_verify": t["pool_verify"],
             }
         )
         actions.append(
             {
-                "action": "Inspect database connection utilisation and slow queries",
+                "action": t["pool_action"],
                 "kind": "investigate",
                 "risk": "read_only",
-                "rationale": "Confirms or rules out pool exhaustion.",
+                "rationale": t["pool_why"],
             }
         )
     upstream_logs = [
@@ -152,65 +241,66 @@ def analyze(ctx: dict[str, Any]) -> dict[str, Any]:
     if upstream_logs:
         causes.append(
             {
-                "cause": "Failure or slowness of an upstream dependency",
+                "cause": t["up_cause"],
                 "confidence": 0.4,
-                "reasoning": "Error logs mention timeouts or unavailable upstream services.",
+                "reasoning": t["up_reason"],
                 "evidence_refs": refs(upstream_logs[:2]),
                 "counter_evidence_refs": [],
-                "how_to_verify": "Check the health of the dependency named in the logs.",
+                "how_to_verify": t["up_verify"],
             }
         )
         actions.append(
             {
-                "action": "Check the status of the upstream service named in the error logs",
+                "action": t["up_action"],
                 "kind": "investigate",
                 "risk": "read_only",
-                "rationale": "Separates a local fault from a dependency outage.",
+                "rationale": t["up_why"],
             }
         )
     if not causes and alerts and not metrics and not logs:
         flat = [e for e in evidence if e.get("kind") == "metric"][:2]
         causes.append(
             {
-                "cause": "Noisy alert: the metric barely moved from its baseline",
+                "cause": t["noisy_cause"],
                 "confidence": 0.35,
-                "reasoning": "No notable metric change or error logs accompany the alert.",
+                "reasoning": t["noisy_reason"],
                 "evidence_refs": refs(alerts[:1] + flat),
                 "counter_evidence_refs": [],
-                "how_to_verify": "Review the alert threshold against the metric's normal range.",
+                "how_to_verify": t["noisy_verify"],
             }
         )
         actions.append(
             {
-                "action": "Review the alert rule's threshold and window",
+                "action": t["noisy_action"],
                 "kind": "mitigate",
                 "risk": "sensitive",
-                "rationale": "Changing an alert rule changes what pages people.",
+                "rationale": t["noisy_why"],
             }
         )
     if not causes:
         causes.append(
             {
-                "cause": "Not enough evidence to point at a specific cause",
+                "cause": t["none_cause"],
                 "confidence": 0.15,
-                "reasoning": "None of the analyzer's patterns matched the evidence.",
+                "reasoning": t["none_reason"],
                 "evidence_refs": refs(evidence[:1]),
                 "counter_evidence_refs": [],
-                "how_to_verify": "Look at the cited evidence and add missing telemetry.",
+                "how_to_verify": t["none_verify"],
             }
         )
     top = causes[0]["cause"]
     return {
-        "summary": f"Most likely (hypothesis): {top[0].lower() + top[1:]}.",
-        "impact": "; ".join(e["text"] for e in metrics[:2]) or "No notable metric change found.",
+        "summary": t["summary"].format(cause=top[0].lower() + top[1:]),
+        "impact": "; ".join(e["text"] for e in metrics[:2]) or t["no_change"],
         "probable_causes": causes[:5],
         "recommended_actions": actions[:8],
         "data_gaps": [],
-        "limitations": FAKE_LABEL,
+        "limitations": t["label"],
     }
 
 
-def _answer(ctx: dict[str, Any]) -> dict[str, Any]:
+def _answer(ctx: dict[str, Any], language: str = "en") -> dict[str, Any]:
+    t = _t(language)
     question = str(ctx.get("question", "")).lower()
     words = {w for w in re.findall(r"[a-z0-9.]{4,}", question)}
     evidence: list[dict[str, Any]] = ctx.get("evidence", [])
@@ -220,9 +310,9 @@ def _answer(ctx: dict[str, Any]) -> dict[str, Any]:
     )
     hits = [e for e in scored if any(w in json.dumps(e).lower() for w in words)][:3] or scored[:2]
     if not hits:
-        return {"answer": "There is no evidence to answer this. " + FAKE_LABEL, "evidence_refs": []}
+        return {"answer": t["no_answer"] + t["label"], "evidence_refs": []}
     lines = [f"[{e['ref']}] {e['text']}" for e in hits]
     return {
-        "answer": "The most relevant evidence:\n" + "\n".join(lines) + "\n\n" + FAKE_LABEL,
+        "answer": t["answer"] + "\n".join(lines) + "\n\n" + t["label"],
         "evidence_refs": [e["ref"] for e in hits],
     }

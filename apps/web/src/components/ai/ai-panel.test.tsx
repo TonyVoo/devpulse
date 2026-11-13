@@ -4,6 +4,8 @@ import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { I18nProvider } from "@/lib/i18n/client";
+
 import { AiPanel, aiErrorMessage, AnalysisView, type Investigation } from "./ai-panel";
 import { dollars } from "./ai-settings";
 
@@ -142,6 +144,26 @@ describe("AiPanel", () => {
     wrap(<AiPanel orgId="o1" incidentRef="INC-1" canAct isAdmin={false} />);
     await userEvent.click(await screen.findByRole("button", { name: "Investigate with AI" }));
     await waitFor(() => expect(screen.getByText(/turned off for this organization/)).toBeInTheDocument());
+  });
+
+  it("asks for the analysis in the viewer's language", async () => {
+    const bodies: unknown[] = [];
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      if (init?.method === "POST") {
+        bodies.push(JSON.parse(String(init.body)));
+        return Response.json({ ...inv, status: "queued", result: null, language: "vi" }, { status: 202 });
+      }
+      if (url.endsWith("/investigations")) return Response.json([]);
+      return Response.json({});
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    wrap(
+      <I18nProvider locale="vi">
+        <AiPanel orgId="o1" incidentRef="INC-1" canAct isAdmin={false} />
+      </I18nProvider>,
+    );
+    await userEvent.click(await screen.findByRole("button", { name: "Điều tra bằng AI" }));
+    await waitFor(() => expect(bodies).toEqual([{ language: "vi" }]));
   });
 
   it("shows failures without blocking the incident", async () => {

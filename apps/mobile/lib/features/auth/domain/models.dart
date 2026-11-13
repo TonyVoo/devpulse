@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 
+import '../../../l10n/l10n.dart';
+
 enum OrgRole {
   owner,
   admin,
@@ -8,7 +10,12 @@ enum OrgRole {
 
   static OrgRole parse(String value) => OrgRole.values.firstWhere((r) => r.name == value, orElse: () => OrgRole.viewer);
 
-  String get label => '${name[0].toUpperCase()}${name.substring(1)}';
+  String get label => switch (this) {
+    owner => l10n.roleOwner,
+    admin => l10n.roleAdmin,
+    engineer => l10n.roleEngineer,
+    viewer => l10n.roleViewer,
+  };
 }
 
 @immutable

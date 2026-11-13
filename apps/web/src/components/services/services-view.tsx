@@ -8,15 +8,18 @@ import { describeError } from "@/components/auth/auth-form";
 import { Button } from "@/components/ui/button";
 import { Alert, Card, EmptyState } from "@/components/ui/card";
 import { Field } from "@/components/ui/field";
-import { DemoTag, HealthPill, timeAgo } from "@/components/ui/status";
+import { DemoTag, HealthPill } from "@/components/ui/status";
 import { api } from "@/lib/api-client";
 import type { components } from "@/lib/api-types";
+import { useI18n } from "@/lib/i18n/client";
+import { errorText } from "@/lib/i18n/errors";
 
 type Service = components["schemas"]["ServiceOut"];
 type Page = { items: Service[]; next_cursor: string | null };
 
 export function ServicesView({ orgId, canManage }: { orgId: string; canManage: boolean }) {
   const qc = useQueryClient();
+  const { t, ago } = useI18n();
   const services = useQuery({
     queryKey: ["orgs", orgId, "services"],
     queryFn: () => api.get<Page>(`orgs/${orgId}/services?limit=200`),
@@ -30,7 +33,7 @@ export function ServicesView({ orgId, canManage }: { orgId: string; canManage: b
       void qc.invalidateQueries({ queryKey: ["orgs", orgId, "services"] });
     },
   });
-  const err = create.error ? describeError(create.error) : null;
+  const err = create.error ? describeError(create.error, t) : null;
 
   function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -47,46 +50,46 @@ export function ServicesView({ orgId, canManage }: { orgId: string; canManage: b
             <Card>
               <form method="post" onSubmit={onSubmit} className="grid gap-4 sm:grid-cols-2" noValidate>
                 {err && <Alert className="sm:col-span-2">{err.message}</Alert>}
-                <Field label="Name" name="name" required error={err?.fields.name} />
-                <Field label="Environment" name="environment" defaultValue="production" error={err?.fields.environment} />
-                <Field label="Repository URL" name="repo_url" placeholder="https://github.com/org/repo" error={err?.fields.repo_url} hint="Used to match GitHub deployments" />
-                <Field label="Owner team" name="owner_team" error={err?.fields.owner_team} />
+                <Field label={t("common.name")} name="name" required error={err?.fields.name} />
+                <Field label={t("services.environment")} name="environment" defaultValue="production" error={err?.fields.environment} />
+                <Field label={t("services.repoUrl")} name="repo_url" placeholder="https://github.com/org/repo" error={err?.fields.repo_url} hint={t("services.repoHint")} />
+                <Field label={t("services.ownerTeam")} name="owner_team" error={err?.fields.owner_team} />
                 <div className="flex gap-2 sm:col-span-2">
-                  <Button type="submit" loading={create.isPending}>Create service</Button>
-                  <Button type="button" variant="ghost" onClick={() => setOpen(false)}>Cancel</Button>
+                  <Button type="submit" loading={create.isPending}>{t("services.create")}</Button>
+                  <Button type="button" variant="ghost" onClick={() => setOpen(false)}>{t("common.cancel")}</Button>
                 </div>
               </form>
             </Card>
           ) : (
-            <Button onClick={() => setOpen(true)}>Add service</Button>
+            <Button onClick={() => setOpen(true)}>{t("services.add")}</Button>
           )}
         </div>
       )}
 
       {services.isPending ? (
-        <div className="space-y-2" role="status" aria-busy aria-label="Loading services">
+        <div className="space-y-2" role="status" aria-busy aria-label={t("services.loading")}>
           {[0, 1, 2].map((i) => <div key={i} className="h-14 animate-pulse rounded-md bg-raised" />)}
         </div>
       ) : services.isError ? (
         <Alert>
-          Couldn&apos;t load services: {services.error.message}{" "}
-          <Button variant="ghost" size="sm" onClick={() => services.refetch()}>Retry</Button>
+          {t("services.loadError", { error: errorText(services.error, t) })}{" "}
+          <Button variant="ghost" size="sm" onClick={() => services.refetch()}>{t("common.retry")}</Button>
         </Alert>
       ) : services.data.items.length === 0 ? (
         <EmptyState
-          title="No services yet"
-          description="Add a service, create an ingest key, and send metrics to /ingest/v1/metrics. Health appears once data arrives."
+          title={t("services.emptyTitle")}
+          description={t("services.emptyBody")}
         />
       ) : (
         <div className="overflow-x-auto rounded-lg border border-line bg-surface">
           <table className="w-full min-w-[640px] text-sm">
             <thead className="text-left text-xs uppercase tracking-wide text-fg-subtle">
               <tr className="border-b border-line">
-                <th scope="col" className="px-4 py-3 font-medium">Service</th>
-                <th scope="col" className="px-4 py-3 font-medium">Health</th>
-                <th scope="col" className="px-4 py-3 font-medium">Environment</th>
-                <th scope="col" className="px-4 py-3 font-medium">Tier</th>
-                <th scope="col" className="px-4 py-3 font-medium">Last data</th>
+                <th scope="col" className="px-4 py-3 font-medium">{t("services.colService")}</th>
+                <th scope="col" className="px-4 py-3 font-medium">{t("services.colHealth")}</th>
+                <th scope="col" className="px-4 py-3 font-medium">{t("services.colEnvironment")}</th>
+                <th scope="col" className="px-4 py-3 font-medium">{t("services.colTier")}</th>
+                <th scope="col" className="px-4 py-3 font-medium">{t("services.colLastData")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
@@ -102,7 +105,7 @@ export function ServicesView({ orgId, canManage }: { orgId: string; canManage: b
                   <td className="px-4 py-3"><HealthPill health={s.health} /></td>
                   <td className="px-4 py-3 text-fg-muted">{s.environment}</td>
                   <td className="px-4 py-3 text-fg-muted">{s.tier}</td>
-                  <td className="px-4 py-3 text-xs text-fg-muted">{timeAgo(s.last_seen_at)}</td>
+                  <td className="px-4 py-3 text-xs text-fg-muted">{ago(s.last_seen_at)}</td>
                 </tr>
               ))}
             </tbody>

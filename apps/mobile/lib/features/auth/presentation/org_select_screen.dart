@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/design_system/tokens.dart';
 import '../../../core/design_system/widgets/dp_widgets.dart';
 import '../../../core/result/failure.dart';
+import '../../../l10n/l10n.dart';
 import '../domain/models.dart';
 import 'session_controller.dart';
 
@@ -55,15 +56,15 @@ class _OrgSelectScreenState extends ConsumerState<OrgSelectScreen> {
     final p = context.dp;
     final t = Theme.of(context).textTheme;
     final orgs = session.me.memberships;
-    final nameError = _failure is ValidationFailure ? 'Use 2–120 characters.' : null;
+    final l = context.l10n;
+    final nameError = _failure is ValidationFailure ? l.orgNameLength : null;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Organizations'),
+        title: Text(l.organizations),
         automaticallyImplyLeading: false,
         actions: [
-          if (session.currentOrg != null)
-            TextButton(onPressed: () => context.go('/overview'), child: const Text('Done')),
+          if (session.currentOrg != null) TextButton(onPressed: () => context.go('/overview'), child: Text(l.done)),
         ],
       ),
       body: SafeArea(
@@ -71,14 +72,11 @@ class _OrgSelectScreenState extends ConsumerState<OrgSelectScreen> {
           padding: const EdgeInsets.all(DpSpace.lg),
           children: [
             if (session.isStale) ...[
-              const DpBanner(
-                message: "You're offline. Showing your last known organizations.",
-                tone: DpBannerTone.warning,
-              ),
+              DpBanner(message: l.offlineOrgs, tone: DpBannerTone.warning),
               const SizedBox(height: DpSpace.lg),
             ],
             if (orgs.isNotEmpty) ...[
-              Text('Your organizations', style: t.labelSmall),
+              Text(l.yourOrganizations, style: t.labelSmall),
               const SizedBox(height: DpSpace.sm),
               Card(
                 child: Column(
@@ -89,7 +87,7 @@ class _OrgSelectScreenState extends ConsumerState<OrgSelectScreen> {
                         title: Text(org.name),
                         subtitle: Text(org.slug, style: t.bodySmall),
                         trailing: org.id == session.currentOrgId
-                            ? Icon(Icons.check_circle, color: p.cyan, semanticLabel: 'Current')
+                            ? Icon(Icons.check_circle, color: p.cyan, semanticLabel: l.current)
                             : Text(org.role.label, style: t.bodySmall),
                         onTap: () => _select(org.id),
                       ),
@@ -99,16 +97,16 @@ class _OrgSelectScreenState extends ConsumerState<OrgSelectScreen> {
               ),
               const SizedBox(height: DpSpace.xl),
             ],
-            Text(orgs.isEmpty ? 'Create your first organization' : 'Create another organization', style: t.titleMedium),
+            Text(orgs.isEmpty ? l.createFirstOrg : l.createAnotherOrg, style: t.titleMedium),
             const SizedBox(height: DpSpace.sm),
-            Text('Each organization keeps its own services, incidents and members.', style: t.bodySmall),
+            Text(l.orgIntro, style: t.bodySmall),
             const SizedBox(height: DpSpace.lg),
             if (_failure != null && _failure is! ValidationFailure) ...[
               DpBanner(message: _failure!.message, tone: DpBannerTone.error),
               const SizedBox(height: DpSpace.md),
             ],
             DpTextField(
-              label: 'Organization name',
+              label: l.orgName,
               controller: _name,
               errorText: nameError,
               enabled: !_creating && !session.isStale,
@@ -116,12 +114,7 @@ class _OrgSelectScreenState extends ConsumerState<OrgSelectScreen> {
               onSubmitted: (_) => _create(),
             ),
             const SizedBox(height: DpSpace.md),
-            DpButton(
-              label: 'Create organization',
-              onPressed: session.isStale ? null : _create,
-              loading: _creating,
-              expand: true,
-            ),
+            DpButton(label: l.createOrg, onPressed: session.isStale ? null : _create, loading: _creating, expand: true),
           ],
         ),
       ),

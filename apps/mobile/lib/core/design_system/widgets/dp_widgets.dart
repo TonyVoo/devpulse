@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../l10n/l10n.dart';
 import '../tokens.dart';
 
 enum DpButtonVariant { primary, secondary, ghost }
@@ -28,7 +29,7 @@ class DpButton extends StatelessWidget {
     final onTap = loading ? null : onPressed;
     final child = loading
         ? Semantics(
-            label: '$label, in progress',
+            label: context.l10n.inProgressLabel(label),
             child: const SizedBox.square(dimension: 18, child: CircularProgressIndicator(strokeWidth: 2)),
           )
         : Row(

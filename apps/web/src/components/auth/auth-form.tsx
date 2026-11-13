@@ -8,51 +8,58 @@ import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/card";
 import { Field } from "@/components/ui/field";
 import { ApiError, request } from "@/lib/api-client";
+import { useI18n } from "@/lib/i18n/client";
+import { errorText } from "@/lib/i18n/errors";
+import { makeT, type MessageKey, type T } from "@/lib/i18n/translate";
 import { safeNextPath } from "@/lib/session";
 
 type Mode = "login" | "register";
 
-const COPY: Record<Mode, { title: string; submit: string; switchText: string; switchHref: string; switchCta: string }> = {
+const COPY: Record<Mode, { title: MessageKey; submit: MessageKey; switchText: MessageKey; switchHref: string; switchCta: MessageKey }> = {
   login: {
-    title: "Sign in to DevPulse",
-    submit: "Sign in",
-    switchText: "New to DevPulse?",
+    title: "auth.signInTitle",
+    submit: "auth.signIn",
+    switchText: "auth.newHere",
     switchHref: "/register",
-    switchCta: "Create an account",
+    switchCta: "auth.createAccountLink",
   },
   register: {
-    title: "Create your account",
-    submit: "Create account",
-    switchText: "Already have an account?",
+    title: "auth.registerTitle",
+    submit: "auth.createAccount",
+    switchText: "auth.haveAccount",
     switchHref: "/login",
-    switchCta: "Sign in",
+    switchCta: "auth.signIn",
   },
 };
 
 /** Maps API problem responses to a form-level message plus per-field messages. */
-export function describeError(error: unknown): { message: string; fields: Record<string, string> } {
-  if (!(error instanceof ApiError)) return { message: "Something went wrong. Try again.", fields: {} };
+export function describeError(
+  error: unknown,
+  t: T = makeT("en"),
+): { message: string; fields: Record<string, string> } {
+  if (!(error instanceof ApiError)) return { message: t("common.somethingWrong"), fields: {} };
   const fields: Record<string, string> = {};
   for (const e of error.problem.errors ?? []) {
     const key = String(e.loc[e.loc.length - 1]);
     fields[key] =
       key === "password" && e.msg.includes("at least")
-        ? "Use at least 12 characters."
+        ? t("auth.passwordTooShort")
         : key === "email"
-          ? "Enter a valid email address."
+          ? t("auth.invalidEmail")
           : e.msg;
   }
   const message =
     error.status === 429
-      ? "Too many attempts. Wait a few minutes and try again."
+      ? t("auth.tooManyAttempts")
       : error.problem.code === "validation.failed"
-        ? "Check the highlighted fields."
-        : error.problem.detail;
+        ? t("auth.checkFields")
+        : errorText(error, t);
   return { message, fields };
 }
 
 export function AuthForm({ mode, next }: { mode: Mode; next?: string }) {
   const router = useRouter();
+  const { t } = useI18n();
   const copy = COPY[mode];
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<{ message: string; fields: Record<string, string> } | null>(null);
@@ -67,18 +74,18 @@ export function AuthForm({ mode, next }: { mode: Mode; next?: string }) {
       router.replace(safeNextPath(next));
       router.refresh();
     } catch (e) {
-      setError(describeError(e));
+      setError(describeError(e, t));
       setPending(false);
     }
   }
 
   return (
     <form method="post" onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
-      <h1 className="text-xl font-semibold">{copy.title}</h1>
+      <h1 className="text-xl font-semibold">{t(copy.title)}</h1>
       {error && <Alert>{error.message}</Alert>}
       {mode === "register" && (
         <Field
-          label="Name"
+          label={t("auth.name")}
           name="display_name"
           autoComplete="name"
           required
@@ -86,7 +93,7 @@ export function AuthForm({ mode, next }: { mode: Mode; next?: string }) {
         />
       )}
       <Field
-        label="Work email"
+        label={t("auth.workEmail")}
         name="email"
         type="email"
         autoComplete="email"
@@ -94,21 +101,21 @@ export function AuthForm({ mode, next }: { mode: Mode; next?: string }) {
         error={error?.fields.email}
       />
       <Field
-        label="Password"
+        label={t("auth.password")}
         name="password"
         type="password"
         autoComplete={mode === "login" ? "current-password" : "new-password"}
-        hint={mode === "register" ? "At least 12 characters." : undefined}
+        hint={mode === "register" ? t("auth.passwordHint") : undefined}
         required
         error={error?.fields.password}
       />
       <Button type="submit" loading={pending}>
-        {copy.submit}
+        {t(copy.submit)}
       </Button>
       <p className="text-center text-sm text-fg-muted">
-        {copy.switchText}{" "}
-        <Link className="text-cyan hover:underline" href={copy.switchHref}>
-          {copy.switchCta}
+        {t(copy.switchText)}{" "}
+        <Link className="text-cyan underline underline-offset-2 hover:decoration-2" href={copy.switchHref}>
+          {t(copy.switchCta)}
         </Link>
       </p>
     </form>

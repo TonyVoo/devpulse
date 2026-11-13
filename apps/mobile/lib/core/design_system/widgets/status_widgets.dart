@@ -1,6 +1,7 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
+import '../../../l10n/l10n.dart';
 import '../tokens.dart';
 
 enum Health {
@@ -11,7 +12,12 @@ enum Health {
 
   static Health parse(String? v) => Health.values.firstWhere((h) => h.name == v, orElse: () => Health.unknown);
 
-  String get label => '${name[0].toUpperCase()}${name.substring(1)}';
+  String get label => switch (this) {
+    healthy => l10n.healthHealthy,
+    degraded => l10n.healthDegraded,
+    critical => l10n.healthCritical,
+    unknown => l10n.healthUnknown,
+  };
 }
 
 enum Severity {
@@ -62,7 +68,7 @@ class DpHealthPill extends StatelessWidget {
       Health.unknown => Icons.help,
     };
     return Semantics(
-      label: 'Health: ${health.label}',
+      label: context.l10n.healthSemantics(health.label),
       excludeSemantics: true,
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: compact ? 6 : 8, vertical: 3),
@@ -94,7 +100,7 @@ class DpSeverityChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = severityColor(context, severity);
     return Semantics(
-      label: 'Severity ${severity.index + 1}',
+      label: context.l10n.severitySemantics(severity.index + 1),
       excludeSemantics: true,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -122,7 +128,7 @@ class DpDemoTag extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
       decoration: BoxDecoration(color: v.withValues(alpha: 0.14), borderRadius: BorderRadius.circular(4)),
       child: Text(
-        'DEMO',
+        context.l10n.demo,
         style: TextStyle(color: v, fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 0.5),
       ),
     );
@@ -194,7 +200,7 @@ class DpLineChart extends StatelessWidget {
     if (points.every((e) => e.$2 == null)) {
       return SizedBox(
         height: height,
-        child: Center(child: Text('No data in this range', style: Theme.of(context).textTheme.bodySmall)),
+        child: Center(child: Text(context.l10n.noDataInRange, style: Theme.of(context).textTheme.bodySmall)),
       );
     }
     final spots = [
@@ -280,25 +286,31 @@ class DpLineChart extends StatelessWidget {
   }
 }
 
-String compactNumber(double v) {
-  final a = v.abs();
-  if (a >= 1e9) return '${(v / 1e9).toStringAsFixed(1)}B';
-  if (a >= 1e6) return '${(v / 1e6).toStringAsFixed(1)}M';
-  if (a >= 1e3) return '${(v / 1e3).toStringAsFixed(1)}k';
-  if (a >= 10 || v == v.roundToDouble()) return v.toStringAsFixed(0);
-  return v.toStringAsFixed(2);
+/// Fixed decimals with the app language's separator (1.5 / 1,5).
+String _fixed(double v, int digits) {
+  final s = v.toStringAsFixed(digits);
+  return l10n.localeName.startsWith('vi') ? s.replaceAll('.', ',') : s;
 }
 
-String percent(double? v) => v == null ? '—' : '${(v * 100).toStringAsFixed(v < 0.01 ? 2 : 1)}%';
+String compactNumber(double v) {
+  final a = v.abs();
+  if (a >= 1e9) return '${_fixed(v / 1e9, 1)}B';
+  if (a >= 1e6) return '${_fixed(v / 1e6, 1)}M';
+  if (a >= 1e3) return '${_fixed(v / 1e3, 1)}k';
+  if (a >= 10 || v == v.roundToDouble()) return v.toStringAsFixed(0);
+  return _fixed(v, 2);
+}
 
-String millis(double? v) => v == null ? '—' : (v >= 1000 ? '${(v / 1000).toStringAsFixed(2)} s' : '${v.round()} ms');
+String percent(double? v) => v == null ? '—' : '${_fixed(v * 100, v < 0.01 ? 2 : 1)}%';
+
+String millis(double? v) => v == null ? '—' : (v >= 1000 ? '${_fixed(v / 1000, 2)} s' : '${v.round()} ms');
 
 String timeAgo(DateTime t, {DateTime? now}) {
   final d = (now ?? DateTime.now()).difference(t);
-  if (d.inSeconds < 60) return 'just now';
-  if (d.inMinutes < 60) return '${d.inMinutes}m ago';
-  if (d.inHours < 24) return '${d.inHours}h ago';
-  return '${d.inDays}d ago';
+  if (d.inSeconds < 60) return l10n.justNow;
+  if (d.inMinutes < 60) return l10n.minutesAgo(d.inMinutes);
+  if (d.inHours < 24) return l10n.hoursAgo(d.inHours);
+  return l10n.daysAgo(d.inDays);
 }
 
 /// The API omits buckets without data. Insert explicit `null`s wherever consecutive points

@@ -6,24 +6,26 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { Alert, EmptyState } from "@/components/ui/card";
-import { timeAgo } from "@/components/ui/status";
 import { api } from "@/lib/api-client";
 import type { components } from "@/lib/api-types";
+import { useI18n } from "@/lib/i18n/client";
+import { errorText } from "@/lib/i18n/errors";
+import type { MessageKey } from "@/lib/i18n/translate";
 
 type Entry = components["schemas"]["AuditLogOut"];
 type Page = { items: Entry[]; next_cursor: string | null };
 
 export const FAMILIES = [
-  { label: "All", prefix: "" },
-  { label: "Members", prefix: "member." },
-  { label: "Invitations", prefix: "invitation." },
-  { label: "Organization", prefix: "org." },
-  { label: "Services", prefix: "service." },
-  { label: "Ingest keys", prefix: "ingest_key." },
-  { label: "Alert rules", prefix: "alert_rule." },
-  { label: "Integrations", prefix: "integration." },
-  { label: "AI", prefix: "ai." },
-] as const;
+  { label: "audit.families.all", prefix: "" },
+  { label: "audit.families.members", prefix: "member." },
+  { label: "audit.families.invitations", prefix: "invitation." },
+  { label: "audit.families.org", prefix: "org." },
+  { label: "audit.families.services", prefix: "service." },
+  { label: "audit.families.keys", prefix: "ingest_key." },
+  { label: "audit.families.rules", prefix: "alert_rule." },
+  { label: "audit.families.integrations", prefix: "integration." },
+  { label: "audit.families.ai", prefix: "ai." },
+] as const satisfies readonly { label: MessageKey; prefix: string }[];
 
 /** Changed keys between two snapshots (shallow), for a compact diff. */
 export function diffKeys(before: Record<string, unknown> | null, after: Record<string, unknown> | null): string[] {
@@ -38,8 +40,10 @@ function show(v: unknown): string {
 
 function Row({ e }: { e: Entry }) {
   const [open, setOpen] = useState(false);
+  const { t, ago, date } = useI18n();
   const keys = diffKeys(e.before, e.after);
-  const who = e.actor_name ?? (e.actor_type === "system" ? "DevPulse" : e.actor_type === "ai" ? "Copilot" : "Unknown user");
+  const who =
+    e.actor_name ?? (e.actor_type === "system" ? "DevPulse" : e.actor_type === "ai" ? "Copilot" : t("audit.unknownUser"));
   return (
     <li className="px-4 py-3 text-sm">
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
@@ -49,8 +53,8 @@ function Row({ e }: { e: Entry }) {
           {e.target_type}
           {e.target_id ? ` · ${e.target_id.slice(0, 8)}` : ""}
         </span>
-        <time dateTime={e.created_at} title={new Date(e.created_at).toLocaleString()} className="ml-auto text-xs text-fg-subtle">
-          {timeAgo(e.created_at)}
+        <time dateTime={e.created_at} title={date(e.created_at)} className="ml-auto text-xs text-fg-subtle">
+          {ago(e.created_at)}
         </time>
       </div>
       {keys.length > 0 && (
@@ -61,15 +65,15 @@ function Row({ e }: { e: Entry }) {
             onClick={() => setOpen((o) => !o)}
             className="mt-1 block text-left text-xs text-fg-muted underline-offset-2 hover:underline"
           >
-            {open ? "Hide" : "Show"} changes ({keys.join(", ")})
+            {t(open ? "audit.hideChanges" : "audit.showChanges", { keys: keys.join(", ") })}
           </button>
           {open && (
             <table className="mt-2 w-full text-xs">
               <thead className="text-left text-fg-subtle">
                 <tr>
-                  <th scope="col" className="w-1/4 py-1 font-medium">Field</th>
-                  <th scope="col" className="py-1 font-medium">Before</th>
-                  <th scope="col" className="py-1 font-medium">After</th>
+                  <th scope="col" className="w-1/4 py-1 font-medium">{t("audit.field")}</th>
+                  <th scope="col" className="py-1 font-medium">{t("audit.before")}</th>
+                  <th scope="col" className="py-1 font-medium">{t("audit.after")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -90,6 +94,7 @@ function Row({ e }: { e: Entry }) {
 }
 
 export function AuditLog({ orgId }: { orgId: string }) {
+  const { t } = useI18n();
   const [family, setFamily] = useState<(typeof FAMILIES)[number]>(FAMILIES[0]);
   const q = useInfiniteQuery({
     queryKey: ["orgs", orgId, "audit", family.prefix],
@@ -107,26 +112,27 @@ export function AuditLog({ orgId }: { orgId: string }) {
   return (
     <div className="space-y-4">
       <label className="flex max-w-xs flex-col gap-1.5 text-xs font-medium tracking-wide text-fg-muted">
-        Show
+        {t("audit.show")}
         <Select
           value={family.label}
           onChange={(e) => setFamily(FAMILIES.find((f) => f.label === e.target.value) ?? FAMILIES[0])}
-          
         >
           {FAMILIES.map((f) => (
-            <option key={f.label}>{f.label}</option>
+            <option key={f.label} value={f.label}>
+              {t(f.label)}
+            </option>
           ))}
         </Select>
       </label>
       {q.isPending ? (
-        <div className="h-40 animate-pulse rounded-md bg-raised" role="status" aria-busy aria-label="Loading audit log" />
+        <div className="h-40 animate-pulse rounded-md bg-raised" role="status" aria-busy aria-label={t("audit.loading")} />
       ) : q.isError ? (
         <Alert>
-          Couldn&apos;t load the audit log: {q.error.message}{" "}
-          <Button variant="ghost" size="sm" onClick={() => q.refetch()}>Retry</Button>
+          {t("audit.loadError", { error: errorText(q.error, t) })}{" "}
+          <Button variant="ghost" size="sm" onClick={() => q.refetch()}>{t("common.retry")}</Button>
         </Alert>
       ) : items.length === 0 ? (
-        <EmptyState title="Nothing recorded yet" description="Changes to members, settings, rules and integrations appear here." />
+        <EmptyState title={t("audit.emptyTitle")} description={t("audit.emptyBody")} />
       ) : (
         <>
           <ul className="divide-y divide-line rounded-lg border border-line bg-surface">
@@ -136,7 +142,7 @@ export function AuditLog({ orgId }: { orgId: string }) {
           </ul>
           {q.hasNextPage && (
             <Button variant="secondary" loading={q.isFetchingNextPage} onClick={() => q.fetchNextPage()}>
-              Load older entries
+              {t("audit.loadOlder")}
             </Button>
           )}
         </>

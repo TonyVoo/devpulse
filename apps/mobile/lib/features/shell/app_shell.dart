@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import '../../app/providers.dart';
 import '../../core/design_system/tokens.dart';
 import '../../core/design_system/widgets/dp_widgets.dart';
+import '../../l10n/l10n.dart';
 import '../auth/domain/models.dart';
 import '../auth/presentation/session_controller.dart';
 import '../offline/live_sync.dart';
@@ -16,18 +17,24 @@ import '../push/push_routing.dart';
 
 class _Dest {
   const _Dest(this.label, this.icon, this.selectedIcon);
-  final String label;
+  final String Function(AppLocalizations) label;
   final IconData icon;
   final IconData selectedIcon;
 }
 
 const _destinations = [
-  _Dest('Overview', Icons.space_dashboard_outlined, Icons.space_dashboard),
-  _Dest('Services', Icons.dns_outlined, Icons.dns),
-  _Dest('Incidents', Icons.warning_amber_outlined, Icons.warning_amber),
-  _Dest('Copilot', Icons.auto_awesome_outlined, Icons.auto_awesome),
-  _Dest('Settings', Icons.settings_outlined, Icons.settings),
+  _Dest(_overview, Icons.space_dashboard_outlined, Icons.space_dashboard),
+  _Dest(_services, Icons.dns_outlined, Icons.dns),
+  _Dest(_incidents, Icons.warning_amber_outlined, Icons.warning_amber),
+  _Dest(_copilot, Icons.auto_awesome_outlined, Icons.auto_awesome),
+  _Dest(_settings, Icons.settings_outlined, Icons.settings),
 ];
+
+String _overview(AppLocalizations l) => l.navOverview;
+String _services(AppLocalizations l) => l.navServices;
+String _incidents(AppLocalizations l) => l.navIncidents;
+String _copilot(AppLocalizations l) => l.navCopilot;
+String _settings(AppLocalizations l) => l.navSettings;
 
 /// Bottom navigation on phones, navigation rail on tablets / landscape (≥ 840 dp).
 /// Each branch keeps its own stack (StatefulShellRoute.indexedStack).
@@ -73,7 +80,7 @@ class _AppShellState extends ConsumerState<AppShell> with WidgetsBindingObserver
       if (!mounted) return;
       final message = switch (n) {
         OutboxConflict(:final message) => message,
-        OutboxFailed(:final message) => "A change couldn't be applied: $message",
+        OutboxFailed(:final message) => context.l10n.changeNotApplied(message),
       };
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
     });
@@ -149,8 +156,8 @@ class _AppShellState extends ConsumerState<AppShell> with WidgetsBindingObserver
               padding: const EdgeInsets.fromLTRB(DpSpace.lg, DpSpace.sm, DpSpace.lg, 0),
               child: DpBanner(
                 message: [
-                  if (stale || !online) 'Offline · showing data saved on this device',
-                  if (pending > 0) '$pending change${pending == 1 ? '' : 's'} waiting to sync',
+                  if (stale || !online) context.l10n.offlineBanner,
+                  if (pending > 0) context.l10n.pendingChanges(pending),
                 ].join(' · '),
                 tone: (stale || !online) ? DpBannerTone.warning : DpBannerTone.info,
                 action: TextButton(
@@ -158,7 +165,7 @@ class _AppShellState extends ConsumerState<AppShell> with WidgetsBindingObserver
                     ref.read(sessionControllerProvider.notifier).refreshProfile();
                     unawaited(ref.read(liveSyncProvider)?.refresh().catchError((Object _) {}));
                   },
-                  child: const Text('Retry'),
+                  child: Text(context.l10n.retry),
                 ),
               ),
             ),
@@ -184,7 +191,7 @@ class _AppShellState extends ConsumerState<AppShell> with WidgetsBindingObserver
                   NavigationRailDestination(
                     icon: Icon(d.icon),
                     selectedIcon: Icon(d.selectedIcon),
-                    label: Text(d.label),
+                    label: Text(d.label(context.l10n)),
                   ),
               ],
             ),
@@ -202,7 +209,7 @@ class _AppShellState extends ConsumerState<AppShell> with WidgetsBindingObserver
         onDestinationSelected: _go,
         destinations: [
           for (final d in _destinations)
-            NavigationDestination(icon: Icon(d.icon), selectedIcon: Icon(d.selectedIcon), label: d.label),
+            NavigationDestination(icon: Icon(d.icon), selectedIcon: Icon(d.selectedIcon), label: d.label(context.l10n)),
         ],
       ),
     );

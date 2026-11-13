@@ -7,6 +7,7 @@ import '../../core/database/app_database.dart';
 import '../../core/network/org_api.dart';
 import '../../core/network/retry_policy.dart';
 import '../../core/result/failure.dart';
+import '../../l10n/l10n.dart';
 import '../incidents/domain/incident.dart';
 import 'local_store.dart';
 
@@ -177,9 +178,7 @@ class OutboxProcessor {
       _notices.add(
         OutboxConflict(
           e.incidentId,
-          f.code == 'conflict.version_mismatch'
-              ? 'Your "${e.action}" was not applied: someone else changed this incident first. Showing the latest.'
-              : '${f.message}. Showing the latest.',
+          f.code == 'conflict.version_mismatch' ? l10n.conflictNotApplied(e.action) : l10n.showingLatest(f.message),
         ),
       );
       return true;

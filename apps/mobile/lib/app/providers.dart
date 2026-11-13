@@ -51,3 +51,20 @@ class ThemeModeController extends AsyncNotifier<ThemeMode> {
 }
 
 final themeModeProvider = AsyncNotifierProvider<ThemeModeController, ThemeMode>(ThemeModeController.new);
+
+/// User-chosen language, persisted on device (survives sign-out). `null` follows the
+/// phone's language (Vietnamese phones get Vietnamese, everything else English).
+class LocaleController extends AsyncNotifier<Locale?> {
+  @override
+  Future<Locale?> build() async {
+    final saved = await ref.watch(databaseProvider).readString(KvKeys.locale);
+    return saved == null || saved.isEmpty ? null : Locale(saved);
+  }
+
+  Future<void> set(Locale? locale) async {
+    state = AsyncData(locale);
+    await ref.read(databaseProvider).writeString(KvKeys.locale, locale?.languageCode ?? '');
+  }
+}
+
+final localeProvider = AsyncNotifierProvider<LocaleController, Locale?>(LocaleController.new);

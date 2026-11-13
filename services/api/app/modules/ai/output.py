@@ -196,7 +196,9 @@ def _pydantic_errors(e: ValidationError) -> list[str]:
     return [f"{'.'.join(str(p) for p in err['loc'])}: {err['msg']}" for err in e.errors()]
 
 
-def validate_analysis(text: str | None, *, known_refs: set[str], incident_key: str) -> Analysis:
+def validate_analysis(
+    text: str | None, *, known_refs: set[str], incident_key: str, language: str = "en"
+) -> Analysis:
     data = _parse_json(text)
     try:
         raw = _AnalysisIn.model_validate(data)
@@ -228,7 +230,10 @@ def validate_analysis(text: str | None, *, known_refs: set[str], incident_key: s
         if len(refs) == 1 and confidence > SINGLE_EVIDENCE_CAP:
             confidence = SINGLE_EVIDENCE_CAP
             adjustments.append(
-                f"Confidence for '{c.cause}' capped at {SINGLE_EVIDENCE_CAP}: "
+                f"Độ tin cậy của '{c.cause}' được giới hạn ở {SINGLE_EVIDENCE_CAP}: "
+                "chỉ có một bằng chứng."
+                if language == "vi"
+                else f"Confidence for '{c.cause}' capped at {SINGLE_EVIDENCE_CAP}: "
                 "a single piece of evidence."
             )
         causes.append(

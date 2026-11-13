@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../../../core/design_system/widgets/status_widgets.dart';
+import '../../../l10n/l10n.dart';
 
 enum IncidentStatus {
   triggered,
@@ -10,7 +11,11 @@ enum IncidentStatus {
   static IncidentStatus parse(String v) =>
       IncidentStatus.values.firstWhere((s) => s.name == v, orElse: () => IncidentStatus.triggered);
 
-  String get label => '${name[0].toUpperCase()}${name.substring(1)}';
+  String get label => switch (this) {
+    triggered => l10n.statusTriggered,
+    acknowledged => l10n.statusAcknowledged,
+    resolved => l10n.statusResolved,
+  };
   bool get isOpen => this != IncidentStatus.resolved;
 }
 
@@ -174,27 +179,36 @@ class TimelineEvent {
 
   /// Human sentence for the timeline.
   String describe() {
-    final who = actorName ?? (actorType == 'system' ? 'DevPulse' : 'Someone');
+    final l = l10n;
+    final who =
+        actorName ??
+        switch (actorType) {
+          'system' => 'DevPulse',
+          'ai' => 'Copilot',
+          _ => l.someone,
+        };
     return switch (type) {
-      'created' => data['rule'] != null ? 'Opened by alert “${data['rule']}”' : 'Opened by $who',
-      'acknowledged' => '$who acknowledged',
-      'resolved' => '$who resolved${data['note'] != null ? ': ${data['note']}' : ''}',
-      'reopened' => '$who reopened',
-      'assigned' => data['assignee_name'] == null ? '$who unassigned' : '$who assigned ${data['assignee_name']}',
-      'escalated' => '$who escalated to level ${data['level']}',
-      'severity_changed' => '$who changed severity to ${'${data['to']}'.toUpperCase()}',
-      'comment_added' => '$who commented',
-      'alert_attached' => 'Alert “${data['rule']}” fired again',
-      'alert_resolved' => 'Alert “${data['rule']}” recovered',
-      'deployment_correlated' => 'Deployment ${data['version']} may be related',
+      'created' => data['rule'] != null ? l.evOpenedByRule('${data['rule']}') : l.evOpenedBy(who),
+      'acknowledged' => l.evAcknowledged(who),
+      'resolved' => data['note'] != null ? l.evResolvedNote(who, '${data['note']}') : l.evResolved(who),
+      'reopened' => l.evReopened(who),
+      'assigned' => data['assignee_name'] == null ? l.evUnassigned(who) : l.evAssigned(who, '${data['assignee_name']}'),
+      'escalated' => l.evEscalated(who, '${data['level']}'),
+      'severity_changed' => l.evSeverityChanged(who, '${data['to']}'.toUpperCase()),
+      'comment_added' => l.evCommented(who),
+      'alert_attached' => l.evAlertAttached('${data['rule']}'),
+      'alert_resolved' => l.evAlertResolved('${data['rule']}'),
+      'deployment_correlated' => l.evDeploymentCorrelated('${data['version']}'),
       'ai_analysis' when data['kind'] == 'proposal_decision' =>
-        '$who ${data['decision']} the AI-proposed step “${data['description']}”',
+        data['decision'] == 'approved'
+            ? l.evProposalApproved(who, '${data['description']}')
+            : l.evProposalRejected(who, '${data['description']}'),
       'ai_analysis' => switch (data['status']) {
-        'succeeded' => 'AI analysis ready',
-        'failed' || 'rejected' => 'AI analysis unavailable',
-        _ => 'AI analysis updated',
+        'succeeded' => l.evAiReady,
+        'failed' || 'rejected' => l.evAiUnavailable,
+        _ => l.evAiUpdated,
       },
-      _ => type,
+      _ => type.replaceAll('_', ' '),
     };
   }
 }

@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/design_system/tokens.dart';
 import '../../../core/design_system/widgets/dp_widgets.dart';
 import '../../../core/result/failure.dart';
+import '../../../l10n/l10n.dart';
 import '../domain/models.dart';
 import 'session_controller.dart';
 
@@ -17,8 +18,8 @@ enum AuthMode { login, register }
 String? fieldMessage(String field, Map<String, String> fields) {
   final raw = fields[field];
   if (raw == null) return null;
-  if (field == 'password' && raw.contains('at least')) return 'Use at least 12 characters.';
-  if (field == 'email') return 'Enter a valid email address.';
+  if (field == 'password' && raw.contains('at least')) return l10n.passwordTooShort;
+  if (field == 'email') return l10n.invalidEmail;
   return raw;
 }
 
@@ -76,12 +77,13 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
+    final l = context.l10n;
     final session = ref.watch(sessionControllerProvider).value;
     final reason = session is SignedOut ? session.reason : null;
     final fields = _failure is ValidationFailure ? (_failure! as ValidationFailure).fields : const <String, String>{};
     final formMessage = switch (_failure) {
       null => null,
-      ValidationFailure() => 'Check the highlighted fields.',
+      ValidationFailure() => l.checkFields,
       final f => f.message,
     };
 
@@ -98,7 +100,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                   children: [
                     const Center(child: DpLogo(size: 17)),
                     const SizedBox(height: DpSpace.xxl),
-                    Text(_isLogin ? 'Sign in' : 'Create your account', style: t.headlineSmall),
+                    Text(_isLogin ? l.signIn : l.createYourAccount, style: t.headlineSmall),
                     const SizedBox(height: DpSpace.lg),
                     if (formMessage != null || (reason != null && _isLogin)) ...[
                       DpBanner(
@@ -109,7 +111,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                     ],
                     if (!_isLogin) ...[
                       DpTextField(
-                        label: 'Name',
+                        label: l.name,
                         controller: _name,
                         autofillHints: const [AutofillHints.name],
                         textInputAction: TextInputAction.next,
@@ -119,7 +121,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                       const SizedBox(height: DpSpace.md),
                     ],
                     DpTextField(
-                      label: 'Work email',
+                      label: l.workEmail,
                       controller: _email,
                       keyboardType: TextInputType.emailAddress,
                       autofillHints: const [AutofillHints.email],
@@ -129,19 +131,19 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                     ),
                     const SizedBox(height: DpSpace.md),
                     DpTextField(
-                      label: 'Password',
+                      label: l.password,
                       controller: _password,
                       obscure: true,
                       autofillHints: [_isLogin ? AutofillHints.password : AutofillHints.newPassword],
                       textInputAction: TextInputAction.done,
                       onSubmitted: (_) => _submit(),
-                      helperText: _isLogin ? null : 'At least 12 characters.',
+                      helperText: _isLogin ? null : l.passwordHint,
                       errorText: fieldMessage('password', fields),
                       enabled: !_pending,
                     ),
                     const SizedBox(height: DpSpace.xl),
                     DpButton(
-                      label: _isLogin ? 'Sign in' : 'Create account',
+                      label: _isLogin ? l.signIn : l.createAccount,
                       onPressed: _submit,
                       loading: _pending,
                       expand: true,
@@ -149,7 +151,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                     const SizedBox(height: DpSpace.md),
                     TextButton(
                       onPressed: _pending ? null : () => context.go(_isLogin ? '/register' : '/login'),
-                      child: Text(_isLogin ? 'New to DevPulse? Create an account' : 'Already have an account? Sign in'),
+                      child: Text(_isLogin ? l.goToRegister : l.goToLogin),
                     ),
                   ],
                 ),

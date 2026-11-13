@@ -7,6 +7,7 @@ import '../../../core/design_system/widgets/async_view.dart';
 import '../../../core/design_system/widgets/dp_widgets.dart';
 import '../../../core/design_system/widgets/status_widgets.dart';
 import '../../../core/result/failure.dart';
+import '../../../l10n/l10n.dart';
 import '../../auth/domain/models.dart';
 import '../../auth/presentation/session_controller.dart';
 import '../../offline/live_sync.dart';
@@ -66,15 +67,22 @@ final olderIncidentsProvider =
     );
 
 enum _StatusTab {
-  open('Open', {IncidentStatus.triggered, IncidentStatus.acknowledged}),
-  triggered('Triggered', {IncidentStatus.triggered}),
-  acknowledged('Acknowledged', {IncidentStatus.acknowledged}),
-  resolved('Resolved', {IncidentStatus.resolved}),
-  all('All', {});
+  open({IncidentStatus.triggered, IncidentStatus.acknowledged}),
+  triggered({IncidentStatus.triggered}),
+  acknowledged({IncidentStatus.acknowledged}),
+  resolved({IncidentStatus.resolved}),
+  all({});
 
-  const _StatusTab(this.label, this.statuses);
-  final String label;
+  const _StatusTab(this.statuses);
   final Set<IncidentStatus> statuses;
+
+  String get label => switch (this) {
+    open => l10n.tabOpen,
+    triggered => l10n.statusTriggered,
+    acknowledged => l10n.statusAcknowledged,
+    resolved => l10n.statusResolved,
+    all => l10n.all,
+  };
 }
 
 class IncidentsScreen extends ConsumerWidget {
@@ -92,7 +100,7 @@ class IncidentsScreen extends ConsumerWidget {
     void setFilter(IncidentFilter f) => ref.read(incidentFilterProvider.notifier).set(f);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Incidents')),
+      appBar: AppBar(title: Text(context.l10n.navIncidents)),
       body: Column(
         children: [
           SizedBox(
@@ -112,7 +120,7 @@ class IncidentsScreen extends ConsumerWidget {
                   ),
                 const VerticalDivider(),
                 FilterChip(
-                  label: const Text('Mine'),
+                  label: Text(context.l10n.mine),
                   selected: filter.mineOnly,
                   onSelected: (v) => setFilter(filter.copyWith(mineOnly: v)),
                 ),
@@ -145,10 +153,12 @@ class IncidentsScreen extends ConsumerWidget {
                           const SizedBox(height: 60),
                           DpEmptyState(
                             icon: Icons.verified_outlined,
-                            title: tab == _StatusTab.open ? 'No open incidents — all clear' : 'No incidents match',
+                            title: tab == _StatusTab.open
+                                ? context.l10n.noOpenIncidentsAllClear
+                                : context.l10n.noIncidentsMatch,
                             description: tab == _StatusTab.open
-                                ? 'Incidents opened by alert rules or by your team will appear here.'
-                                : 'Try a different status or severity filter.',
+                                ? context.l10n.incidentsEmptyBody
+                                : context.l10n.tryDifferentFilter,
                           ),
                         ],
                       )
@@ -167,7 +177,7 @@ class IncidentsScreen extends ConsumerWidget {
                             padding: const EdgeInsets.all(DpSpace.md),
                             child: Center(
                               child: DpButton(
-                                label: older.error != null ? "Couldn't load — retry" : 'Load older incidents',
+                                label: older.error != null ? context.l10n.loadOlderFailed : context.l10n.loadOlder,
                                 variant: DpButtonVariant.ghost,
                                 loading: older.loading,
                                 onPressed: () => ref.read(olderIncidentsProvider.notifier).load(),

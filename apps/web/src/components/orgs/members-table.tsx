@@ -7,21 +7,16 @@ import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { Alert, Card } from "@/components/ui/card";
 import { Field } from "@/components/ui/field";
-import { timeAgo } from "@/components/ui/status";
-import { api, ApiError } from "@/lib/api-client";
+import { api } from "@/lib/api-client";
 import type { components } from "@/lib/api-types";
+import { useI18n } from "@/lib/i18n/client";
+import { errorText } from "@/lib/i18n/errors";
 
 type Member = components["schemas"]["MemberOut"];
 type Invitation = components["schemas"]["InvitationOut"];
 type Created = components["schemas"]["InvitationCreatedOut"];
 type Role = Member["role"];
 
-const ROLE_LABEL: Record<Role, string> = {
-  owner: "Owner",
-  admin: "Admin",
-  engineer: "Engineer",
-  viewer: "Viewer",
-};
 const RANK: Record<Role, number> = { viewer: 0, engineer: 1, admin: 2, owner: 3 };
 
 /** Roles the current user may grant (mirrors the API: never above your own). */
@@ -29,12 +24,10 @@ export function grantableRoles(myRole: Role): Role[] {
   return (Object.keys(RANK) as Role[]).filter((r) => RANK[r] <= RANK[myRole]).reverse();
 }
 
-function errorText(e: unknown): string {
-  return e instanceof ApiError ? e.problem.detail : "Something went wrong.";
-}
 
 function InviteForm({ orgId, myRole }: { orgId: string; myRole: Role }) {
   const qc = useQueryClient();
+  const { t } = useI18n();
   const [link, setLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const invite = useMutation({
@@ -55,31 +48,29 @@ function InviteForm({ orgId, myRole }: { orgId: string; myRole: Role }) {
 
   return (
     <Card className="space-y-4">
-      <h2 className="font-semibold">Invite someone</h2>
+      <h2 className="font-semibold">{t("members.invite")}</h2>
       <form method="post" onSubmit={onSubmit} className="flex flex-wrap items-end gap-3">
         <div className="min-w-56 flex-1">
-          <Field label="Email" name="email" type="email" required autoComplete="off" />
+          <Field label={t("common.email")} name="email" type="email" required autoComplete="off" />
         </div>
         <label className="flex flex-col gap-1.5 text-xs font-medium tracking-wide text-fg-muted">
-          Role
-          <Select name="role" defaultValue="engineer" >
+          {t("members.role")}
+          <Select name="role" defaultValue="engineer">
             {grantableRoles(myRole).map((r) => (
               <option key={r} value={r}>
-                {ROLE_LABEL[r]}
+                {t(`roles.${r}`)}
               </option>
             ))}
           </Select>
         </label>
         <Button type="submit" loading={invite.isPending}>
-          Create invite link
+          {t("members.createLink")}
         </Button>
       </form>
-      {invite.isError && <Alert>{errorText(invite.error)}</Alert>}
+      {invite.isError && <Alert>{errorText(invite.error, t)}</Alert>}
       {link && (
         <Alert tone="info">
-          <p className="mb-2">
-            Send this link to them. It is shown once, works only for that email address and expires in 7 days.
-          </p>
+          <p className="mb-2">{t("members.linkHint")}</p>
           <div className="flex flex-wrap items-center gap-2">
             <code className="min-w-0 flex-1 break-all rounded bg-canvas px-2 py-1 text-xs">{link}</code>
             <Button
@@ -89,7 +80,7 @@ function InviteForm({ orgId, myRole }: { orgId: string; myRole: Role }) {
                 void navigator.clipboard.writeText(link).then(() => setCopied(true));
               }}
             >
-              {copied ? "Copied" : "Copy"}
+              {copied ? t("common.copied") : t("common.copy")}
             </Button>
           </div>
         </Alert>
@@ -100,6 +91,7 @@ function InviteForm({ orgId, myRole }: { orgId: string; myRole: Role }) {
 
 function Invitations({ orgId }: { orgId: string }) {
   const qc = useQueryClient();
+  const { t, ago } = useI18n();
   const list = useQuery({
     queryKey: ["orgs", orgId, "invitations"],
     queryFn: () => api.get<Invitation[]>(`orgs/${orgId}/invitations`),
@@ -112,16 +104,16 @@ function Invitations({ orgId }: { orgId: string }) {
   return (
     <section aria-labelledby="pending" className="space-y-2">
       <h2 id="pending" className="text-sm font-semibold">
-        Pending invitations
+        {t("members.pending")}
       </h2>
       <ul className="divide-y divide-line rounded-lg border border-line bg-surface text-sm">
         {list.data.map((i) => (
           <li key={i.id} className="flex flex-wrap items-center gap-3 px-4 py-2">
             <span className="min-w-0 flex-1 truncate">{i.email}</span>
-            <span className="text-fg-muted">{ROLE_LABEL[i.role]}</span>
-            <span className="text-xs text-fg-subtle">sent {timeAgo(i.created_at)}</span>
+            <span className="text-fg-muted">{t(`roles.${i.role}`)}</span>
+            <span className="text-xs text-fg-subtle">{t("members.sent", { ago: ago(i.created_at) })}</span>
             <Button size="sm" variant="ghost" loading={revoke.isPending && revoke.variables === i.id} onClick={() => revoke.mutate(i.id)}>
-              Revoke
+              {t("common.revoke")}
             </Button>
           </li>
         ))}
@@ -140,6 +132,7 @@ export function MembersTable({
   myRole: Role;
 }) {
   const qc = useQueryClient();
+  const { t, date } = useI18n();
   const canManage = myRole === "owner" || myRole === "admin";
   const key = ["orgs", orgId, "members"];
   const members = useQuery({ queryKey: key, queryFn: () => api.get<Member[]>(`orgs/${orgId}/members`) });
@@ -154,7 +147,7 @@ export function MembersTable({
 
   if (members.isPending) {
     return (
-      <div role="status" aria-busy className="space-y-2" aria-label="Loading members">
+      <div role="status" aria-busy className="space-y-2" aria-label={t("members.loading")}>
         {[0, 1, 2].map((i) => (
           <div key={i} className="h-14 animate-pulse rounded-md bg-raised" />
         ))}
@@ -164,9 +157,9 @@ export function MembersTable({
   if (members.isError) {
     return (
       <Alert>
-        Couldn&apos;t load members: {members.error.message}{" "}
+        {t("members.loadError", { error: errorText(members.error, t) })}{" "}
         <Button variant="ghost" size="sm" onClick={() => members.refetch()}>
-          Retry
+          {t("common.retry")}
         </Button>
       </Alert>
     );
@@ -175,18 +168,18 @@ export function MembersTable({
   return (
     <div className="space-y-6">
       {canManage && <InviteForm orgId={orgId} myRole={myRole} />}
-      {error && <Alert>{errorText(error)}</Alert>}
+      {error && <Alert>{errorText(error, t)}</Alert>}
       <div className="overflow-x-auto rounded-lg border border-line bg-surface">
         <table className="w-full text-sm">
           <thead className="text-left text-xs uppercase tracking-wide text-fg-subtle">
             <tr className="border-b border-line">
-              <th scope="col" className="px-4 py-3 font-medium">Name</th>
-              <th scope="col" className="hidden px-4 py-3 font-medium sm:table-cell">Email</th>
-              <th scope="col" className="px-4 py-3 font-medium">Role</th>
-              <th scope="col" className="hidden px-4 py-3 font-medium md:table-cell">Joined</th>
+              <th scope="col" className="px-4 py-3 font-medium">{t("members.colName")}</th>
+              <th scope="col" className="hidden px-4 py-3 font-medium sm:table-cell">{t("members.colEmail")}</th>
+              <th scope="col" className="px-4 py-3 font-medium">{t("members.colRole")}</th>
+              <th scope="col" className="hidden px-4 py-3 font-medium md:table-cell">{t("members.colJoined")}</th>
               {canManage && (
                 <th scope="col" className="px-4 py-3 font-medium">
-                  <span className="sr-only">Actions</span>
+                  <span className="sr-only">{t("members.actions")}</span>
                 </th>
               )}
             </tr>
@@ -198,7 +191,7 @@ export function MembersTable({
                 <tr key={m.user_id}>
                   <td className="px-4 py-3">
                     {m.display_name}
-                    {m.user_id === myUserId && <span className="ml-1 text-xs text-fg-subtle">(you)</span>}
+                    {m.user_id === myUserId && <span className="ml-1 text-xs text-fg-subtle">{t("members.you")}</span>}
                     <div className="break-all text-xs text-fg-muted sm:hidden">{m.email}</div>
                   </td>
                   <td className="hidden break-all px-4 py-3 text-fg-muted sm:table-cell">{m.email}</td>
@@ -206,7 +199,7 @@ export function MembersTable({
                     {editable ? (
                       <Select
                         className="w-32"
-                        aria-label={`Role for ${m.display_name}`}
+                        aria-label={t("members.roleFor", { name: m.display_name })}
                         value={m.role}
                         disabled={change.isPending}
                         onChange={(e) => change.mutate({ userId: m.user_id, role: e.target.value as Role })}
@@ -214,16 +207,16 @@ export function MembersTable({
                       >
                         {grantableRoles(myRole).map((r) => (
                           <option key={r} value={r}>
-                            {ROLE_LABEL[r]}
+                            {t(`roles.${r}`)}
                           </option>
                         ))}
                       </Select>
                     ) : (
-                      ROLE_LABEL[m.role]
+                      t(`roles.${m.role}`)
                     )}
                   </td>
                   <td className="hidden px-4 py-3 font-mono text-xs text-fg-muted md:table-cell">
-                    {new Date(m.joined_at).toLocaleDateString()}
+                    {date(m.joined_at, { dateStyle: "medium" })}
                   </td>
                   {canManage && (
                     <td className="px-4 py-3 text-right">
@@ -233,11 +226,11 @@ export function MembersTable({
                           variant="ghost"
                           loading={remove.isPending && remove.variables === m.user_id}
                           onClick={() => {
-                            if (window.confirm(`Remove ${m.display_name} from this organization? They lose access immediately.`))
+                            if (window.confirm(t("members.confirmRemove", { name: m.display_name })))
                               remove.mutate(m.user_id);
                           }}
                         >
-                          Remove
+                          {t("common.remove")}
                         </Button>
                       )}
                     </td>

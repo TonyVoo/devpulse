@@ -1,13 +1,32 @@
 import 'package:dio/dio.dart';
 
+import '../../l10n/l10n.dart';
+
 /// What went wrong, in terms the UI can act on. Built from the API's problem+json `code`,
 /// never from human-readable text.
 sealed class Failure implements Exception {
-  const Failure(this.message, {this.code, this.requestId});
+  const Failure(this.detail, {this.code, this.requestId});
 
-  final String message;
+  /// The server's own (English) text, kept for logs and as the fallback for unknown codes.
+  final String detail;
   final String? code;
   final String? requestId;
+
+  /// What to show the user, in the app's language: by failure type and API error code,
+  /// falling back to the server's text.
+  String get message {
+    final known = switch (code) {
+      'auth.invalid_credentials' => l10n.errInvalidCredentials,
+      'auth.email_taken' => l10n.errEmailTaken,
+      'auth.session_ended' || 'auth.session_revoked' || 'auth.token_expired' => l10n.sessionEnded,
+      'conflict.version_mismatch' => l10n.errVersionMismatch,
+      'incident.invalid_transition' => l10n.errInvalidTransition,
+      'incident.max_escalation' => l10n.errMaxEscalation,
+      'org.slug_taken' || 'service.slug_taken' => l10n.errSlugTaken,
+      _ => null,
+    };
+    return known ?? (detail.isEmpty ? l10n.errGeneric : detail);
+  }
 
   /// Maps any error thrown by the networking layer into a [Failure].
   static Failure from(Object error) {
@@ -27,11 +46,11 @@ sealed class Failure implements Exception {
       case DioExceptionType.connectionError:
         return const NetworkFailure();
       case DioExceptionType.transformTimeout:
-        return const UnknownFailure('The response took too long to process.');
+        return const UnknownFailure(UnknownFailure.slow);
       case DioExceptionType.cancel:
-        return const UnknownFailure('Request cancelled');
+        return const UnknownFailure(UnknownFailure.cancelled);
       case DioExceptionType.badCertificate:
-        return const NetworkFailure("Can't establish a secure connection.");
+        return const NetworkFailure(NetworkFailure.insecure);
       case DioExceptionType.badResponse:
       case DioExceptionType.unknown:
         break;
@@ -41,7 +60,7 @@ sealed class Failure implements Exception {
     final body = response.data;
     final problem = body is Map<String, dynamic> ? body : const <String, dynamic>{};
     final code = problem['code'] as String?;
-    final detail = (problem['detail'] as String?) ?? 'Something went wrong. Try again.';
+    final detail = (problem['detail'] as String?) ?? '';
     final requestId = problem['request_id'] as String?;
     final status = response.statusCode ?? 0;
 
@@ -60,61 +79,77 @@ sealed class Failure implements Exception {
       return ValidationFailure(detail, fields: fields, code: code, requestId: requestId);
     }
     if (status == 429) {
-      return RateLimitedFailure(
-        'Too many attempts. Wait a few minutes and try again.',
-        code: code,
-        requestId: requestId,
-      );
+      return RateLimitedFailure(detail, code: code, requestId: requestId);
     }
-    return ServerFailure(
-      status >= 500 ? 'DevPulse is having trouble right now. Try again shortly.' : detail,
-      status: status,
-      code: code,
-      requestId: requestId,
-    );
+    return ServerFailure(detail, status: status, code: code, requestId: requestId);
   }
 
   @override
-  String toString() => '$runtimeType($code): $message';
+  String toString() => '$runtimeType($code): $detail';
 }
 
 final class NetworkFailure extends Failure {
-  const NetworkFailure([super.message = "Can't reach DevPulse. Check your connection."]);
+  const NetworkFailure([super.detail = '']);
+
+  static const insecure = 'tls';
+
+  @override
+  String get message => switch (detail) {
+    '' => l10n.errNetwork,
+    insecure => l10n.errInsecure,
+    _ => detail,
+  };
 }
 
 final class UnauthorizedFailure extends Failure {
-  const UnauthorizedFailure(super.message, {super.code, super.requestId});
+  const UnauthorizedFailure(super.detail, {super.code, super.requestId});
 }
 
 final class ForbiddenFailure extends Failure {
-  const ForbiddenFailure(super.message, {super.code, super.requestId});
+  const ForbiddenFailure(super.detail, {super.code, super.requestId});
 }
 
 final class NotFoundFailure extends Failure {
-  const NotFoundFailure(super.message, {super.code, super.requestId});
+  const NotFoundFailure(super.detail, {super.code, super.requestId});
 }
 
 final class ConflictFailure extends Failure {
-  const ConflictFailure(super.message, {super.code, super.requestId});
+  const ConflictFailure(super.detail, {super.code, super.requestId});
 }
 
 final class ValidationFailure extends Failure {
-  const ValidationFailure(super.message, {this.fields = const {}, super.code, super.requestId});
+  const ValidationFailure(super.detail, {this.fields = const {}, super.code, super.requestId});
 
   /// Field name → server message, e.g. `{'password': 'String should have at least 12 characters'}`.
   final Map<String, String> fields;
 }
 
 final class RateLimitedFailure extends Failure {
-  const RateLimitedFailure(super.message, {super.code, super.requestId});
+  const RateLimitedFailure(super.detail, {super.code, super.requestId});
+
+  @override
+  String get message => l10n.errTooMany;
 }
 
 final class ServerFailure extends Failure {
-  const ServerFailure(super.message, {required this.status, super.code, super.requestId});
+  const ServerFailure(super.detail, {required this.status, super.code, super.requestId});
 
   final int status;
+
+  @override
+  String get message => status >= 500 ? l10n.errServer : super.message;
 }
 
 final class UnknownFailure extends Failure {
-  const UnknownFailure(super.message);
+  const UnknownFailure(super.detail);
+
+  static const slow = 'transform_timeout';
+  static const cancelled = 'cancelled';
+
+  @override
+  String get message => switch (detail) {
+    slow => l10n.errSlow,
+    cancelled => l10n.errCancelled,
+    _ => super.message,
+  };
 }

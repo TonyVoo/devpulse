@@ -4,11 +4,12 @@ from datetime import datetime
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, Response, status
+from fastapi import APIRouter, Depends, Query, Request, Response, status
 
 from app.core.deps import SessionDep
 from app.core.pagination import Page
 from app.core.tenancy import OrgContext, require_org
+from app.modules.ai.language import Language, from_accept_language
 from app.modules.ai.schemas import (
     AISettingsIn,
     AISettingsOut,
@@ -20,6 +21,7 @@ from app.modules.ai.schemas import (
     InvestigationSummary,
     MessageOut,
     ProposalOut,
+    StartIn,
     UsageOut,
 )
 from app.modules.ai.service import AIService
@@ -32,15 +34,28 @@ Investigate = Annotated[OrgContext, Depends(require_org(Permission.AI_INVESTIGAT
 Configure = Annotated[OrgContext, Depends(require_org(Permission.AI_CONFIGURE))]
 
 
+def _header_language(request: Request) -> Language | None:
+    header = request.headers.get("accept-language")
+    return from_accept_language(header) if header else None
+
+
 @router.post(
     "/incidents/{ref}/investigations",
     response_model=InvestigationOut,
     status_code=status.HTTP_202_ACCEPTED,
 )
-async def start_investigation(ref: str, ctx: Investigate, session: SessionDep) -> InvestigationOut:
+async def start_investigation(
+    ref: str,
+    ctx: Investigate,
+    session: SessionDep,
+    request: Request,
+    body: StartIn | None = None,
+) -> InvestigationOut:
     """Queues an analysis (one active run per incident). Poll the returned investigation or
-    listen for the incident's `ai_analysis` timeline event."""
-    return await AIService(session, ctx).start(ref)
+    listen for the incident's `ai_analysis` timeline event. The analysis is written in
+    `language` (else the Accept-Language header's, else English)."""
+    language = (body.language if body else None) or _header_language(request) or "en"
+    return await AIService(session, ctx).start(ref, language)
 
 
 @router.get("/incidents/{ref}/investigations", response_model=list[InvestigationSummary])
@@ -71,10 +86,13 @@ async def list_messages(inv_id: UUID, ctx: Read, session: SessionDep) -> list[Me
 
 
 @router.post("/ai/investigations/{inv_id}/messages", response_model=AskOut)
-async def ask(inv_id: UUID, body: AskIn, ctx: Investigate, session: SessionDep) -> AskOut:
+async def ask(
+    inv_id: UUID, body: AskIn, ctx: Investigate, session: SessionDep, request: Request
+) -> AskOut:
     """Follow-up question. The model may call read-only tools; their results become new
-    evidence. Idempotent on `client_id` (a retry returns the stored answer)."""
-    return await AIService(session, ctx).ask(inv_id, body)
+    evidence. Idempotent on `client_id` (a retry returns the stored answer). Answered in
+    `language` (else the Accept-Language header's, else the analysis's language)."""
+    return await AIService(session, ctx).ask(inv_id, body, _header_language(request))
 
 
 @router.post(

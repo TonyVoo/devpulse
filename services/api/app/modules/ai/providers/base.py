@@ -64,6 +64,8 @@ class LLMRequest:
     # FakeProvider). Real adapters only send what is rendered in `messages`.
     context: dict[str, Any] | None = None
     purpose: str = "investigate"
+    # Language of the model's prose ("en", "vi"); the system prompt already says so.
+    language: str = "en"
 
 
 @dataclass(frozen=True)

@@ -22,6 +22,7 @@ from app.core.errors import AppError, Conflict
 from app.modules.ai import providers
 from app.modules.ai.collector import Collected, collect
 from app.modules.ai.evidence import Evidence, EvidenceRegistry, Redactor
+from app.modules.ai.language import DEFAULT_LANGUAGE, instruction
 from app.modules.ai.models import (
     ACTIVE_STATUSES,
     AIActionProposal,
@@ -109,6 +110,7 @@ async def load_settings(session: AsyncSession, org_id: UUID) -> AISettings:
         monthly_budget_micros=20_000_000,
         max_tokens_per_run=200_000,
         auto_investigate_min_severity=None,
+        language=DEFAULT_LANGUAGE,
         data_redaction=dict(DEFAULT_REDACTION),
         version=0,
     )
@@ -144,6 +146,7 @@ async def start_investigation(
     *,
     trigger: Trigger,
     requested_by: UUID | None,
+    language: str | None = None,
 ) -> AIInvestigation | None:
     """Creates a queued run (caller commits, then calls `enqueue`). Manual triggers raise
     on guard failures; automatic ones return None."""
@@ -189,6 +192,8 @@ async def start_investigation(
         provider=provider,
         model=model,
         prompt_version=INVESTIGATE_PROMPT,
+        # The requester's language; automatic runs use the org's AI setting.
+        language=language or st.language or DEFAULT_LANGUAGE,
         requested_by=requested_by,
         is_demo=inc.is_demo,
     )
@@ -426,7 +431,7 @@ async def _pipeline(
     session: AsyncSession, inv: AIInvestigation, inc: Incident, st: AISettings
 ) -> RunStatus:
     redact = Redactor.from_settings(st.data_redaction)
-    col: Collected = await collect(session, inc, redact)
+    col: Collected = await collect(session, inc, redact, language=inv.language)
     reg = col.registry
     for ev in reg.items:
         session.add(evidence_row(inv, ev))
@@ -452,12 +457,13 @@ async def _pipeline(
     messages = [Message("user", text=render_context(context))]
     request = LLMRequest(
         model=inv.model,
-        system=prompt(INVESTIGATE_PROMPT),
+        system=prompt(INVESTIGATE_PROMPT) + instruction(inv.language),
         messages=messages,
         max_output_tokens=MAX_OUTPUT_TOKENS,
         response_schema=ANALYSIS_SCHEMA,
         context=context,
         purpose="investigate",
+        language=inv.language,
     )
     for attempt in (1, 2):
         try:
@@ -467,7 +473,9 @@ async def _pipeline(
             return await _finish(session, inv, inc, RunStatus.FAILED, e.error.code, e.error.detail)
         session.add(row)
         try:
-            analysis = validate_analysis(result.text, known_refs=reg.refs, incident_key=inc.key)
+            analysis = validate_analysis(
+                result.text, known_refs=reg.refs, incident_key=inc.key, language=inv.language
+            )
         except InvalidOutput as e:
             row.outcome = "invalid_output"
             log.warning("ai_invalid_output", investigation_id=str(inv.id), errors=e.errors)

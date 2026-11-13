@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { ServiceDetail } from "@/components/services/service-detail";
 import type { components } from "@/lib/api-types";
+import { getT } from "@/lib/i18n/server";
 import { serverGet } from "@/lib/server-api";
 
 export async function generateMetadata({ params }: PageProps<"/o/[orgId]/services/[serviceId]">): Promise<Metadata> {
@@ -10,7 +11,7 @@ export async function generateMetadata({ params }: PageProps<"/o/[orgId]/service
     const s = await serverGet<components["schemas"]["ServiceOut"]>(`orgs/${orgId}/services/${serviceId}`);
     return { title: s.name };
   } catch {
-    return { title: "Service" };
+    return { title: (await getT())("service.pageTitle") };
   }
 }
 

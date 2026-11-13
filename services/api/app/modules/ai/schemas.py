@@ -4,6 +4,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
+from app.modules.ai.language import Language
 from app.modules.ai.models import (
     EvidenceKind,
     MessageRole,
@@ -50,6 +51,7 @@ class InvestigationSummary(BaseModel):
     model: str
     # True when the analysis came from the rule-based FakeProvider, not a language model.
     is_demo_provider: bool
+    language: Language
     summary: str | None
     error_code: str | None
     created_at: datetime
@@ -81,9 +83,16 @@ class MessageOut(BaseModel):
     created_at: datetime
 
 
+class StartIn(BaseModel):
+    # The requester's UI language; when omitted, the Accept-Language header decides.
+    language: Language | None = None
+
+
 class AskIn(BaseModel):
     question: str = Field(min_length=1, max_length=2000)
     client_id: UUID
+    # Language of the answer; defaults to the Accept-Language header, then the run's language.
+    language: Language | None = None
 
 
 class AskOut(BaseModel):
@@ -121,6 +130,8 @@ class AISettingsIn(BaseModel):
     max_tokens_per_run: int = Field(ge=5_000, le=2_000_000)
     auto_investigate_min_severity: Severity | None = None
     data_redaction: RedactionSettings = RedactionSettings()
+    # Language of automatic analyses (no person asked for them).
+    language: Language = "en"
 
 
 class AISettingsOut(AISettingsIn):

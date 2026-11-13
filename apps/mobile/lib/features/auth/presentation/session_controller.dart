@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/providers.dart';
 import '../../../core/result/failure.dart';
+import '../../../l10n/l10n.dart';
 import '../data/auth_repository.dart';
 import '../domain/models.dart';
 
@@ -22,7 +23,7 @@ class SessionController extends AsyncNotifier<SessionState> {
       return SignedIn(me: me, currentOrgId: _resolveOrg(me, savedOrg));
     } on UnauthorizedFailure {
       await _repo.clearLocal();
-      return const SignedOut(reason: 'Your session has ended. Sign in again.');
+      return SignedOut(reason: l10n.sessionEnded);
     } on Failure catch (f) {
       final cached = await _repo.cachedMe();
       if (f is NetworkFailure || f is ServerFailure) {
@@ -95,7 +96,7 @@ class SessionController extends AsyncNotifier<SessionState> {
   void onSessionExpired() {
     if (state.value is SignedOut) return;
     _repo.clearLocal().ignore();
-    state = const AsyncData(SignedOut(reason: 'Your session has ended. Sign in again.'));
+    state = AsyncData(SignedOut(reason: l10n.sessionEnded));
   }
 }
 

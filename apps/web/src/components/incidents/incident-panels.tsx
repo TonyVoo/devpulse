@@ -3,13 +3,15 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState, type FormEvent } from "react";
 
-import { fmt, type Marker, MarkerLegend, TimeSeriesChart, toPoints } from "@/components/charts/time-series";
+import { type Marker, MarkerLegend, TimeSeriesChart, toPoints } from "@/components/charts/time-series";
 import { metricsQuery } from "@/components/services/service-detail";
 import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/card";
-import { timeAgo } from "@/components/ui/status";
 import { api, ApiError, request } from "@/lib/api-client";
 import type { components } from "@/lib/api-types";
+import { useI18n } from "@/lib/i18n/client";
+import { errorText } from "@/lib/i18n/errors";
+import { tOr } from "@/lib/i18n/translate";
 
 type Incident = components["schemas"]["IncidentOut"];
 type Metrics = components["schemas"]["MetricsOut"];
@@ -26,6 +28,7 @@ export function incidentWindow(i: Pick<Incident, "started_at" | "resolved_at">, 
 }
 
 export function CorrelationPanel({ orgId, incident }: { orgId: string; incident: Incident }) {
+  const { t, fmt, ago } = useI18n();
   // "Now" is fixed per mount (and re-taken when the incident changes): deriving it on every
   // render would change the query key each time and refetch in a loop.
   const [now] = useState(Date.now);
@@ -47,30 +50,34 @@ export function CorrelationPanel({ orgId, incident }: { orgId: string; incident:
     queryFn: () => api.get<Correlated[]>(`orgs/${orgId}/incidents/${incident.key}/deployments`),
   });
   if (!svc) {
-    return <p className="text-sm text-fg-subtle">This incident isn&apos;t linked to a service, so there is no telemetry to correlate.</p>;
+    return <p className="text-sm text-fg-subtle">{t("incident.noService")}</p>;
   }
   const markers: Marker[] = [
     ...(deploys.data ?? []).map((d) => ({ t: new Date(d.started_at).getTime(), label: d.version, tone: "deploy" as const })),
-    { t: new Date(incident.started_at).getTime(), label: "start", tone: "incident" },
-    ...(incident.acknowledged_at ? [{ t: new Date(incident.acknowledged_at).getTime(), label: "ack", tone: "event" as const }] : []),
-    ...(incident.resolved_at ? [{ t: new Date(incident.resolved_at).getTime(), label: "resolved", tone: "event" as const }] : []),
+    { t: new Date(incident.started_at).getTime(), label: t("incident.markerStart"), tone: "incident" },
+    ...(incident.acknowledged_at
+      ? [{ t: new Date(incident.acknowledged_at).getTime(), label: t("incident.markerAck"), tone: "event" as const }]
+      : []),
+    ...(incident.resolved_at
+      ? [{ t: new Date(incident.resolved_at).getTime(), label: t("incident.markerResolved"), tone: "event" as const }]
+      : []),
   ];
   const s = metrics.data?.series ?? [];
   return (
     <section aria-labelledby="correlation" className="space-y-3 rounded-lg border border-line bg-surface p-6">
       <h2 id="correlation" className="font-semibold">
-        Correlation
+        {t("incident.correlation")}
       </h2>
       <p className="text-xs text-fg-subtle">
-        {svc.name}, 1 hour before the incident until {incident.resolved_at ? "shortly after resolution" : "now"}.
-        Deploys are suspected from timing only. <MarkerLegend />
+        {t(incident.resolved_at ? "incident.correlationUntilResolved" : "incident.correlationUntilNow", { service: svc.name })}{" "}
+        <MarkerLegend />
       </p>
       {metrics.isError ? (
-        <Alert>Couldn&apos;t load metrics.</Alert>
+        <Alert>{t("incident.metricsError")}</Alert>
       ) : (
         <div className="grid gap-4 xl:grid-cols-2" aria-busy={metrics.isPending}>
           <TimeSeriesChart
-            title="Latency p95"
+            title={t("service.latencyP95")}
             points={toPoints(s.find((x) => x.name === "http.server.duration_ms")?.points)}
             format={fmt.ms}
             markers={markers}
@@ -79,7 +86,7 @@ export function CorrelationPanel({ orgId, incident }: { orgId: string; incident:
             loading={metrics.isPending}
           />
           <TimeSeriesChart
-            title="Error rate"
+            title={t("service.errorRate")}
             points={toPoints(s.find((x) => x.name === "http.server.error_rate")?.points)}
             format={fmt.pct}
             markers={markers}
@@ -93,8 +100,10 @@ export function CorrelationPanel({ orgId, incident }: { orgId: string; incident:
         <ul className="space-y-1 text-xs">
           {deploys.data!.map((d) => (
             <li key={d.deployment_id}>
-              <span className="font-mono">{d.version}</span> · {timeAgo(d.started_at)} · {d.status} · {d.correlation} (
-              {Math.round(d.score * 100)}%){d.commit_message ? ` · ${d.commit_message.split("\n")[0]}` : ""}
+              <span className="font-mono">{d.version}</span> · {ago(d.started_at)} ·{" "}
+              {tOr(t, `deployStatus.${d.status}`, d.status)} ·{" "}
+              {tOr(t, `incident.correlationKind.${d.correlation}`, d.correlation)}{" "}
+              ({Math.round(d.score * 100)}%){d.commit_message ? ` · ${d.commit_message.split("\n")[0]}` : ""}
             </li>
           ))}
         </ul>
@@ -110,6 +119,7 @@ function newId(): string {
 /** Incident commands with optimistic concurrency (If-Match) and safe retries (Idempotency-Key). */
 export function ActionsBar({ orgId, incident, myUserId }: { orgId: string; incident: Incident; myUserId: string }) {
   const qc = useQueryClient();
+  const { t } = useI18n();
   const run = useMutation({
     mutationFn: (v: { path: string; body?: unknown }) =>
       request<Incident>(`/api/v1/orgs/${orgId}/incidents/${incident.key}/${v.path}`, {
@@ -132,7 +142,7 @@ export function ActionsBar({ orgId, incident, myUserId }: { orgId: string; incid
       <div className="flex flex-wrap gap-2">
         {incident.status === "triggered" && (
           <Button size="sm" loading={run.isPending && run.variables?.path === "acknowledge"} onClick={() => run.mutate({ path: "acknowledge" })}>
-            Acknowledge
+            {t("incident.acknowledge")}
           </Button>
         )}
         {open && (
@@ -140,35 +150,33 @@ export function ActionsBar({ orgId, incident, myUserId }: { orgId: string; incid
             variant="secondary"
             loading={run.isPending && run.variables?.path === "resolve"}
             onClick={() => {
-              const note = window.prompt("Resolution note (optional)");
+              const note = window.prompt(t("incident.resolutionNote"));
               if (note === null) return;
               run.mutate({ path: "resolve", body: { resolution_note: note.trim() || null } });
             }}
           >
-            Resolve
+            {t("incident.resolve")}
           </Button>
         )}
         {open && incident.assignee?.id !== myUserId && (
           <Button size="sm" variant="ghost" disabled={run.isPending} onClick={() => run.mutate({ path: "assign", body: { user_id: myUserId } })}>
-            Assign to me
+            {t("incident.assignToMe")}
           </Button>
         )}
         {open && (
           <Button size="sm" variant="ghost" disabled={run.isPending} onClick={() => run.mutate({ path: "escalate" })}>
-            Escalate
+            {t("incident.escalate")}
           </Button>
         )}
         {!open && (
           <Button size="sm" variant="secondary" disabled={run.isPending} onClick={() => run.mutate({ path: "reopen" })}>
-            Reopen
+            {t("incident.reopen")}
           </Button>
         )}
       </div>
       {run.isError && (
         <Alert>
-          {conflict
-            ? "This incident changed while you were looking at it. It has been refreshed; check its status and try again."
-            : run.error.message}
+          {conflict ? t("incident.conflict") : errorText(run.error, t)}
         </Alert>
       )}
     </div>
@@ -177,6 +185,7 @@ export function ActionsBar({ orgId, incident, myUserId }: { orgId: string; incid
 
 export function Comments({ orgId, incidentRef, canAct }: { orgId: string; incidentRef: string; canAct: boolean }) {
   const qc = useQueryClient();
+  const { t, ago } = useI18n();
   const key = ["orgs", orgId, "incident", incidentRef, "comments"];
   const [clientId, setClientId] = useState(newId);
   const list = useQuery({
@@ -201,15 +210,15 @@ export function Comments({ orgId, incidentRef, canAct }: { orgId: string; incide
   return (
     <section aria-labelledby="comments" className="space-y-2">
       <h2 id="comments" className="text-sm font-semibold">
-        Comments
+        {t("incident.comments")}
       </h2>
       <ul className="divide-y divide-line rounded-lg border border-line bg-surface text-sm">
-        {(list.data?.items ?? []).length === 0 && <li className="px-3 py-2 text-fg-subtle">No comments yet.</li>}
+        {(list.data?.items ?? []).length === 0 && <li className="px-3 py-2 text-fg-subtle">{t("incident.noComments")}</li>}
         {(list.data?.items ?? []).map((c) => (
           <li key={c.id} className="px-3 py-2">
             <p className="whitespace-pre-wrap">{c.body}</p>
             <p className="text-xs text-fg-subtle">
-              {c.author?.display_name ?? "Unknown"} · {timeAgo(c.created_at)}
+              {c.author?.display_name ?? t("common.unknown")} · {ago(c.created_at)}
             </p>
           </li>
         ))}
@@ -217,20 +226,20 @@ export function Comments({ orgId, incidentRef, canAct }: { orgId: string; incide
       {canAct && (
         <form method="post" onSubmit={onSubmit} className="space-y-2">
           <label htmlFor="comment" className="sr-only">
-            Add a comment
+            {t("incident.addComment")}
           </label>
           <textarea
             id="comment"
             name="body"
             rows={2}
             maxLength={10000}
-            placeholder="Add a comment"
+            placeholder={t("incident.addComment")}
             className="w-full rounded-md border border-line bg-canvas px-3 py-2 text-sm"
           />
           <Button type="submit" size="sm" loading={add.isPending}>
-            Comment
+            {t("incident.comment")}
           </Button>
-          {add.isError && <Alert>{add.error.message}</Alert>}
+          {add.isError && <Alert>{errorText(add.error, t)}</Alert>}
         </form>
       )}
     </section>

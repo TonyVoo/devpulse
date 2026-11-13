@@ -6,6 +6,7 @@ import '../../../core/design_system/tokens.dart';
 import '../../../core/design_system/widgets/async_view.dart';
 import '../../../core/design_system/widgets/dp_widgets.dart';
 import '../../../core/design_system/widgets/status_widgets.dart';
+import '../../../l10n/l10n.dart';
 import '../../auth/domain/models.dart';
 import '../../auth/presentation/session_controller.dart';
 import '../../ops_repositories.dart';
@@ -41,7 +42,7 @@ class OverviewScreen extends ConsumerWidget {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Overview'),
+            Text(context.l10n.navOverview),
             if (orgName != null) Text(orgName, style: Theme.of(context).textTheme.bodySmall),
           ],
         ),
@@ -73,16 +74,13 @@ class _OverviewBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = context.dp;
+    final l = context.l10n;
     if (o.servicesTotal == 0 && o.recentIncidents.isEmpty) {
       return ListView(
         physics: const AlwaysScrollableScrollPhysics(),
-        children: const [
-          SizedBox(height: 80),
-          DpEmptyState(
-            icon: Icons.space_dashboard_outlined,
-            title: 'No services connected yet',
-            description: 'Create a service and an ingest key on the web dashboard, then send telemetry. Health, latency and incidents will show up here.',
-          ),
+        children: [
+          const SizedBox(height: 80),
+          DpEmptyState(icon: Icons.space_dashboard_outlined, title: l.noServicesTitle, description: l.noServicesBody),
         ],
       );
     }
@@ -93,17 +91,14 @@ class _OverviewBody extends StatelessWidget {
       children: [
         if (critical > 0) ...[
           DpBanner(
-            message: '$critical critical incident${critical == 1 ? '' : 's'} open',
+            message: l.criticalOpen(critical),
             tone: DpBannerTone.error,
-            action: TextButton(onPressed: () => context.go('/incidents'), child: const Text('View')),
+            action: TextButton(onPressed: () => context.go('/incidents'), child: Text(l.view)),
           ),
           const SizedBox(height: DpSpace.md),
         ],
         if (o.isStale) ...[
-          const DpBanner(
-            message: 'Offline · showing the last overview saved on this device',
-            tone: DpBannerTone.warning,
-          ),
+          DpBanner(message: l.overviewStale, tone: DpBannerTone.warning),
           const SizedBox(height: DpSpace.md),
         ],
         _HealthStrip(o),
@@ -111,10 +106,7 @@ class _OverviewBody extends StatelessWidget {
         if (!o.hasTelemetry)
           Padding(
             padding: const EdgeInsets.only(bottom: DpSpace.sm, left: DpSpace.xs),
-            child: Text(
-              'No telemetry received in the selected window — try a longer one.',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
+            child: Text(l.noTelemetryWindow, style: Theme.of(context).textTheme.bodySmall),
           ),
         GridView.count(
           crossAxisCount: MediaQuery.sizeOf(context).width >= 600 ? 4 : 2,
@@ -124,35 +116,35 @@ class _OverviewBody extends StatelessWidget {
           crossAxisSpacing: DpSpace.sm,
           childAspectRatio: 1.9,
           children: [
-            DpMetricTile(label: 'Requests', value: o.requests == null ? '—' : compactNumber(o.requests!)),
+            DpMetricTile(label: l.requests, value: o.requests == null ? '—' : compactNumber(o.requests!)),
             DpMetricTile(
-              label: 'Error rate',
+              label: l.errorRate,
               value: percent(o.errorRate),
               tone: (o.errorRate ?? 0) >= 0.05 ? p.critical : null,
             ),
-            DpMetricTile(label: 'Avg latency', value: millis(o.latencyAvgMs)),
-            DpMetricTile(label: 'p95 latency', value: millis(o.latencyP95Ms), caption: 'approx.'),
+            DpMetricTile(label: l.avgLatency, value: millis(o.latencyAvgMs)),
+            DpMetricTile(label: l.p95Latency, value: millis(o.latencyP95Ms), caption: l.approx),
           ],
         ),
         if (o.hasTelemetry) ...[
-          const SectionHeader('Request volume'),
+          SectionHeader(l.requestVolume),
           Card(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(DpSpace.sm, DpSpace.md, DpSpace.md, DpSpace.sm),
               child: DpLineChart(
                 points: o.requestSeries,
-                semanticLabel: 'Request volume chart, ${compactNumber(o.requests ?? 0)} requests in this window',
+                semanticLabel: l.requestVolumeSemantics(compactNumber(o.requests ?? 0)),
               ),
             ),
           ),
         ],
         SectionHeader(
-          'Recent incidents',
-          action: TextButton(onPressed: () => context.go('/incidents'), child: const Text('All')),
+          l.recentIncidents,
+          action: TextButton(onPressed: () => context.go('/incidents'), child: Text(l.all)),
         ),
         if (o.recentIncidents.isEmpty)
-          const Card(
-            child: ListTile(title: Text('No incidents'), subtitle: Text('All quiet.')),
+          Card(
+            child: ListTile(title: Text(l.noIncidents), subtitle: Text(l.allQuiet)),
           )
         else
           Card(
@@ -167,12 +159,12 @@ class _OverviewBody extends StatelessWidget {
             ),
           ),
         SectionHeader(
-          'Recent deployments',
-          action: TextButton(onPressed: () => context.push('/overview/deployments'), child: const Text('All')),
+          l.recentDeployments,
+          action: TextButton(onPressed: () => context.push('/overview/deployments'), child: Text(l.all)),
         ),
         if (o.recentDeployments.isEmpty)
-          const Card(
-            child: ListTile(title: Text('No deployments yet'), subtitle: Text('Send them from CI or connect GitHub.')),
+          Card(
+            child: ListTile(title: Text(l.noDeploymentsYet), subtitle: Text(l.sendFromCi)),
           )
         else
           Card(
@@ -207,7 +199,7 @@ class _HealthStrip extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('${o.servicesTotal}', style: t.headlineSmall),
-                  Text('services', style: t.bodySmall),
+                  Text(context.l10n.servicesCount(o.servicesTotal), style: t.bodySmall),
                 ],
               ),
               const Spacer(),
@@ -215,7 +207,7 @@ class _HealthStrip extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.only(left: DpSpace.md),
                   child: Semantics(
-                    label: '${o.byHealth[h] ?? 0} ${h.label}',
+                    label: context.l10n.healthCountSemantics(o.byHealth[h] ?? 0, h.label),
                     excludeSemantics: true,
                     child: Column(
                       children: [

@@ -7,15 +7,18 @@ import { describeError } from "@/components/auth/auth-form";
 import { Button } from "@/components/ui/button";
 import { Alert, Card, EmptyState } from "@/components/ui/card";
 import { Field } from "@/components/ui/field";
-import { DemoTag, timeAgo } from "@/components/ui/status";
+import { DemoTag } from "@/components/ui/status";
 import { api } from "@/lib/api-client";
 import type { components } from "@/lib/api-types";
+import { useI18n } from "@/lib/i18n/client";
+import { errorText } from "@/lib/i18n/errors";
 
 type Key = components["schemas"]["IngestKeyOut"];
 type Created = components["schemas"]["IngestKeyCreatedOut"];
 
 export function IngestKeysView({ orgId, apiOrigin }: { orgId: string; apiOrigin: string }) {
   const qc = useQueryClient();
+  const { t, ago } = useI18n();
   const keys = useQuery({
     queryKey: ["orgs", orgId, "ingest-keys"],
     queryFn: () => api.get<Key[]>(`orgs/${orgId}/ingest-keys`),
@@ -35,7 +38,7 @@ export function IngestKeysView({ orgId, apiOrigin }: { orgId: string; apiOrigin:
     mutationFn: (id: string) => api.delete(`orgs/${orgId}/ingest-keys/${id}`),
     onSuccess: () => void refresh(),
   });
-  const err = create.error ? describeError(create.error) : null;
+  const err = create.error ? describeError(create.error, t) : null;
 
   function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -55,16 +58,16 @@ export function IngestKeysView({ orgId, apiOrigin }: { orgId: string; apiOrigin:
       <Card>
         <form method="post" onSubmit={onSubmit} className="flex flex-col gap-3 sm:flex-row sm:items-end" noValidate>
           <div className="flex-1">
-            <Field label="Key name" name="name" placeholder="e.g. checkout production" required error={err?.fields.name} />
+            <Field label={t("keys.name")} name="name" placeholder={t("keys.namePlaceholder")} required error={err?.fields.name} />
           </div>
-          <Button type="submit" loading={create.isPending}>Create key</Button>
+          <Button type="submit" loading={create.isPending}>{t("keys.create")}</Button>
         </form>
         {err && !err.fields.name && <Alert className="mt-3">{err.message}</Alert>}
       </Card>
 
       {created && (
         <Card className="border-cyan/40">
-          <h2 className="text-sm font-semibold">Copy this key now — it won&apos;t be shown again</h2>
+          <h2 className="text-sm font-semibold">{t("keys.copyNow")}</h2>
           <div className="mt-3 flex items-center gap-2">
             <code className="min-w-0 flex-1 truncate rounded-md bg-canvas px-3 py-2 font-mono text-xs">{created.key}</code>
             <Button
@@ -75,20 +78,20 @@ export function IngestKeysView({ orgId, apiOrigin }: { orgId: string; apiOrigin:
                 setCopied(true);
               }}
             >
-              {copied ? "Copied" : "Copy"}
+              {copied ? t("common.copied") : t("common.copy")}
             </Button>
           </div>
-          <p className="mt-4 text-xs text-fg-muted">Send a first data point:</p>
+          <p className="mt-4 text-xs text-fg-muted">{t("keys.firstPoint")}</p>
           <pre className="mt-1 overflow-x-auto rounded-md bg-canvas p-3 font-mono text-[11px] leading-relaxed text-fg-muted">{curl}</pre>
         </Card>
       )}
 
       {keys.isPending ? (
-        <div className="h-24 animate-pulse rounded-md bg-raised" role="status" aria-busy aria-label="Loading keys" />
+        <div className="h-24 animate-pulse rounded-md bg-raised" role="status" aria-busy aria-label={t("keys.loading")} />
       ) : keys.isError ? (
-        <Alert>Couldn&apos;t load keys: {keys.error.message}</Alert>
+        <Alert>{t("keys.loadError", { error: errorText(keys.error, t) })}</Alert>
       ) : keys.data.length === 0 ? (
-        <EmptyState title="No ingest keys" description="Create a key for each service or pipeline that sends telemetry or deployments." />
+        <EmptyState title={t("keys.emptyTitle")} description={t("keys.emptyBody")} />
       ) : (
         <ul className="divide-y divide-line rounded-lg border border-line bg-surface">
           {keys.data.map((k) => (
@@ -102,7 +105,7 @@ export function IngestKeysView({ orgId, apiOrigin }: { orgId: string; apiOrigin:
                 </div>
               </div>
               <span className="text-xs text-fg-muted">
-                {k.revoked_at ? "Revoked" : `Last used ${timeAgo(k.last_used_at)}`}
+                {k.revoked_at ? t("keys.revoked") : t("keys.lastUsed", { ago: ago(k.last_used_at) })}
               </span>
               {!k.revoked_at && (
                 <Button
@@ -110,12 +113,12 @@ export function IngestKeysView({ orgId, apiOrigin }: { orgId: string; apiOrigin:
                   size="sm"
                   loading={revoke.isPending && revoke.variables === k.id}
                   onClick={() => {
-                    if (window.confirm(`Revoke "${k.name}"? Anything using it stops sending data immediately.`)) {
+                    if (window.confirm(t("keys.confirmRevoke", { name: k.name }))) {
                       revoke.mutate(k.id);
                     }
                   }}
                 >
-                  Revoke
+                  {t("common.revoke")}
                 </Button>
               )}
             </li>

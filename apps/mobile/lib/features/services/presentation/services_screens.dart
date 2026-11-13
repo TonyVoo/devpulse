@@ -9,6 +9,7 @@ import '../../../core/design_system/widgets/async_view.dart';
 import '../../../core/design_system/widgets/dp_widgets.dart';
 import '../../../core/design_system/widgets/status_widgets.dart';
 import '../../../core/network/org_api.dart';
+import '../../../l10n/l10n.dart';
 import '../../deployments/domain/deployment.dart';
 import '../../incidents/domain/incident.dart';
 import '../../offline/live_sync.dart';
@@ -86,7 +87,7 @@ class _ServicesScreenState extends ConsumerState<ServicesScreen> {
     final query = ref.watch(servicesQueryProvider);
     final value = ref.watch(servicesProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('Services')),
+      appBar: AppBar(title: Text(context.l10n.navServices)),
       body: Column(
         children: [
           Padding(
@@ -95,7 +96,7 @@ class _ServicesScreenState extends ConsumerState<ServicesScreen> {
               controller: _search,
               onChanged: _onSearch,
               textInputAction: TextInputAction.search,
-              decoration: const InputDecoration(prefixIcon: Icon(Icons.search), hintText: 'Search services'),
+              decoration: InputDecoration(prefixIcon: const Icon(Icons.search), hintText: context.l10n.searchServices),
             ),
           ),
           SizedBox(
@@ -130,11 +131,11 @@ class _ServicesScreenState extends ConsumerState<ServicesScreen> {
                           DpEmptyState(
                             icon: Icons.dns_outlined,
                             title: query.text.isEmpty && query.health.isEmpty
-                                ? 'No services yet'
-                                : 'No matching services',
+                                ? context.l10n.noServicesYet
+                                : context.l10n.noMatchingServices,
                             description: query.text.isEmpty && query.health.isEmpty
-                                ? 'Add a service and an ingest key from the web dashboard, then its health shows up here.'
-                                : 'Try a different search or clear the filters.',
+                                ? context.l10n.servicesEmptyBody
+                                : context.l10n.tryDifferentSearch,
                           ),
                         ],
                       )
@@ -170,7 +171,8 @@ class _ServiceTile extends StatelessWidget {
         ],
       ),
       subtitle: Text(
-        '${s.environment} · ${s.tier} · ${s.lastSeenAt == null ? 'no data yet' : 'seen ${timeAgo(s.lastSeenAt!)}'}',
+        '${s.environment} · ${s.tier} · '
+        '${s.lastSeenAt == null ? context.l10n.noDataYet : context.l10n.seenAgo(timeAgo(s.lastSeenAt!))}',
         style: t.bodySmall,
       ),
       trailing: DpHealthPill(s.health),
@@ -236,7 +238,7 @@ class ServiceDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final svc = ref.watch(serviceProvider(serviceId));
     return Scaffold(
-      appBar: AppBar(title: Text(svc.value?.name ?? 'Service')),
+      appBar: AppBar(title: Text(svc.value?.name ?? context.l10n.service)),
       body: RefreshIndicator(
         onRefresh: () => _refresh(ref),
         child: AsyncView(
@@ -258,6 +260,7 @@ class _ServiceDetailBody extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final t = Theme.of(context).textTheme;
     final p = context.dp;
+    final l = context.l10n;
     final range = ref.watch(metricRangeProvider);
     final metrics = ref.watch(serviceMetricsProvider(s.id));
     final incidents = ref.watch(serviceIncidentsProvider(s.id));
@@ -294,7 +297,12 @@ class _ServiceDetailBody extends ConsumerWidget {
               if (metrics.isLoading && m == null)
                 const SizedBox(height: 140, child: Center(child: CircularProgressIndicator(strokeWidth: 2)))
               else
-                DpLineChart(points: m?.points ?? const [], semanticLabel: '$title chart', formatY: fmt, color: color),
+                DpLineChart(
+                  points: m?.points ?? const [],
+                  semanticLabel: l.chartSemantics(title),
+                  formatY: fmt,
+                  color: color,
+                ),
             ],
           ),
         ),
@@ -311,12 +319,12 @@ class _ServiceDetailBody extends ConsumerWidget {
             const SizedBox(width: DpSpace.sm),
             if (s.isDemo) const DpDemoTag(),
             const Spacer(),
-            Text(s.lastSeenAt == null ? 'No data yet' : 'Seen ${timeAgo(s.lastSeenAt!)}', style: t.bodySmall),
+            Text(s.lastSeenAt == null ? l.noDataYetCap : l.seenAgoCap(timeAgo(s.lastSeenAt!)), style: t.bodySmall),
           ],
         ),
         const SizedBox(height: DpSpace.sm),
         Text(
-          '${s.slug} · ${s.environment} · tier ${s.tier}${s.ownerTeam != null ? ' · ${s.ownerTeam}' : ''}',
+          '${l.serviceMeta(s.slug, s.environment, s.tier)}${s.ownerTeam != null ? ' · ${s.ownerTeam}' : ''}',
           style: t.bodySmall,
         ),
         if (s.description != null) ...[const SizedBox(height: DpSpace.sm), Text(s.description!, style: t.bodyMedium)],
@@ -331,34 +339,31 @@ class _ServiceDetailBody extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.only(top: DpSpace.md),
             child: DpBanner(
-              message: "Couldn't load metrics",
+              message: l.metricsError,
               tone: DpBannerTone.error,
-              action: TextButton(
-                onPressed: () => ref.invalidate(serviceMetricsProvider(s.id)),
-                child: const Text('Retry'),
-              ),
+              action: TextButton(onPressed: () => ref.invalidate(serviceMetricsProvider(s.id)), child: Text(l.retry)),
             ),
           ),
         const SizedBox(height: DpSpace.md),
-        chart('Latency p95', 'http.server.duration_ms:p95', fmt: millis, latest: millis),
+        chart(l.latencyP95, 'http.server.duration_ms:p95', fmt: millis, latest: millis),
         const SizedBox(height: DpSpace.sm),
-        chart('Error rate', 'http.server.error_rate', fmt: percent, color: p.critical, latest: percent),
+        chart(l.errorRate, 'http.server.error_rate', fmt: percent, color: p.critical, latest: percent),
         const SizedBox(height: DpSpace.sm),
-        chart('Requests', 'http.server.requests:sum'),
+        chart(l.requests, 'http.server.requests:sum'),
         const SizedBox(height: DpSpace.sm),
-        chart('CPU', 'process.cpu.utilization:avg', fmt: percent, color: p.violet, latest: percent),
-        const SectionHeader('Open incidents'),
+        chart(l.cpu, 'process.cpu.utilization:avg', fmt: percent, color: p.violet, latest: percent),
+        SectionHeader(l.openIncidents),
         _AsyncSection(
           value: incidents,
-          empty: 'No open incidents',
+          empty: l.noOpenIncidents,
           builder: (page) => [
             for (final i in page.items) IncidentTile(i, onTap: () => context.go('/incidents/${i.key}')),
           ],
         ),
-        const SectionHeader('Recent deployments'),
+        SectionHeader(l.recentDeployments),
         _AsyncSection(
           value: deployments,
-          empty: 'No deployments recorded',
+          empty: l.noDeploymentsRecorded,
           builder: (page) => [for (final d in page.items.take(10)) DeploymentTile(d, showService: false)],
         ),
       ],
@@ -379,7 +384,10 @@ class _AsyncSection<T> extends StatelessWidget {
     if (v == null) {
       return Card(
         child: ListTile(
-          title: Text(value.hasError ? "Couldn't load" : 'Loading…', style: Theme.of(context).textTheme.bodySmall),
+          title: Text(
+            value.hasError ? context.l10n.couldNotLoad : context.l10n.loadingEllipsis,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
         ),
       );
     }

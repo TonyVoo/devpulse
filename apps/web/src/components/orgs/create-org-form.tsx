@@ -9,9 +9,11 @@ import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/card";
 import { Field } from "@/components/ui/field";
 import { api } from "@/lib/api-client";
+import { useI18n } from "@/lib/i18n/client";
 
 export function CreateOrgForm() {
   const router = useRouter();
+  const { t } = useI18n();
   const create = useMutation({
     mutationFn: (name: string) => api.post<{ id: string }>("orgs", { name }),
     onSuccess: (org) => {
@@ -19,7 +21,7 @@ export function CreateOrgForm() {
       router.refresh();
     },
   });
-  const err = create.error ? describeError(create.error) : null;
+  const err = create.error ? describeError(create.error, t) : null;
 
   function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -29,9 +31,9 @@ export function CreateOrgForm() {
   return (
     <form method="post" onSubmit={onSubmit} className="flex flex-col gap-4" noValidate>
       {err && <Alert>{err.message}</Alert>}
-      <Field label="Organization name" name="name" required minLength={2} error={err?.fields.name} />
+      <Field label={t("orgs.nameLabel")} name="name" required minLength={2} error={err?.fields.name} />
       <Button type="submit" loading={create.isPending} className="self-start">
-        Create organization
+        {t("orgs.create")}
       </Button>
     </form>
   );

@@ -17,6 +17,7 @@ import '../features/overview/presentation/overview_screen.dart';
 import '../features/services/presentation/services_screens.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/shell/app_shell.dart';
+import '../l10n/l10n.dart';
 
 abstract final class Routes {
   static const splash = '/splash';
@@ -148,7 +149,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         ],
       ),
     ],
-    errorBuilder: (_, state) => Scaffold(body: Center(child: Text('Page not found: ${state.uri.path}'))),
+    errorBuilder: (context, state) => Scaffold(body: Center(child: Text(context.l10n.pageNotFound(state.uri.path)))),
   );
   ref.onDispose(router.dispose);
   return router;

@@ -4,12 +4,15 @@ import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useState } from "react";
 
-import { fmt, type Marker, MarkerLegend, TimeSeriesChart, toPoints } from "@/components/charts/time-series";
+import { type Marker, MarkerLegend, TimeSeriesChart, toPoints } from "@/components/charts/time-series";
 import { Button } from "@/components/ui/button";
 import { Alert, EmptyState } from "@/components/ui/card";
-import { DemoTag, HealthPill, SeverityChip, timeAgo } from "@/components/ui/status";
+import { DemoTag, HealthPill, SeverityChip } from "@/components/ui/status";
 import { api, ApiError } from "@/lib/api-client";
 import type { components } from "@/lib/api-types";
+import { useI18n } from "@/lib/i18n/client";
+import { errorText } from "@/lib/i18n/errors";
+import { type MessageKey, tOr } from "@/lib/i18n/translate";
 
 type Service = components["schemas"]["ServiceOut"];
 type Metrics = components["schemas"]["MetricsOut"];
@@ -24,11 +27,11 @@ export const RANGES = [
 ] as const;
 
 export const CHARTS = [
-  { spec: "http.server.duration_ms:p95", title: "Latency p95", format: fmt.ms },
-  { spec: "http.server.error_rate", title: "Error rate", format: fmt.pct },
-  { spec: "http.server.requests:sum", title: "Requests", format: fmt.count },
-  { spec: "process.cpu.utilization:avg", title: "CPU", format: fmt.pct },
-] as const;
+  { spec: "http.server.duration_ms:p95", title: "service.latencyP95", format: "ms" },
+  { spec: "http.server.error_rate", title: "service.errorRate", format: "pct" },
+  { spec: "http.server.requests:sum", title: "service.requests", format: "count" },
+  { spec: "process.cpu.utilization:avg", title: "service.cpu", format: "pct" },
+] as const satisfies readonly { spec: string; title: MessageKey; format: "ms" | "pct" | "count" }[];
 
 /** Metric query string for `/metrics` (repeated `names`). */
 export function metricsQuery(specs: readonly string[], from: Date, to: Date): string {
@@ -38,6 +41,7 @@ export function metricsQuery(specs: readonly string[], from: Date, to: Date): st
 }
 
 export function ServiceDetail({ orgId, serviceId }: { orgId: string; serviceId: string }) {
+  const { t, fmt, ago } = useI18n();
   const [range, setRange] = useState<(typeof RANGES)[number]>(RANGES[1]);
   // The window moves with time: recomputed on every (auto)refresh, never on re-render.
   const [tick, setTick] = useState(0);
@@ -70,12 +74,12 @@ export function ServiceDetail({ orgId, serviceId }: { orgId: string; serviceId: 
     enabled: service.isSuccess,
   });
 
-  if (service.isPending) return <div className="h-32 animate-pulse rounded-md bg-raised" role="status" aria-busy aria-label="Loading service" />;
+  if (service.isPending) return <div className="h-32 animate-pulse rounded-md bg-raised" role="status" aria-busy aria-label={t("service.loading")} />;
   if (service.isError) {
     return service.error instanceof ApiError && service.error.status === 404 ? (
-      <EmptyState title="Service not found" description="It may have been deleted or belong to another organization." />
+      <EmptyState title={t("service.notFoundTitle")} description={t("service.notFoundBody")} />
     ) : (
-      <Alert>Couldn&apos;t load the service: {service.error.message}</Alert>
+      <Alert>{t("service.loadError", { error: errorText(service.error, t) })}</Alert>
     );
   }
   const s = service.data;
@@ -101,7 +105,7 @@ export function ServiceDetail({ orgId, serviceId }: { orgId: string; serviceId: 
     <div className="space-y-6">
       <header className="space-y-2">
         <Link href={`/o/${orgId}/services`} className="text-xs text-fg-subtle hover:text-fg">
-          ← Services
+          {t("service.back")}
         </Link>
         <div className="flex flex-wrap items-center gap-2">
           <h1 className="text-2xl font-semibold">{s.name}</h1>
@@ -109,13 +113,13 @@ export function ServiceDetail({ orgId, serviceId }: { orgId: string; serviceId: 
           {s.is_demo && <DemoTag />}
         </div>
         <p className="text-xs text-fg-subtle">
-          <span className="font-mono">{s.slug}</span> · {s.environment} · tier {s.tier}
-          {s.owner_team && ` · ${s.owner_team}`} · last data {timeAgo(s.last_seen_at)}
+          <span className="font-mono">{s.slug}</span> · {t("service.meta", { environment: s.environment, tier: s.tier })}
+          {s.owner_team && ` · ${s.owner_team}`} · {t("service.lastData", { ago: ago(s.last_seen_at) })}
         </p>
       </header>
 
       <div className="flex flex-wrap items-center gap-2">
-        <div role="radiogroup" aria-label="Time range" className="flex gap-1">
+        <div role="radiogroup" aria-label={t("service.range")} className="flex gap-1">
           {RANGES.map((r) => (
             <button
               key={r.label}
@@ -131,22 +135,22 @@ export function ServiceDetail({ orgId, serviceId }: { orgId: string; serviceId: 
           ))}
         </div>
         <Button size="sm" variant="ghost" onClick={() => setTick((t) => t + 1)}>
-          Refresh
+          {t("common.refresh")}
         </Button>
         <MarkerLegend />
-        <span className="text-xs text-fg-subtle">Updates every minute</span>
+        <span className="text-xs text-fg-subtle">{t("service.updatesEveryMinute")}</span>
       </div>
 
       {metrics.isError ? (
-        <Alert>Couldn&apos;t load metrics: {metrics.error.message}</Alert>
+        <Alert>{t("service.metricsError", { error: errorText(metrics.error, t) })}</Alert>
       ) : (
         <div className="grid min-w-0 gap-6 lg:grid-cols-2" aria-busy={metrics.isPending}>
           {CHARTS.map((c) => (
             <div key={c.spec} className="min-w-0 rounded-lg border border-line bg-surface p-4">
               <TimeSeriesChart
-                title={c.title}
+                title={t(c.title)}
                 points={toPoints(find(c.spec)?.points, (metrics.data?.step_s ?? 0) * 1000 || undefined)}
-                format={c.format}
+                format={fmt[c.format]}
                 markers={markers}
                 domain={[from.getTime(), to.getTime()]}
                 loading={metrics.isPending}
@@ -156,16 +160,14 @@ export function ServiceDetail({ orgId, serviceId }: { orgId: string; serviceId: 
         </div>
       )}
       {metrics.data?.approximate_percentiles && (
-        <p className="text-xs text-fg-subtle">
-          Percentiles over more than a minute are approximations (count-weighted from per-minute values).
-        </p>
+        <p className="text-xs text-fg-subtle">{t("service.approximate")}</p>
       )}
 
       <div className="grid gap-6 lg:grid-cols-2">
         <section aria-labelledby="deploys" className="min-w-0 space-y-2">
-          <h2 id="deploys" className="text-sm font-semibold">Recent deployments</h2>
+          <h2 id="deploys" className="text-sm font-semibold">{t("service.recentDeployments")}</h2>
           {(deployments.data?.items ?? []).length === 0 ? (
-            <p className="text-sm text-fg-subtle">No deployments recorded.</p>
+            <p className="text-sm text-fg-subtle">{t("service.noDeployments")}</p>
           ) : (
             <ul className="divide-y divide-line rounded-lg border border-line bg-surface text-sm">
               {deployments.data!.items.slice(0, 10).map((d) => (
@@ -175,7 +177,7 @@ export function ServiceDetail({ orgId, serviceId }: { orgId: string; serviceId: 
                     <span className="text-fg-subtle">{d.commit_message?.split("\n")[0]}</span>
                   </span>
                   <span className="shrink-0 text-xs text-fg-subtle">
-                    {d.status} · {timeAgo(d.started_at)}
+                    {tOr(t, `deployStatus.${d.status}`, d.status)} · {ago(d.started_at)}
                   </span>
                 </li>
               ))}
@@ -183,9 +185,9 @@ export function ServiceDetail({ orgId, serviceId }: { orgId: string; serviceId: 
           )}
         </section>
         <section aria-labelledby="incs" className="min-w-0 space-y-2">
-          <h2 id="incs" className="text-sm font-semibold">Incidents</h2>
+          <h2 id="incs" className="text-sm font-semibold">{t("service.incidents")}</h2>
           {(incidents.data?.items ?? []).length === 0 ? (
-            <p className="text-sm text-fg-subtle">No incidents for this service.</p>
+            <p className="text-sm text-fg-subtle">{t("service.noIncidents")}</p>
           ) : (
             <ul className="divide-y divide-line rounded-lg border border-line bg-surface text-sm">
               {incidents.data!.items.slice(0, 10).map((i) => (
@@ -194,8 +196,8 @@ export function ServiceDetail({ orgId, serviceId }: { orgId: string; serviceId: 
                   <Link href={`/o/${orgId}/incidents/${i.key}`} className="min-w-0 flex-1 truncate hover:underline">
                     {i.title}
                   </Link>
-                  <span className="shrink-0 text-xs capitalize text-fg-subtle">
-                    {i.status} · {timeAgo(i.started_at)}
+                  <span className="shrink-0 text-xs text-fg-subtle">
+                    {t(`status.${i.status}`)} · {ago(i.started_at)}
                   </span>
                 </li>
               ))}

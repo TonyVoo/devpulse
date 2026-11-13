@@ -1,4 +1,5 @@
 import '../../../core/design_system/widgets/status_widgets.dart';
+import '../../../l10n/l10n.dart';
 
 /// AI investigation, as returned by the API (docs/AI_ARCHITECTURE.md §4). Every cause is a
 /// hypothesis; evidence excerpts were computed by DevPulse from stored telemetry, not by the
@@ -16,9 +17,9 @@ enum RunStatus {
   bool get isActive => this == queued || this == collecting || this == analyzing;
 
   String get progressLabel => switch (this) {
-    queued => 'Waiting for a worker…',
-    collecting => 'Collecting metrics, logs and deployments…',
-    analyzing => 'Analysing the evidence…',
+    queued => l10n.progressQueued,
+    collecting => l10n.progressCollecting,
+    analyzing => l10n.progressAnalyzing,
     _ => '',
   };
 }
@@ -283,18 +284,15 @@ class AiMessage {
 
 /// User-facing explanation for a stable error code (never the raw code alone).
 String aiErrorMessage(String? code, {String? detail}) => switch (code) {
-  'ai.disabled' =>
-    'AI analysis is turned off for this organization. An admin can enable it in Settings → AI on the web.',
-  'ai.budget_exceeded' => "This month's AI budget is used up. An admin can raise it on the web.",
-  'ai.provider_unconfigured' => 'No AI provider is configured on this DevPulse server.',
-  'ai.no_evidence' => "DevPulse has no telemetry for this incident, so there's nothing to analyse.",
-  'ai.invalid_output' => "The AI's answer failed validation and was discarded.",
-  'ai.refused' => 'The AI model declined to analyse this incident.',
-  'ai.run_timeout' || 'ai.timeout' => 'The analysis took too long.',
-  'ai.rate_limited' ||
-  'ai.provider_unavailable' ||
-  'ai.provider_unreachable' => 'The AI provider is unavailable right now. Try again in a minute.',
-  'ai.stale' => 'The analysis was interrupted.',
-  'ai.already_running' => 'An analysis is already running for this incident.',
-  _ => detail ?? 'The analysis failed.',
+  'ai.disabled' => l10n.aiDisabled,
+  'ai.budget_exceeded' => l10n.aiBudget,
+  'ai.provider_unconfigured' => l10n.aiUnconfigured,
+  'ai.no_evidence' => l10n.aiNoEvidence,
+  'ai.invalid_output' => l10n.aiInvalidOutput,
+  'ai.refused' => l10n.aiRefused,
+  'ai.run_timeout' || 'ai.timeout' => l10n.aiTimeout,
+  'ai.rate_limited' || 'ai.provider_unavailable' || 'ai.provider_unreachable' => l10n.aiUnavailable,
+  'ai.stale' => l10n.aiStale,
+  'ai.already_running' => l10n.aiAlreadyRunning,
+  _ => detail ?? l10n.aiFailed,
 };

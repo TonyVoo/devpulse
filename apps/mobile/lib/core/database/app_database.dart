@@ -141,7 +141,7 @@ class AppDatabase extends _$AppDatabase {
 
   /// Wipes user data on sign-out. Device preferences (theme) survive.
   Future<void> clearUserData() => transaction(() async {
-    await (delete(keyValueEntries)..where((t) => t.key.isNotIn(const [KvKeys.theme]))).go();
+    await (delete(keyValueEntries)..where((t) => t.key.isNotIn(const [KvKeys.theme, KvKeys.locale]))).go();
     await clearOrgCache();
   });
 
@@ -159,6 +159,7 @@ abstract final class KvKeys {
   static const me = 'me';
   static const currentOrg = 'current_org';
   static const theme = 'theme';
+  static const locale = 'locale';
   static String overview(String orgId, String window) => 'overview:$orgId:$window';
   static String incidentExtras(String incidentId) => 'incident_extras:$incidentId';
   static String investigation(String incidentId) => 'ai_investigation:$incidentId';

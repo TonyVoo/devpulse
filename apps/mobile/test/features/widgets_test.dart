@@ -25,6 +25,7 @@ Future<FakeAuthRepository> pumpApp(
   FakeServer? server,
   FakeAiRepository? ai,
   String? theme,
+  String? locale,
 }) async {
   final srv = server ?? FakeServer();
   if (size != null) {
@@ -35,6 +36,7 @@ Future<FakeAuthRepository> pumpApp(
   final db = AppDatabase(DatabaseConnection(NativeDatabase.memory(), closeStreamsSynchronously: true));
   addTearDown(db.close);
   if (theme != null) await db.writeString(KvKeys.theme, theme);
+  if (locale != null) await db.writeString(KvKeys.locale, locale);
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
@@ -145,7 +147,8 @@ void main() {
     final repo = await pumpApp(tester, FakeAuthRepository(session: true, remote: me()));
     await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Settings')));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Sign out'));
+    // The settings list is lazy: scroll until the row is built.
+    await tester.scrollUntilVisible(find.text('Sign out'), 200, scrollable: find.byType(Scrollable).first);
     await tester.tap(find.text('Sign out'));
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(FilledButton, 'Sign out'));

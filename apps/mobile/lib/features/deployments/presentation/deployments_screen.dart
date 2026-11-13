@@ -5,6 +5,7 @@ import '../../../core/design_system/tokens.dart';
 import '../../../core/design_system/widgets/async_view.dart';
 import '../../../core/design_system/widgets/dp_widgets.dart';
 import '../../../core/network/org_api.dart';
+import '../../../l10n/l10n.dart';
 import '../../offline/live_sync.dart';
 import '../../shared_tiles.dart';
 import '../domain/deployment.dart';
@@ -23,7 +24,7 @@ class DeploymentsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final value = ref.watch(deploymentsProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('Deployments')),
+      appBar: AppBar(title: Text(context.l10n.deployments)),
       body: RefreshIndicator(
         onRefresh: () async => ref.read(liveSyncProvider)?.refresh(),
         child: AsyncView(
@@ -32,13 +33,12 @@ class DeploymentsScreen extends ConsumerWidget {
           data: (page) => page.items.isEmpty
               ? ListView(
                   physics: const AlwaysScrollableScrollPhysics(),
-                  children: const [
-                    SizedBox(height: 60),
+                  children: [
+                    const SizedBox(height: 60),
                     DpEmptyState(
                       icon: Icons.rocket_launch_outlined,
-                      title: 'No deployments yet',
-                      description:
-                          'Send deployment events from CI with an ingest key, or connect GitHub on the web dashboard.',
+                      title: context.l10n.noDeploymentsYet,
+                      description: context.l10n.deploymentsEmptyBody,
                     ),
                   ],
                 )

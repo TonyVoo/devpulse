@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 
-import { fmt, TimeSeriesChart } from "@/components/charts/time-series";
+import { TimeSeriesChart } from "@/components/charts/time-series";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { Alert, Card, EmptyState } from "@/components/ui/card";
@@ -11,6 +11,9 @@ import { Field } from "@/components/ui/field";
 import { SeverityChip } from "@/components/ui/status";
 import { api, ApiError, request } from "@/lib/api-client";
 import type { components } from "@/lib/api-types";
+import { useI18n } from "@/lib/i18n/client";
+import { errorText } from "@/lib/i18n/errors";
+import { type Fmt, makeFmt, makeT, type MessageKey, type T } from "@/lib/i18n/translate";
 
 type Rule = components["schemas"]["AlertRuleOut"];
 type RuleIn = components["schemas"]["AlertRuleIn"];
@@ -20,13 +23,13 @@ type Service = components["schemas"]["ServiceOut"];
 const ERROR_RATE = "http.server.error_rate";
 
 /** Standard metrics with the aggregation that makes sense by default. */
-export const METRICS: { name: string; label: string; agg: RuleIn["aggregation"]; unit: "ms" | "pct" | "count" | "num" }[] = [
-  { name: "http.server.duration_ms", label: "Latency (ms)", agg: "p95", unit: "ms" },
-  { name: ERROR_RATE, label: "Error rate", agg: "ratio", unit: "pct" },
-  { name: "http.server.requests", label: "Requests", agg: "sum", unit: "count" },
-  { name: "process.cpu.utilization", label: "CPU utilization", agg: "avg", unit: "pct" },
-  { name: "process.memory.usage_bytes", label: "Memory (bytes)", agg: "avg", unit: "count" },
-  { name: "db.pool.connections_in_use", label: "DB pool connections", agg: "max", unit: "num" },
+export const METRICS: { name: string; label: MessageKey; agg: RuleIn["aggregation"]; unit: "ms" | "pct" | "count" | "num" }[] = [
+  { name: "http.server.duration_ms", label: "alerts.metrics.latency", agg: "p95", unit: "ms" },
+  { name: ERROR_RATE, label: "alerts.metrics.errorRate", agg: "ratio", unit: "pct" },
+  { name: "http.server.requests", label: "alerts.metrics.requests", agg: "sum", unit: "count" },
+  { name: "process.cpu.utilization", label: "alerts.metrics.cpu", agg: "avg", unit: "pct" },
+  { name: "process.memory.usage_bytes", label: "alerts.metrics.memory", agg: "avg", unit: "count" },
+  { name: "db.pool.connections_in_use", label: "alerts.metrics.dbPool", agg: "max", unit: "num" },
 ];
 const AGGS: RuleIn["aggregation"][] = ["avg", "p95", "p99", "max", "min", "sum"];
 const COMPARATORS: { v: RuleIn["comparator"]; label: string }[] = [
@@ -36,7 +39,7 @@ const COMPARATORS: { v: RuleIn["comparator"]; label: string }[] = [
   { v: "lte", label: "≤" },
 ];
 
-export function unitFor(metric: string): (v: number) => string {
+export function unitFor(metric: string, fmt: Fmt = makeFmt("en")): (v: number) => string {
   const u = METRICS.find((m) => m.name === metric)?.unit ?? "num";
   return fmt[u];
 }
@@ -57,12 +60,16 @@ export function breachRanges(points: Preview["points"]): { from: number; to: num
   return out;
 }
 
-export function describeRule(r: Pick<RuleIn, "metric" | "aggregation" | "comparator" | "threshold" | "window_s" | "for_s">): string {
+export function describeRule(
+  r: Pick<RuleIn, "metric" | "aggregation" | "comparator" | "threshold" | "window_s" | "for_s">,
+  t: T = makeT("en"),
+  fmt: Fmt = makeFmt("en"),
+): string {
   const cmp = COMPARATORS.find((c) => c.v === r.comparator)?.label ?? r.comparator;
-  const agg = r.aggregation === "ratio" ? "error rate" : `${r.aggregation}(${r.metric})`;
-  const thr = unitFor(r.metric)(r.threshold);
-  const hold = r.for_s ? ` for ${Math.round(r.for_s / 60)} min` : "";
-  return `${agg} over ${Math.round(r.window_s / 60)} min ${cmp} ${thr}${hold}`;
+  const agg = r.aggregation === "ratio" ? t("alerts.errorRateAgg") : `${r.aggregation}(${r.metric})`;
+  const threshold = unitFor(r.metric, fmt)(r.threshold);
+  const hold = r.for_s ? t("alerts.describeHold", { hold: Math.round(r.for_s / 60) }) : "";
+  return t("alerts.describe", { agg, window: Math.round(r.window_s / 60), cmp, threshold }) + hold;
 }
 
 function useDebounced<T>(value: T, ms: number): T {
@@ -74,10 +81,6 @@ function useDebounced<T>(value: T, ms: number): T {
   return v;
 }
 
-function errorText(e: unknown): string {
-  if (e instanceof ApiError) return e.problem.errors?.[0]?.msg ?? e.problem.detail;
-  return "Something went wrong.";
-}
 
 function Builder({
   orgId,
@@ -91,6 +94,7 @@ function Builder({
   onDone: () => void;
 }) {
   const qc = useQueryClient();
+  const { t, fmt } = useI18n();
   const [draft, setDraft] = useState<RuleIn>(
     rule
       ? {
@@ -141,14 +145,14 @@ function Builder({
       onDone();
     },
   });
-  const format = unitFor(draft.metric);
+  const format = unitFor(draft.metric, fmt);
   const isRate = draft.metric === ERROR_RATE;
   const points = (preview.data?.points ?? []).map((p) => ({ t: new Date(p.at).getTime(), v: p.value }));
   const conflict = save.error instanceof ApiError && save.error.status === 409;
 
   return (
     <Card className="space-y-5">
-      <h2 className="font-semibold">{rule ? `Edit “${rule.name}”` : "New alert rule"}</h2>
+      <h2 className="font-semibold">{rule ? t("alerts.editTitle", { name: rule.name }) : t("alerts.new")}</h2>
       <form method="post"
         className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
         onSubmit={(e) => {
@@ -156,9 +160,15 @@ function Builder({
           save.mutate();
         }}
       >
-        <Field label="Name" value={draft.name} onChange={(e) => set({ name: e.target.value })} required placeholder="Checkout p95 latency" />
+        <Field
+          label={t("common.name")}
+          value={draft.name}
+          onChange={(e) => set({ name: e.target.value })}
+          required
+          placeholder={t("alerts.namePlaceholder")}
+        />
         <label className="flex flex-col gap-1.5 text-xs font-medium tracking-wide text-fg-muted">
-          Service
+          {t("common.service")}
           <Select
             value={draft.service_id}
             disabled={!!rule}
@@ -173,7 +183,7 @@ function Builder({
           </Select>
         </label>
         <label className="flex flex-col gap-1.5 text-xs font-medium tracking-wide text-fg-muted">
-          Metric
+          {t("alerts.metric")}
           <Select
             value={draft.metric}
             onChange={(e) => {
@@ -184,25 +194,25 @@ function Builder({
           >
             {METRICS.map((m) => (
               <option key={m.name} value={m.name}>
-                {m.label}
+                {t(m.label)}
               </option>
             ))}
           </Select>
         </label>
         <label className="flex flex-col gap-1.5 text-xs font-medium tracking-wide text-fg-muted">
-          Aggregation
+          {t("alerts.aggregation")}
           <Select
             value={draft.aggregation}
             disabled={isRate}
             onChange={(e) => set({ aggregation: e.target.value as RuleIn["aggregation"] })}
             
           >
-            {isRate ? <option value="ratio">errors ÷ requests</option> : AGGS.map((a) => <option key={a}>{a}</option>)}
+            {isRate ? <option value="ratio">{t("alerts.ratio")}</option> : AGGS.map((a) => <option key={a}>{a}</option>)}
           </Select>
         </label>
         <div className="flex min-w-0 gap-2">
           <label className="flex flex-col gap-1.5 text-xs font-medium tracking-wide text-fg-muted">
-            When
+            {t("alerts.when")}
             <Select
               value={draft.comparator}
               onChange={(e) => set({ comparator: e.target.value as RuleIn["comparator"] })}
@@ -217,7 +227,7 @@ function Builder({
           </label>
           <div className="min-w-0 flex-1">
             <Field
-              label={isRate ? "Threshold (0–1, e.g. 0.05 = 5%)" : "Threshold"}
+              label={isRate ? t("alerts.thresholdRate") : t("alerts.threshold")}
               type="number"
               step="any"
               value={Number.isFinite(draft.threshold) ? draft.threshold : ""}
@@ -227,20 +237,20 @@ function Builder({
           </div>
         </div>
         <label className="flex flex-col gap-1.5 text-xs font-medium tracking-wide text-fg-muted">
-          Severity
+          {t("alerts.severity")}
           <Select
             value={draft.severity}
             onChange={(e) => set({ severity: e.target.value as RuleIn["severity"] })}
             
           >
-            <option value="sev1">SEV1 — critical</option>
-            <option value="sev2">SEV2 — major</option>
-            <option value="sev3">SEV3 — minor</option>
-            <option value="sev4">SEV4 — low</option>
+            <option value="sev1">{t("alerts.sev1")}</option>
+            <option value="sev2">{t("alerts.sev2")}</option>
+            <option value="sev3">{t("alerts.sev3")}</option>
+            <option value="sev4">{t("alerts.sev4")}</option>
           </Select>
         </label>
         <Field
-          label="Window (minutes)"
+          label={t("alerts.window")}
           type="number"
           min={1}
           max={60}
@@ -248,23 +258,23 @@ function Builder({
           onChange={(e) => set({ window_s: Math.round(e.target.valueAsNumber * 60) || 60 })}
         />
         <Field
-          label="Must hold for (minutes)"
+          label={t("alerts.hold")}
           type="number"
           min={0}
           max={60}
           value={draft.for_s / 60}
           onChange={(e) => set({ for_s: Math.round((e.target.valueAsNumber || 0) * 60) })}
-          hint="Avoids paging on a single spike"
+          hint={t("alerts.holdHint")}
         />
         <label className="flex items-center gap-2 self-end pb-2 text-sm">
           <input type="checkbox" checked={draft.enabled} onChange={(e) => set({ enabled: e.target.checked })} />
-          Enabled
+          {t("alerts.enabled")}
         </label>
 
         <div className="space-y-2 sm:col-span-2 lg:col-span-3">
-          <p className="text-sm text-fg-muted">{describeRule(draft)}</p>
+          <p className="text-sm text-fg-muted">{describeRule(draft, t, fmt)}</p>
           <TimeSeriesChart
-            title={`Preview: last 6 hours (evaluated every 5 min)`}
+            title={t("alerts.previewTitle")}
             points={points}
             format={format}
             threshold={Number.isFinite(draft.threshold) ? draft.threshold : undefined}
@@ -274,29 +284,31 @@ function Builder({
           />
           <p className="text-sm" aria-live="polite">
             {preview.isError
-              ? errorText(preview.error)
+              ? errorText(preview.error, t)
               : preview.data
                 ? preview.data.breach_windows === 0
-                  ? "Would not have fired in the last 6 hours."
-                  : `Would have breached ${preview.data.breach_windows} time${preview.data.breach_windows === 1 ? "" : "s"} in the last 6 hours` +
-                    (draft.for_s ? " (before the hold time is applied)." : ".")
+                  ? t("alerts.wouldNotFire")
+                  : (preview.data.breach_windows === 1
+                      ? t("alerts.wouldBreachOne")
+                      : t("alerts.wouldBreachMany", { n: preview.data.breach_windows })) +
+                    (draft.for_s ? t("alerts.beforeHold") : ".")
                 : preview.isFetching
-                  ? "Calculating preview…"
+                  ? t("alerts.calculating")
                   : ""}
           </p>
         </div>
 
         {save.isError && (
           <Alert className="sm:col-span-2 lg:col-span-3">
-            {conflict ? "Someone else changed this rule meanwhile. Close and reopen it to see their changes." : errorText(save.error)}
+            {conflict ? t("alerts.conflict") : errorText(save.error, t)}
           </Alert>
         )}
         <div className="flex gap-2 sm:col-span-2 lg:col-span-3">
           <Button type="submit" loading={save.isPending}>
-            {rule ? "Save changes" : "Create rule"}
+            {rule ? t("alerts.saveChanges") : t("alerts.createRule")}
           </Button>
           <Button type="button" variant="ghost" onClick={onDone}>
-            Cancel
+            {t("common.cancel")}
           </Button>
         </div>
       </form>
@@ -306,6 +318,7 @@ function Builder({
 
 export function AlertRulesView({ orgId, canManage }: { orgId: string; canManage: boolean }) {
   const qc = useQueryClient();
+  const { t, fmt } = useI18n();
   const [editing, setEditing] = useState<Rule | "new" | null>(null);
   const rules = useQuery({
     queryKey: ["orgs", orgId, "alert-rules"],
@@ -332,13 +345,13 @@ export function AlertRulesView({ orgId, canManage }: { orgId: string; canManage:
   });
 
   if (rules.isPending || services.isPending) {
-    return <div className="h-40 animate-pulse rounded-md bg-raised" role="status" aria-busy aria-label="Loading alert rules" />;
+    return <div className="h-40 animate-pulse rounded-md bg-raised" role="status" aria-busy aria-label={t("alerts.loading")} />;
   }
   if (rules.isError || services.isError) {
     return (
       <Alert>
-        Couldn&apos;t load alert rules.{" "}
-        <Button variant="ghost" size="sm" onClick={() => void rules.refetch()}>Retry</Button>
+        {t("alerts.loadError")}{" "}
+        <Button variant="ghost" size="sm" onClick={() => void rules.refetch()}>{t("common.retry")}</Button>
       </Alert>
     );
   }
@@ -347,10 +360,10 @@ export function AlertRulesView({ orgId, canManage }: { orgId: string; canManage:
     <div className="space-y-6">
       {canManage && editing === null && (
         <Button onClick={() => setEditing("new")} disabled={svcList.length === 0}>
-          New alert rule
+          {t("alerts.new")}
         </Button>
       )}
-      {canManage && svcList.length === 0 && <Alert tone="info">Add a service first; rules watch one service.</Alert>}
+      {canManage && svcList.length === 0 && <Alert tone="info">{t("alerts.needService")}</Alert>}
       {editing !== null && (
         <Builder
           key={editing === "new" ? "new" : editing.id}
@@ -360,9 +373,9 @@ export function AlertRulesView({ orgId, canManage }: { orgId: string; canManage:
           onDone={() => setEditing(null)}
         />
       )}
-      {(toggle.error ?? remove.error) && <Alert>{errorText(toggle.error ?? remove.error)}</Alert>}
+      {(toggle.error ?? remove.error) && <Alert>{errorText(toggle.error ?? remove.error, t)}</Alert>}
       {rules.data.length === 0 ? (
-        <EmptyState title="No alert rules yet" description="Rules watch a metric and open an incident when it crosses a threshold." />
+        <EmptyState title={t("alerts.emptyTitle")} description={t("alerts.emptyBody")} />
       ) : (
         <ul className="divide-y divide-line rounded-lg border border-line bg-surface">
           {rules.data.map((r) => (
@@ -371,30 +384,30 @@ export function AlertRulesView({ orgId, canManage }: { orgId: string; canManage:
               <div className="min-w-[12rem] flex-1">
                 <div className="font-medium">
                   {r.name}
-                  {r.state === "firing" && <span className="ml-2 text-xs font-semibold text-critical">● Firing</span>}
-                  {r.state === "pending" && <span className="ml-2 text-xs font-semibold text-degraded">▲ Pending</span>}
-                  {!r.enabled && <span className="ml-2 text-xs text-fg-subtle">Disabled</span>}
+                  {r.state === "firing" && <span className="ml-2 text-xs font-semibold text-critical">{t("alerts.firing")}</span>}
+                  {r.state === "pending" && <span className="ml-2 text-xs font-semibold text-degraded">{t("alerts.pending")}</span>}
+                  {!r.enabled && <span className="ml-2 text-xs text-fg-subtle">{t("alerts.disabled")}</span>}
                 </div>
                 <div className="text-xs text-fg-subtle">
-                  {byId.get(r.service_id)?.name ?? "Unknown service"} · {describeRule(r)}
+                  {byId.get(r.service_id)?.name ?? t("alerts.unknownService")} · {describeRule(r, t, fmt)}
                 </div>
               </div>
               {canManage && (
                 <div className="flex gap-1">
                   <Button size="sm" variant="ghost" onClick={() => setEditing(r)}>
-                    Edit
+                    {t("common.edit")}
                   </Button>
                   <Button size="sm" variant="ghost" loading={toggle.isPending && toggle.variables?.id === r.id} onClick={() => toggle.mutate(r)}>
-                    {r.enabled ? "Disable" : "Enable"}
+                    {r.enabled ? t("alerts.disable") : t("alerts.enable")}
                   </Button>
                   <Button
                     size="sm"
                     variant="ghost"
                     onClick={() => {
-                      if (window.confirm(`Delete “${r.name}”? Open incidents stay open.`)) remove.mutate(r.id);
+                      if (window.confirm(t("alerts.confirmDelete", { name: r.name }))) remove.mutate(r.id);
                     }}
                   >
-                    Delete
+                    {t("common.delete")}
                   </Button>
                 </div>
               )}

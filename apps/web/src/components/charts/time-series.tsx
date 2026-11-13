@@ -12,6 +12,9 @@ import {
   YAxis,
 } from "recharts";
 
+import { useI18n } from "@/lib/i18n/client";
+import { makeFmt } from "@/lib/i18n/translate";
+
 export type Point = { t: number; v: number | null };
 export type Marker = { t: number; label: string; tone?: "deploy" | "incident" | "event" };
 
@@ -21,13 +24,6 @@ const TONE: Record<NonNullable<Marker["tone"]>, string> = {
   event: "var(--color-fg-subtle)",
 };
 
-function clock(t: number): string {
-  return new Date(t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-}
-
-function dayClock(t: number): string {
-  return new Date(t).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
-}
 
 /** Evenly spaced ticks across the axis (Recharts' own time ticks are sparse). */
 export function timeTicks([from, to]: [number, number], count = 5): number[] {
@@ -63,6 +59,9 @@ export function TimeSeriesChart({
   domain?: [number, number];
   loading?: boolean;
 }) {
+  const { t, date } = useI18n();
+  const clock = (v: number) => date(v, { hour: "2-digit", minute: "2-digit" });
+  const dayClock = (v: number) => date(v, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
   const xDomain: [number | string, number | string] = domain ?? ["dataMin", "dataMax"];
   const span = domain ?? extent(points);
   const labelled = thinLabels(markers, span);
@@ -74,9 +73,14 @@ export function TimeSeriesChart({
     ...[...values, ...(threshold !== undefined ? [threshold] : [])].map((v) => format(v).length * 8 + 18),
   );
   const summary = values.length
-    ? `${title}: ${values.length} points, min ${format(Math.min(...values))}, max ${format(Math.max(...values))}` +
-      (markers.length ? `, ${markers.length} markers: ${markers.map((m) => m.label).join("; ")}` : "")
-    : `${title}: no data in this range`;
+    ? t("chart.summary", {
+        title,
+        n: values.length,
+        min: format(Math.min(...values)),
+        max: format(Math.max(...values)),
+      }) +
+      (markers.length ? t("chart.summaryMarkers", { n: markers.length, labels: markers.map((m) => m.label).join("; ") }) : "")
+    : t("chart.summaryEmpty", { title });
 
   return (
     <figure className="min-w-0">
@@ -84,13 +88,13 @@ export function TimeSeriesChart({
       {/* Charts are summarised for screen readers; the SVG itself is decorative. */}
       <p className="sr-only">{summary}</p>
       {loading && values.length === 0 ? (
-        <div className="animate-pulse rounded-md bg-raised" style={{ height }} role="status" aria-busy aria-label={`Loading ${title}`} />
+        <div className="animate-pulse rounded-md bg-raised" style={{ height }} role="status" aria-busy aria-label={t("common.loading", { what: title })} />
       ) : values.length === 0 ? (
         <div
           className="flex items-center justify-center rounded-md border border-dashed border-line text-xs text-fg-subtle"
           style={{ height }}
         >
-          No data in this range
+          {t("chart.noData")}
         </div>
       ) : (
         <div aria-hidden style={{ height }}>
@@ -116,8 +120,8 @@ export function TimeSeriesChart({
                 width={Math.min(yWidth, 88)}
               />
               <Tooltip
-                labelFormatter={(t) => new Date(Number(t)).toLocaleString()}
-                formatter={(v) => [typeof v === "number" ? format(v) : "no data", title]}
+                labelFormatter={(v) => date(Number(v), { dateStyle: "medium", timeStyle: "short" })}
+                formatter={(v) => [typeof v === "number" ? format(v) : t("chart.noDataTooltip"), title]}
                 contentStyle={{
                   background: "var(--color-surface)",
                   border: "1px solid var(--color-line)",
@@ -133,7 +137,7 @@ export function TimeSeriesChart({
                   y={threshold}
                   stroke="var(--color-critical)"
                   strokeDasharray="4 4"
-                  label={{ value: `threshold ${format(threshold)}`, fill: "var(--color-critical)", fontSize: 11, position: "insideTopRight" }}
+                  label={{ value: t("chart.threshold", { value: format(threshold) }), fill: "var(--color-critical)", fontSize: 11, position: "insideTopRight" }}
                 />
               )}
               {markers.map((m, i) => (
@@ -203,12 +207,8 @@ export function thinLabels(markers: Marker[], [from, to]: [number, number]): Set
   return keep;
 }
 
-export const fmt = {
-  ms: (v: number) => (v >= 1000 ? `${(v / 1000).toFixed(2)} s` : `${Math.round(v)} ms`),
-  pct: (v: number) => `${(v * 100).toFixed(v < 0.01 ? 2 : 1)}%`,
-  count: (v: number) => (v >= 1000 ? `${(v / 1000).toFixed(1)}k` : `${Math.round(v)}`),
-  num: (v: number) => (Math.abs(v) >= 100 ? v.toFixed(0) : v.toFixed(2)),
-};
+/** English formatters (helpers and tests); components use `useI18n().fmt` for the user's language. */
+export const fmt = makeFmt("en");
 
 /**
  * Metric series from the API (`[iso, value|null][]`) → chart points. The API only returns
@@ -231,13 +231,14 @@ export function toPoints(series: [string, number | null][] | undefined, stepMs?:
 
 /** Small legend for chart markers (deploys dashed violet, incidents solid red). */
 export function MarkerLegend() {
+  const { t } = useI18n();
   return (
     <span className="inline-flex items-center gap-3 text-xs text-fg-subtle">
       <span className="inline-flex items-center gap-1">
-        <span aria-hidden className="h-3 border-l-2 border-dashed border-violet" /> deploy
+        <span aria-hidden className="h-3 border-l-2 border-dashed border-violet" /> {t("chart.deploy")}
       </span>
       <span className="inline-flex items-center gap-1">
-        <span aria-hidden className="h-3 border-l-2 border-critical" /> incident
+        <span aria-hidden className="h-3 border-l-2 border-critical" /> {t("chart.incident")}
       </span>
     </span>
   );

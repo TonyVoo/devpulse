@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
 
 import { AcceptInvite } from "@/components/orgs/accept-invite";
+import { getT } from "@/lib/i18n/server";
 
-export const metadata: Metadata = { title: "Join organization" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT())("invite.pageTitle") };
+}
 
 export default async function InvitePage({ params }: PageProps<"/invite/[token]">) {
   const { token } = await params;

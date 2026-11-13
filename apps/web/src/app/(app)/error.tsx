@@ -2,16 +2,18 @@
 
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/card";
+import { useI18n } from "@/lib/i18n/client";
 
 export default function AppError({ reset }: { error: Error; reset: () => void }) {
+  const { t } = useI18n();
   return (
     <div className="p-8">
       <EmptyState
-        title="Couldn't load this page"
-        description="DevPulse couldn't reach its API. Your session is intact. Try again in a moment."
+        title={t("errors.pageTitle")}
+        description={t("errors.pageBody")}
         action={
           <Button variant="secondary" onClick={reset}>
-            Try again
+            {t("common.tryAgain")}
           </Button>
         }
       />

@@ -8,6 +8,7 @@ import '../../../core/design_system/widgets/async_view.dart';
 import '../../../core/design_system/widgets/dp_widgets.dart';
 import '../../../core/design_system/widgets/status_widgets.dart';
 import '../../../core/network/org_api.dart';
+import '../../../l10n/l10n.dart';
 import '../../auth/domain/models.dart';
 import '../../auth/presentation/session_controller.dart';
 import '../data/ai_repository.dart';
@@ -29,7 +30,7 @@ class CopilotScreen extends ConsumerWidget {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('AI Copilot'),
+            Text(context.l10n.aiCopilot),
             if (org != null) Text(org, style: t.bodySmall),
           ],
         ),
@@ -45,12 +46,10 @@ class CopilotScreen extends ConsumerWidget {
                     physics: const AlwaysScrollableScrollPhysics(),
                     child: ConstrainedBox(
                       constraints: BoxConstraints(minHeight: c.maxHeight),
-                      child: const DpEmptyState(
+                      child: DpEmptyState(
                         icon: Icons.auto_awesome_outlined,
-                        title: 'No investigations yet',
-                        description:
-                            'Open an incident and tap "Investigate with AI". Copilot gathers metrics, '
-                            'logs and deployments and suggests probable causes with the evidence behind them.',
+                        title: context.l10n.noInvestigations,
+                        description: context.l10n.noInvestigationsBody,
                       ),
                     ),
                   ),
@@ -78,7 +77,7 @@ class _Tile extends StatelessWidget {
     final t = Theme.of(context).textTheme;
     final p = context.dp;
     final subtitle = switch (s.status) {
-      RunStatus.succeeded => s.summary ?? 'Analysis ready',
+      RunStatus.succeeded => s.summary ?? context.l10n.analysisReady,
       RunStatus.failed || RunStatus.rejected => aiErrorMessage(s.errorCode),
       _ => s.status.progressLabel,
     };
@@ -106,7 +105,10 @@ class _Tile extends StatelessWidget {
             runSpacing: DpSpace.xs,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              Text('${s.trigger == 'auto' ? 'Automatic' : 'Requested'} · ${timeAgo(s.createdAt)}', style: t.bodySmall),
+              Text(
+                '${s.trigger == 'auto' ? context.l10n.triggerAuto : context.l10n.triggerRequested} · ${timeAgo(s.createdAt)}',
+                style: t.bodySmall,
+              ),
               if (s.isDemoProvider) const DemoAnalyzerTag(),
             ],
           ),

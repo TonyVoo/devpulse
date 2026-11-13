@@ -8,6 +8,7 @@ import '../../../core/design_system/widgets/async_view.dart';
 import '../../../core/design_system/widgets/dp_widgets.dart';
 import '../../../core/design_system/widgets/status_widgets.dart';
 import '../../../core/result/failure.dart';
+import '../../../l10n/l10n.dart';
 import '../../incidents/domain/incident.dart';
 import '../../offline/live_sync.dart';
 import '../data/ai_repository.dart';
@@ -54,14 +55,11 @@ class _IncidentAiSectionState extends ConsumerState<IncidentAiSection> {
       final ok = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: const Text('Approve this action?'),
-          content: Text(
-            '“${p.description}”\n\nApproving records your decision on the incident. '
-            'DevPulse does not run it: your team carries it out.',
-          ),
+          title: Text(ctx.l10n.approveQ),
+          content: Text(ctx.l10n.approveBody(p.description)),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-            FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Approve')),
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(ctx.l10n.cancel)),
+            FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(ctx.l10n.approve)),
           ],
         ),
       );
@@ -82,7 +80,7 @@ class _IncidentAiSectionState extends ConsumerState<IncidentAiSection> {
     try {
       await ref.read(aiRepositoryProvider).feedback(inv.id, helpful: helpful);
       ref.invalidate(incidentAnalysisProvider(widget.incident.id));
-      _snack('Thanks, your feedback helps tune the investigator.');
+      _snack(l10n.feedbackThanks);
     } on Failure catch (f) {
       _snack(f.message);
     }
@@ -93,21 +91,22 @@ class _IncidentAiSectionState extends ConsumerState<IncidentAiSection> {
     final value = ref.watch(incidentAnalysisProvider(widget.incident.id));
     final online = ref.watch(onlineProvider).value ?? true;
     final t = Theme.of(context).textTheme;
+    final l = context.l10n;
     final analysis = value.value;
     final inv = analysis?.latest;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         SectionHeader(
-          'AI analysis',
+          l.aiAnalysis,
           action: inv != null && !inv.status.isActive && widget.canAct && online
-              ? TextButton(onPressed: _starting ? null : _start, child: const Text('Run again'))
+              ? TextButton(onPressed: _starting ? null : _start, child: Text(l.runAgain))
               : null,
         ),
         if (analysis?.stale ?? false)
-          const Padding(
-            padding: EdgeInsets.only(bottom: DpSpace.sm),
-            child: DpBanner(message: 'Showing the analysis saved on this device.', tone: DpBannerTone.warning),
+          Padding(
+            padding: const EdgeInsets.only(bottom: DpSpace.sm),
+            child: DpBanner(message: l.analysisStale, tone: DpBannerTone.warning),
           ),
         Card(
           child: Padding(
@@ -117,10 +116,10 @@ class _IncidentAiSectionState extends ConsumerState<IncidentAiSection> {
                 : value.hasError && analysis == null
                 ? Row(
                     children: [
-                      Expanded(child: Text("Couldn't load the AI analysis", style: t.bodySmall)),
+                      Expanded(child: Text(l.aiLoadError, style: t.bodySmall)),
                       TextButton(
                         onPressed: () => ref.invalidate(incidentAnalysisProvider(widget.incident.id)),
-                        child: const Text('Retry'),
+                        child: Text(l.retry),
                       ),
                     ],
                   )
@@ -140,15 +139,11 @@ class _IncidentAiSectionState extends ConsumerState<IncidentAiSection> {
   Widget _empty(TextTheme t, bool online) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Text(
-        'Copilot reads this incident\'s metrics, logs, deployments and similar past incidents, '
-        'then suggests probable causes, each with the evidence behind it.',
-        style: t.bodyMedium,
-      ),
+      Text(context.l10n.aiIntro, style: t.bodyMedium),
       if (widget.canAct) ...[
         const SizedBox(height: DpSpace.md),
         DpButton(
-          label: online ? 'Investigate with AI' : 'Investigate (needs a connection)',
+          label: online ? context.l10n.investigateWithAi : context.l10n.investigateOffline,
           icon: Icons.auto_awesome,
           loading: _starting,
           onPressed: online ? _start : null,
@@ -177,15 +172,20 @@ class _IncidentAiSectionState extends ConsumerState<IncidentAiSection> {
           children: [
             Icon(Icons.error_outline, color: p.critical, size: 18),
             const SizedBox(width: DpSpace.sm),
-            Text('Analysis unavailable', style: t.titleSmall),
+            Text(context.l10n.analysisUnavailable, style: t.titleSmall),
           ],
         ),
         const SizedBox(height: DpSpace.sm),
         Text(aiErrorMessage(inv.summary.errorCode, detail: inv.errorDetail), style: t.bodyMedium),
-        Text('Incident actions are not affected.', style: t.bodySmall),
+        Text(context.l10n.actionsUnaffected, style: t.bodySmall),
         if (widget.canAct && online && inv.summary.errorCode != 'ai.disabled') ...[
           const SizedBox(height: DpSpace.md),
-          DpButton(label: 'Try again', variant: DpButtonVariant.secondary, loading: _starting, onPressed: _start),
+          DpButton(
+            label: context.l10n.tryAgain,
+            variant: DpButtonVariant.secondary,
+            loading: _starting,
+            onPressed: _start,
+          ),
         ],
       ],
     );
@@ -193,6 +193,7 @@ class _IncidentAiSectionState extends ConsumerState<IncidentAiSection> {
 
   Widget _result(Investigation inv, Analysis a, TextTheme t, bool online) {
     final p = context.dp;
+    final l = context.l10n;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -201,7 +202,7 @@ class _IncidentAiSectionState extends ConsumerState<IncidentAiSection> {
           runSpacing: DpSpace.xs,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            Text('Hypotheses — not confirmed · ${timeAgo(inv.summary.createdAt)}', style: t.bodySmall),
+            Text(l.hypotheses(timeAgo(inv.summary.createdAt)), style: t.bodySmall),
             if (inv.summary.isDemoProvider) const DemoAnalyzerTag(),
           ],
         ),
@@ -212,16 +213,16 @@ class _IncidentAiSectionState extends ConsumerState<IncidentAiSection> {
           Text(a.impact, style: t.bodyMedium?.copyWith(color: p.fgMuted)),
         ],
         const SizedBox(height: DpSpace.lg),
-        Text('Probable causes', style: t.labelLarge),
+        Text(l.probableCauses, style: t.labelLarge),
         for (final (i, c) in a.causes.indexed) _cause(inv, c, i + 1, t),
         if (a.actions.isNotEmpty) ...[
           const SizedBox(height: DpSpace.lg),
-          Text('Recommended next steps', style: t.labelLarge),
+          Text(l.nextSteps, style: t.labelLarge),
           for (final action in a.actions) _action(inv, action, t),
         ],
         if (a.dataGaps.isNotEmpty) ...[
           const SizedBox(height: DpSpace.lg),
-          Text('What DevPulse could not see', style: t.labelLarge),
+          Text(l.couldNotSee, style: t.labelLarge),
           for (final g in a.dataGaps)
             Padding(
               padding: const EdgeInsets.only(top: DpSpace.xs),
@@ -230,7 +231,7 @@ class _IncidentAiSectionState extends ConsumerState<IncidentAiSection> {
         ],
         if (a.adjustments.isNotEmpty) ...[
           const SizedBox(height: DpSpace.sm),
-          for (final adj in a.adjustments) Text('Adjusted: $adj', style: t.bodySmall),
+          for (final adj in a.adjustments) Text(l.adjusted(adj), style: t.bodySmall),
         ],
         if (a.limitations.isNotEmpty) ...[
           const SizedBox(height: DpSpace.md),
@@ -241,7 +242,7 @@ class _IncidentAiSectionState extends ConsumerState<IncidentAiSection> {
           children: [
             Expanded(
               child: DpButton(
-                label: 'Ask a follow-up',
+                label: l.askFollowUp,
                 icon: Icons.chat_bubble_outline,
                 variant: DpButtonVariant.secondary,
                 onPressed: () => context.push('${Routes.incidents}/${widget.incident.key}/ai/${inv.id}'),
@@ -249,14 +250,14 @@ class _IncidentAiSectionState extends ConsumerState<IncidentAiSection> {
             ),
             const SizedBox(width: DpSpace.sm),
             IconButton(
-              tooltip: 'Helpful',
+              tooltip: l.helpful,
               isSelected: inv.myFeedback ?? false,
               icon: const Icon(Icons.thumb_up_outlined),
               selectedIcon: Icon(Icons.thumb_up, color: p.cyan),
               onPressed: online ? () => _feedback(inv, true) : null,
             ),
             IconButton(
-              tooltip: 'Not helpful',
+              tooltip: l.notHelpful,
               isSelected: inv.myFeedback == false,
               icon: const Icon(Icons.thumb_down_outlined),
               selectedIcon: Icon(Icons.thumb_down, color: p.degraded),
@@ -291,7 +292,7 @@ class _IncidentAiSectionState extends ConsumerState<IncidentAiSection> {
               EvidenceChip(evidenceRef: r, evidence: inv.evidenceFor(r), counter: true),
           ],
         ),
-        if (c.howToVerify.isNotEmpty) Text('Verify: ${c.howToVerify}', style: t.bodySmall),
+        if (c.howToVerify.isNotEmpty) Text(context.l10n.verify(c.howToVerify), style: t.bodySmall),
       ],
     ),
   );
@@ -316,7 +317,7 @@ class _IncidentAiSectionState extends ConsumerState<IncidentAiSection> {
               RiskBadge(a.risk),
               if (proposal != null && proposal.status != 'proposed') ...[
                 Text(
-                  proposal.status == 'approved' ? '· Approved (not executed by DevPulse)' : '· Rejected',
+                  proposal.status == 'approved' ? context.l10n.approvedNotRun : context.l10n.rejected,
                   style: t.bodySmall,
                 ),
               ],
@@ -328,16 +329,16 @@ class _IncidentAiSectionState extends ConsumerState<IncidentAiSection> {
               children: [
                 TextButton(
                   onPressed: busy ? null : () => _decide(inv, proposal, approve: true),
-                  child: const Text('Approve'),
+                  child: Text(context.l10n.approve),
                 ),
                 TextButton(
                   onPressed: busy ? null : () => _decide(inv, proposal, approve: false),
-                  child: const Text('Reject'),
+                  child: Text(context.l10n.reject),
                 ),
               ],
             )
           else if (proposal != null && proposal.status == 'proposed' && a.risk == 'destructive')
-            Text('An admin must decide on destructive actions.', style: t.bodySmall),
+            Text(context.l10n.adminMustDecide, style: t.bodySmall),
         ],
       ),
     );

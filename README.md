@@ -36,6 +36,17 @@ Exact status per item: [docs/ROADMAP.md §3](docs/ROADMAP.md).
 | [LOAD_TEST.md](docs/LOAD_TEST.md) | Load test method, results and tuning |
 | [ROADMAP.md](docs/ROADMAP.md) | Phased roadmap, technical risks, per-phase checklists |
 
+## Languages (English · Tiếng Việt)
+
+The web dashboard and the mobile app are bilingual. People get the language their browser or phone prefers (Vietnamese → Vietnamese, anything else → English) and can switch any time: **EN | VI** in the web sidebar, on the sign-in pages and in the phone header; **Settings → Language** in the app. The choice is remembered (a `dp_locale` cookie on the web, on-device storage in the app). Dates and numbers follow the language (`1,65 s`, `12 thg 11`).
+
+Adding or changing text:
+
+- **Web:** add the key to `apps/web/src/lib/i18n/messages/en.ts`, then to `vi.ts` (the build fails until it exists), and use `t("area.key")` from `useI18n()` (client) or `getT()` (server). `src/lib/i18n/i18n.test.tsx` checks that every Vietnamese string keeps the English placeholders.
+- **Mobile:** add the key to `apps/mobile/lib/l10n/app_en.arb` and `app_vi.arb`, run `flutter gen-l10n` (also runs on `flutter pub get`), and use `context.l10n.key`. Commit the generated `lib/l10n/gen/`.
+- API error codes are translated where the user sees them; unknown codes show the API's (English) message. User data (incident titles, service names) stays as written.
+- **AI analyses** are written in the language of the person who starts them, and follow-up answers in the asker's language (web and mobile send it; otherwise `Accept-Language` decides). Automatic analyses use the org's **AI settings → Language of automatic analyses**. Evidence stays as DevPulse computed it, and refs, metric/service names and versions are never translated. Existing analyses keep their language; **Run again** produces one in the current language.
+
 ## Running the project
 
 ```bash

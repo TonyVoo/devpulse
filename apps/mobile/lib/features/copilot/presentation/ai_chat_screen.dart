@@ -6,6 +6,7 @@ import '../../../core/design_system/widgets/async_view.dart';
 import '../../../core/design_system/widgets/status_widgets.dart';
 import '../../../core/network/org_api.dart';
 import '../../../core/result/failure.dart';
+import '../../../l10n/l10n.dart';
 import '../../offline/live_sync.dart';
 import '../data/ai_repository.dart';
 import '../domain/investigation.dart';
@@ -75,7 +76,7 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Ask Copilot'),
+            Text(context.l10n.askCopilot),
             Text(widget.incidentRef.toUpperCase(), style: t.bodySmall),
           ],
         ),
@@ -101,9 +102,7 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
                     padding: const EdgeInsets.all(DpSpace.xl),
                     children: [
                       Text(
-                        'Ask about this incident, e.g. "When did errors start?" or '
-                        '"Was this seen before?". Answers cite evidence; Copilot can only read data, '
-                        'never change anything.',
+                        context.l10n.askHint,
                         style: t.bodyMedium?.copyWith(color: p.fgMuted),
                         textAlign: TextAlign.center,
                       ),
@@ -123,7 +122,7 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
                           children: [
                             const SizedBox.square(dimension: 16, child: CircularProgressIndicator(strokeWidth: 2)),
                             const SizedBox(width: DpSpace.sm),
-                            Text('Looking into it…', style: t.bodySmall),
+                            Text(context.l10n.lookingIntoIt, style: t.bodySmall),
                           ],
                         ),
                       ),
@@ -154,7 +153,7 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
                       textInputAction: TextInputAction.send,
                       onSubmitted: (_) => _send(),
                       decoration: InputDecoration(
-                        hintText: online ? 'Ask a follow-up question' : 'Needs a connection',
+                        hintText: online ? context.l10n.questionHint : context.l10n.needsConnection,
                         counterText: '',
                       ),
                     ),
@@ -162,7 +161,7 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
                   IconButton(
                     onPressed: online && _pendingQuestion == null ? _send : null,
                     icon: const Icon(Icons.send),
-                    tooltip: 'Send question',
+                    tooltip: context.l10n.sendQuestion,
                   ),
                 ],
               ),
@@ -192,7 +191,10 @@ class _AiChatScreenState extends ConsumerState<AiChatScreen> {
     if (m.role == 'tool') {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: DpSpace.xs),
-        child: Text('Looked up ${m.toolName?.replaceAll('_', ' ')} → ${m.evidenceRefs.join(', ')}', style: t.bodySmall),
+        child: Text(
+          context.l10n.lookedUp(m.toolName?.replaceAll('_', ' ') ?? '', m.evidenceRefs.join(', ')),
+          style: t.bodySmall,
+        ),
       );
     }
     return Container(

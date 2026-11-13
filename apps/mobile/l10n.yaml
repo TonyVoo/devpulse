@@ -1,0 +1,10 @@
+# Flutter gen-l10n: English is the template; Vietnamese must have every key.
+arb-dir: lib/l10n
+template-arb-file: app_en.arb
+output-dir: lib/l10n/gen
+output-localization-file: app_localizations.dart
+output-class: AppLocalizations
+nullable-getter: true
+format: true
+required-resource-attributes: false
+untranslated-messages-file: build/untranslated-messages.json

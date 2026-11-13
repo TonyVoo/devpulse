@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/design_system/tokens.dart';
+import '../../../l10n/l10n.dart';
 import '../domain/investigation.dart';
 
 /// Shared pieces of the AI UI (incident section, chat, Copilot tab).
@@ -19,8 +20,14 @@ class ConfidencePill extends StatelessWidget {
       _ => p.fgSubtle,
     };
     final pct = (cause.confidence * 100).round();
+    final l = context.l10n;
+    final word = switch (cause.confidenceLabel) {
+      'high' => l.confidenceHigh,
+      'medium' => l.confidenceMedium,
+      _ => l.confidenceLow,
+    };
     return Semantics(
-      label: '${cause.confidenceLabel} confidence, $pct percent',
+      label: l.confidenceSemantics(word, '$pct'),
       excludeSemantics: true,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -29,7 +36,7 @@ class ConfidencePill extends StatelessWidget {
           borderRadius: BorderRadius.circular(DpRadius.sm),
         ),
         child: Text(
-          '${cause.confidenceLabel.toUpperCase()} · $pct%',
+          '${word.toUpperCase()} · $pct%',
           style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w700),
         ),
       ),
@@ -46,9 +53,9 @@ class RiskBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = context.dp;
     final (label, color) = switch (risk) {
-      'read_only' => ('Read-only', p.healthy),
-      'destructive' => ('Destructive · admin approval', p.critical),
-      _ => ('Changes a system · needs approval', p.degraded),
+      'read_only' => (context.l10n.riskReadOnly, p.healthy),
+      'destructive' => (context.l10n.riskDestructive, p.critical),
+      _ => (context.l10n.riskSensitive, p.degraded),
     };
     return Text(
       label,
@@ -68,7 +75,7 @@ class DemoAnalyzerTag extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(color: v.withValues(alpha: 0.14), borderRadius: BorderRadius.circular(4)),
       child: Text(
-        'DEMO ANALYZER · NOT AN LLM',
+        context.l10n.demoAnalyzer,
         style: TextStyle(color: v, fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 0.4),
       ),
     );
@@ -98,7 +105,7 @@ class EvidenceChip extends StatelessWidget {
     final e = evidence;
     return ActionChip(
       avatar: Icon(e == null ? Icons.help_outline : evidenceIcon(e.kind), size: 16),
-      label: Text(counter ? '$evidenceRef (against)' : evidenceRef),
+      label: Text(counter ? context.l10n.against(evidenceRef) : evidenceRef),
       labelStyle: TextStyle(color: counter ? p.degraded : p.fg, fontSize: 12),
       visualDensity: VisualDensity.compact,
       tooltip: e?.title,
@@ -132,11 +139,13 @@ Future<void> showEvidence(BuildContext context, Evidence e) => showModalBottomSh
             const SizedBox(height: DpSpace.md),
             SelectableText(e.text, style: t.bodyMedium),
             const SizedBox(height: DpSpace.lg),
-            Text('Computed by DevPulse from stored ${e.kind} data, not by the AI.', style: t.bodySmall),
+            Text(ctx.l10n.evidenceComputed(e.kind), style: t.bodySmall),
             if (q['type'] != null)
               Text(
-                'Source: ${q['type']}${q['name'] != null ? ' ${q['name']}' : ''}'
-                '${window.isNotEmpty ? ' · $window' : ''}',
+                ctx.l10n.evidenceSource(
+                  '${q['type']}${q['name'] != null ? ' ${q['name']}' : ''}'
+                  '${window.isNotEmpty ? ' · $window' : ''}',
+                ),
                 style: t.bodySmall,
               ),
           ],

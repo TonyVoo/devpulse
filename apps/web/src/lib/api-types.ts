@@ -283,7 +283,8 @@ export interface paths {
         /**
          * Ask
          * @description Follow-up question. The model may call read-only tools; their results become new
-         *     evidence. Idempotent on `client_id` (a retry returns the stored answer).
+         *     evidence. Idempotent on `client_id` (a retry returns the stored answer). Answered in
+         *     `language` (else the Accept-Language header's, else the analysis's language).
          */
         post: operations["ask_api_v1_orgs__org_id__ai_investigations__inv_id__messages_post"];
         delete?: never;
@@ -632,7 +633,8 @@ export interface paths {
         /**
          * Start Investigation
          * @description Queues an analysis (one active run per incident). Poll the returned investigation or
-         *     listen for the incident's `ai_analysis` timeline event.
+         *     listen for the incident's `ai_analysis` timeline event. The analysis is written in
+         *     `language` (else the Accept-Language header's, else English).
          */
         post: operations["start_investigation_api_v1_orgs__org_id__incidents__ref__investigations_post"];
         delete?: never;
@@ -1104,6 +1106,12 @@ export interface components {
             data_redaction: components["schemas"]["RedactionSettings"];
             /** Enabled */
             enabled: boolean;
+            /**
+             * Language
+             * @default en
+             * @enum {string}
+             */
+            language: "en" | "vi";
             /** Max Tokens Per Run */
             max_tokens_per_run: number;
             /** Model */
@@ -1130,6 +1138,12 @@ export interface components {
             effective_provider: string;
             /** Enabled */
             enabled: boolean;
+            /**
+             * Language
+             * @default en
+             * @enum {string}
+             */
+            language: "en" | "vi";
             /** Max Tokens Per Run */
             max_tokens_per_run: number;
             /** Model */
@@ -1303,6 +1317,8 @@ export interface components {
              * Format: uuid
              */
             client_id: string;
+            /** Language */
+            language?: ("en" | "vi") | null;
             /** Question */
             question: string;
         };
@@ -1947,6 +1963,11 @@ export interface components {
             incident_title: string;
             /** Is Demo Provider */
             is_demo_provider: boolean;
+            /**
+             * Language
+             * @enum {string}
+             */
+            language: "en" | "vi";
             /** Model */
             model: string;
             /** My Feedback */
@@ -1999,6 +2020,11 @@ export interface components {
             incident_title: string;
             /** Is Demo Provider */
             is_demo_provider: boolean;
+            /**
+             * Language
+             * @enum {string}
+             */
+            language: "en" | "vi";
             /** Model */
             model: string;
             /** Provider */
@@ -2650,6 +2676,11 @@ export interface components {
         /** SeverityIn */
         SeverityIn: {
             severity: components["schemas"]["Severity"];
+        };
+        /** StartIn */
+        StartIn: {
+            /** Language */
+            language?: ("en" | "vi") | null;
         };
         /** SyncPage */
         SyncPage: {
@@ -4342,7 +4373,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["StartIn"] | null;
+            };
+        };
         responses: {
             /** @description Successful Response */
             202: {

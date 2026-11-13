@@ -6,8 +6,12 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { Alert, Card } from "@/components/ui/card";
-import { api, ApiError } from "@/lib/api-client";
+import { api } from "@/lib/api-client";
 import type { components } from "@/lib/api-types";
+import { type Locale, LOCALE_NAME, LOCALES } from "@/lib/i18n/config";
+import { useI18n } from "@/lib/i18n/client";
+import { errorText } from "@/lib/i18n/errors";
+import type { T } from "@/lib/i18n/translate";
 
 type Settings = components["schemas"]["AISettingsOut"];
 type SettingsIn = components["schemas"]["AISettingsIn"];
@@ -19,14 +23,16 @@ export function dollars(micros: number): string {
   return usd < 0.01 && usd > 0 ? `$${usd.toFixed(4)}` : `$${usd.toFixed(2)}`;
 }
 
-const PROVIDER_LABEL: Record<string, string> = {
-  gemini: "Google Gemini",
-  anthropic: "Anthropic (Claude)",
-  fake: "Demo analyzer (rule-based, not an LLM)",
-};
+function providerLabel(name: string, t: T): string {
+  if (name === "gemini") return "Google Gemini";
+  if (name === "anthropic") return "Anthropic (Claude)";
+  if (name === "fake") return t("ai.settings.demoProvider");
+  return name;
+}
 
 function SettingsForm({ orgId, s }: { orgId: string; s: Settings }) {
   const qc = useQueryClient();
+  const { t } = useI18n();
   const [form, setForm] = useState({
     enabled: s.enabled,
     provider: s.provider ?? "",
@@ -34,6 +40,7 @@ function SettingsForm({ orgId, s }: { orgId: string; s: Settings }) {
     budget: String(s.monthly_budget_micros / 1_000_000),
     auto: s.auto_investigate_min_severity ?? "",
     redaction: s.data_redaction ?? { emails: true, ips: true, secrets: true },
+    language: s.language,
   });
   const save = useMutation({
     mutationFn: () =>
@@ -45,6 +52,7 @@ function SettingsForm({ orgId, s }: { orgId: string; s: Settings }) {
         max_tokens_per_run: s.max_tokens_per_run,
         auto_investigate_min_severity: (form.auto || null) as SettingsIn["auto_investigate_min_severity"],
         data_redaction: form.redaction,
+        language: form.language,
       } satisfies SettingsIn),
     onSuccess: (data) => qc.setQueryData(["orgs", orgId, "ai-settings"], data),
   });
@@ -65,31 +73,28 @@ function SettingsForm({ orgId, s }: { orgId: string; s: Settings }) {
           checked={form.enabled}
           onChange={(e) => setForm({ ...form, enabled: e.target.checked })}
         />
-        Enable AI analysis for this organization
+        {t("ai.settings.enable")}
       </label>
-      <p className="text-xs text-fg-subtle">
-        When enabled, incident metrics, logs (redacted), deployments and past incidents are sent to the selected
-        provider. Nothing is sent while this is off.
-      </p>
+      <p className="text-xs text-fg-subtle">{t("ai.settings.enableHint")}</p>
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="flex min-w-0 flex-col gap-1 text-sm">
-          Provider
+          {t("ai.settings.provider")}
           <Select
             value={form.provider}
             onChange={(e) => setForm({ ...form, provider: e.target.value })}
             
           >
-            <option value="">Server default ({PROVIDER_LABEL[s.effective_provider] ?? s.effective_provider})</option>
+            <option value="">{t("ai.settings.serverDefault", { provider: providerLabel(s.effective_provider, t) })}</option>
             {s.providers.map((p) => (
               <option key={p.name} value={p.name} disabled={!p.configured}>
-                {PROVIDER_LABEL[p.name] ?? p.name}
-                {!p.configured && " — not configured on this server"}
+                {providerLabel(p.name, t)}
+                {!p.configured && t("ai.settings.notConfigured")}
               </option>
             ))}
           </Select>
         </label>
         <label className="flex min-w-0 flex-col gap-1 text-sm">
-          Model
+          {t("ai.settings.model")}
           <input
             value={form.model}
             onChange={(e) => setForm({ ...form, model: e.target.value })}
@@ -98,7 +103,7 @@ function SettingsForm({ orgId, s }: { orgId: string; s: Settings }) {
           />
         </label>
         <label className="flex min-w-0 flex-col gap-1 text-sm">
-          Monthly budget (USD)
+          {t("ai.settings.budget")}
           <input
             type="number"
             min={0}
@@ -109,22 +114,36 @@ function SettingsForm({ orgId, s }: { orgId: string; s: Settings }) {
           />
         </label>
         <label className="flex min-w-0 flex-col gap-1 text-sm">
-          Investigate automatically
+          {t("ai.settings.auto")}
           <Select
             value={form.auto}
             onChange={(e) => setForm({ ...form, auto: e.target.value })}
             
           >
-            <option value="">Never (manual only)</option>
-            <option value="sev1">SEV1 incidents</option>
-            <option value="sev2">SEV2 and above</option>
-            <option value="sev3">SEV3 and above</option>
-            <option value="sev4">All incidents</option>
+            <option value="">{t("ai.settings.autoNever")}</option>
+            <option value="sev1">{t("ai.settings.autoSev1")}</option>
+            <option value="sev2">{t("ai.settings.autoSev2")}</option>
+            <option value="sev3">{t("ai.settings.autoSev3")}</option>
+            <option value="sev4">{t("ai.settings.autoAll")}</option>
           </Select>
+        </label>
+        <label className="flex min-w-0 flex-col gap-1 text-sm">
+          {t("ai.settings.language")}
+          <Select
+            value={form.language}
+            onChange={(e) => setForm({ ...form, language: e.target.value as Locale })}
+          >
+            {LOCALES.map((l) => (
+              <option key={l} value={l}>
+                {LOCALE_NAME[l]}
+              </option>
+            ))}
+          </Select>
+          <span className="text-xs text-fg-subtle">{t("ai.settings.languageHint")}</span>
         </label>
       </div>
       <fieldset className="space-y-1 text-sm">
-        <legend className="mb-1 font-medium">Redact before sending</legend>
+        <legend className="mb-1 font-medium">{t("ai.settings.redact")}</legend>
         {(["emails", "ips", "secrets"] as const).map((k) => (
           <label key={k} className="mr-4 inline-flex items-center gap-2">
             <input
@@ -132,29 +151,27 @@ function SettingsForm({ orgId, s }: { orgId: string; s: Settings }) {
               checked={form.redaction[k] ?? true}
               onChange={(e) => setForm({ ...form, redaction: { ...form.redaction, [k]: e.target.checked } })}
             />
-            {k === "ips" ? "IP addresses" : k === "secrets" ? "Tokens and secrets" : "Email addresses"}
+            {t(k === "ips" ? "ai.settings.redactIps" : k === "secrets" ? "ai.settings.redactSecrets" : "ai.settings.redactEmails")}
           </label>
         ))}
       </fieldset>
       {providerName === "gemini" && (
-        <Alert tone="info">
-          On the Gemini API free tier, Google may use the data sent (incident metrics, redacted logs, deployments) to
-          improve its products. Use a paid Gemini key if that isn&apos;t acceptable for your organization.
-        </Alert>
+        <Alert tone="info">{t("ai.settings.geminiWarning")}</Alert>
       )}
       {form.enabled && !configured && (
-        <Alert>The selected provider isn&apos;t configured on this server; enabling will be refused.</Alert>
+        <Alert>{t("ai.settings.providerMissing")}</Alert>
       )}
       {save.isError && (
-        <Alert>{save.error instanceof ApiError ? save.error.problem.detail : save.error.message}</Alert>
+        <Alert>{errorText(save.error, t)}</Alert>
       )}
-      {save.isSuccess && <Alert tone="info">Saved.</Alert>}
-      <Button type="submit" loading={save.isPending}>Save</Button>
+      {save.isSuccess && <Alert tone="info">{t("common.saved")}</Alert>}
+      <Button type="submit" loading={save.isPending}>{t("common.save")}</Button>
     </form>
   );
 }
 
 export function AiSettingsView({ orgId, canConfigure }: { orgId: string; canConfigure: boolean }) {
+  const { t, fmt } = useI18n();
   const settings = useQuery({
     queryKey: ["orgs", orgId, "ai-settings"],
     queryFn: () => api.get<Settings>(`orgs/${orgId}/ai/settings`),
@@ -165,40 +182,40 @@ export function AiSettingsView({ orgId, canConfigure }: { orgId: string; canConf
     enabled: canConfigure,
   });
 
-  if (settings.isPending) return <div className="h-40 animate-pulse rounded-md bg-raised" role="status" aria-busy aria-label="Loading AI settings" />;
-  if (settings.isError) return <Alert>Couldn&apos;t load AI settings: {settings.error.message}</Alert>;
+  if (settings.isPending) return <div className="h-40 animate-pulse rounded-md bg-raised" role="status" aria-busy aria-label={t("ai.settings.loading")} />;
+  if (settings.isError) return <Alert>{t("ai.settings.loadError", { error: errorText(settings.error, t) })}</Alert>;
   const s = settings.data;
   const pct = s.monthly_budget_micros > 0 ? Math.min(100, (s.month_to_date_cost_micros / s.monthly_budget_micros) * 100) : 100;
 
   return (
     <div className="grid min-w-0 gap-6 lg:grid-cols-2">
       <Card className="min-w-0 space-y-4">
-        <h2 className="font-semibold">Settings</h2>
+        <h2 className="font-semibold">{t("ai.settings.heading")}</h2>
         {canConfigure ? (
           <SettingsForm orgId={orgId} s={s} />
         ) : (
           <dl className="grid grid-cols-2 gap-2 text-sm">
-            <dt className="text-fg-subtle">Status</dt>
-            <dd>{s.enabled ? "Enabled" : "Off"}</dd>
-            <dt className="text-fg-subtle">Provider</dt>
-            <dd>{PROVIDER_LABEL[s.effective_provider] ?? s.effective_provider}</dd>
-            <dt className="text-fg-subtle">Model</dt>
+            <dt className="text-fg-subtle">{t("ai.settings.status")}</dt>
+            <dd>{s.enabled ? t("ai.settings.enabled") : t("ai.settings.off")}</dd>
+            <dt className="text-fg-subtle">{t("ai.settings.provider")}</dt>
+            <dd>{providerLabel(s.effective_provider, t)}</dd>
+            <dt className="text-fg-subtle">{t("ai.settings.model")}</dt>
             <dd className="font-mono text-xs">{s.effective_model}</dd>
-            <dd className="col-span-2 text-xs text-fg-subtle">Only admins can change these settings.</dd>
+            <dd className="col-span-2 text-xs text-fg-subtle">{t("ai.settings.adminsOnly")}</dd>
           </dl>
         )}
       </Card>
       <Card className="min-w-0 space-y-4">
-        <h2 className="font-semibold">This month</h2>
+        <h2 className="font-semibold">{t("ai.settings.thisMonth")}</h2>
         <div>
           <div className="flex justify-between text-sm">
-            <span>{dollars(s.month_to_date_cost_micros)} spent</span>
-            <span className="text-fg-subtle">of {dollars(s.monthly_budget_micros)}</span>
+            <span>{t("ai.settings.spent", { amount: dollars(s.month_to_date_cost_micros) })}</span>
+            <span className="text-fg-subtle">{t("ai.settings.of", { amount: dollars(s.monthly_budget_micros) })}</span>
           </div>
           <div
             className="mt-1 h-2 rounded bg-raised"
             role="meter"
-            aria-label="Budget used"
+            aria-label={t("ai.settings.budgetUsed")}
             aria-valuemin={0}
             aria-valuemax={100}
             aria-valuenow={Math.round(pct)}
@@ -208,18 +225,18 @@ export function AiSettingsView({ orgId, canConfigure }: { orgId: string; canConf
         </div>
         {canConfigure &&
           (usage.isPending ? null : usage.isError ? (
-            <Alert>Couldn&apos;t load usage.</Alert>
+            <Alert>{t("ai.settings.usageError")}</Alert>
           ) : usage.data.days.length === 0 ? (
-            <p className="text-sm text-fg-subtle">No AI calls yet this month.</p>
+            <p className="text-sm text-fg-subtle">{t("ai.settings.noCalls")}</p>
           ) : (
             <div className="overflow-x-auto"><table className="w-full text-left text-xs">
               <thead className="text-fg-subtle">
                 <tr>
-                  <th className="py-1 font-medium">Day</th>
-                  <th className="font-medium">Model</th>
-                  <th className="text-right font-medium">Calls</th>
-                  <th className="text-right font-medium">Tokens in / out</th>
-                  <th className="text-right font-medium">Cost</th>
+                  <th className="py-1 font-medium">{t("ai.settings.day")}</th>
+                  <th className="font-medium">{t("ai.settings.model")}</th>
+                  <th className="text-right font-medium">{t("ai.settings.calls")}</th>
+                  <th className="text-right font-medium">{t("ai.settings.tokens")}</th>
+                  <th className="text-right font-medium">{t("ai.settings.cost")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
@@ -229,7 +246,7 @@ export function AiSettingsView({ orgId, canConfigure }: { orgId: string; canConf
                     <td className="font-mono">{d.model}</td>
                     <td className="text-right">{d.calls}</td>
                     <td className="text-right">
-                      {d.input_tokens.toLocaleString()} / {d.output_tokens.toLocaleString()}
+                      {fmt.int(d.input_tokens)} / {fmt.int(d.output_tokens)}
                     </td>
                     <td className="text-right">{dollars(d.cost_micros)}</td>
                   </tr>

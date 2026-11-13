@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../core/design_system/tokens.dart';
 import '../core/design_system/widgets/status_widgets.dart';
+import '../l10n/l10n.dart';
 import 'deployments/domain/deployment.dart';
 import 'incidents/domain/incident.dart';
 
@@ -21,7 +22,7 @@ class IncidentTile extends StatelessWidget {
     final accent = i.status.isOpen && i.severity.index <= 1 ? severityColor(context, i.severity) : Colors.transparent;
     return Semantics(
       button: true,
-      label: '${i.severity.label} ${i.key}, ${i.title}, ${i.status.label}, started ${timeAgo(i.startedAt)}',
+      label: context.l10n.incidentTileSemantics(i.severity.label, i.key, i.title, i.status.label, timeAgo(i.startedAt)),
       excludeSemantics: true,
       child: InkWell(
         onTap: onTap,
@@ -56,7 +57,7 @@ class IncidentTile extends StatelessWidget {
                         if (i.isDemo) const DpDemoTag(),
                         if (i.isPending)
                           Semantics(
-                            label: 'Waiting to sync',
+                            label: context.l10n.waitingToSync,
                             child: Icon(Icons.schedule, size: 14, color: p.degraded),
                           ),
                       ],

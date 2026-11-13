@@ -5,9 +5,11 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/card";
-import { timeAgo } from "@/components/ui/status";
 import { api, ApiError } from "@/lib/api-client";
 import type { components } from "@/lib/api-types";
+import { useI18n } from "@/lib/i18n/client";
+import { errorText } from "@/lib/i18n/errors";
+import { makeT, type MessageKey, type T } from "@/lib/i18n/translate";
 import { cn } from "@/lib/utils";
 
 export type Investigation = components["schemas"]["InvestigationOut"];
@@ -19,47 +21,40 @@ type Cause = components["schemas"]["Cause"];
 
 const ACTIVE = new Set(["queued", "collecting", "analyzing"]);
 
-const PROGRESS: Record<string, string> = {
-  queued: "Waiting for a worker…",
-  collecting: "Collecting metrics, logs and deployments…",
-  analyzing: "Analysing the evidence…",
+const PROGRESS: Record<string, MessageKey> = {
+  queued: "ai.progress.queued",
+  collecting: "ai.progress.collecting",
+  analyzing: "ai.progress.analyzing",
 };
 
 /** Plain-language explanation for a stable AI error code. */
-export function aiErrorMessage(code: string | null | undefined, detail?: string | null): string {
+export function aiErrorMessage(code: string | null | undefined, detail?: string | null, t: T = makeT("en")): string {
   switch (code) {
     case "ai.disabled":
-      return "AI analysis is turned off for this organization. An admin can enable it under AI settings.";
     case "ai.budget_exceeded":
-      return "This month's AI budget is used up. An admin can raise it under AI settings.";
     case "ai.provider_unconfigured":
-      return "No AI provider is configured on this DevPulse server.";
     case "ai.no_evidence":
-      return "DevPulse has no telemetry for this incident, so there's nothing to analyse.";
     case "ai.invalid_output":
-      return "The AI's answer failed validation and was discarded.";
     case "ai.refused":
-      return "The AI model declined to analyse this incident.";
+    case "ai.already_running":
+    case "ai.stale":
+      return t(`ai.errors.${code}`);
     case "ai.run_timeout":
     case "ai.timeout":
-      return "The analysis took too long.";
+      return t("ai.errors.timeout");
     case "ai.rate_limited":
     case "ai.provider_unavailable":
     case "ai.provider_unreachable":
-      return "The AI provider is unavailable right now. Try again in a minute.";
-    case "ai.already_running":
-      return "An analysis is already running for this incident.";
-    case "ai.stale":
-      return "The analysis was interrupted.";
+      return t("ai.errors.unavailable");
     default:
-      return detail || "The analysis failed.";
+      return detail || t("ai.errors.failed");
   }
 }
 
-const RISK: Record<string, { label: string; className: string }> = {
-  read_only: { label: "Read-only", className: "text-healthy" },
-  sensitive: { label: "Changes a system · needs approval", className: "text-degraded" },
-  destructive: { label: "Destructive · admin approval", className: "text-critical" },
+const RISK: Record<string, { label: MessageKey; className: string }> = {
+  read_only: { label: "ai.risk.read_only", className: "text-healthy" },
+  sensitive: { label: "ai.risk.sensitive", className: "text-degraded" },
+  destructive: { label: "ai.risk.destructive", className: "text-critical" },
 };
 
 const CONFIDENCE: Record<string, string> = {
@@ -69,15 +64,17 @@ const CONFIDENCE: Record<string, string> = {
 };
 
 export function DemoAnalyzerTag() {
+  const { t } = useI18n();
   return (
     <span className="rounded bg-violet/15 px-1.5 py-px text-[10px] font-bold tracking-wide text-violet">
-      DEMO ANALYZER · NOT AN LLM
+      {t("ai.demoTag")}
     </span>
   );
 }
 
 function EvidenceRef({ ev, refId, counter }: { ev?: Evidence; refId: string; counter?: boolean }) {
   const [open, setOpen] = useState(false);
+  const { t } = useI18n();
   if (!ev) return <span className="font-mono text-xs text-fg-subtle">{refId}</span>;
   const q = ev.source_query as Record<string, unknown>;
   return (
@@ -93,15 +90,17 @@ function EvidenceRef({ ev, refId, counter }: { ev?: Evidence; refId: string; cou
         title={ev.title}
       >
         {refId}
-        {counter && " (against)"}
+        {counter && t("ai.against")}
       </button>
       {open && (
         <span className="mt-1 block rounded-md border border-line bg-canvas p-3 text-xs">
           <span className="block font-medium">{ev.title}</span>
           <span className="mt-1 block">{String((ev.excerpt as Record<string, unknown>).text ?? "")}</span>
           <span className="mt-1 block text-fg-subtle">
-            Computed by DevPulse from stored {ev.kind} data, not by the AI · source: {String(q.type ?? "")}
-            {q.name ? ` ${String(q.name)}` : ""}
+            {t("ai.evidenceSource", {
+              kind: ev.kind,
+              source: `${String(q.type ?? "")}${q.name ? ` ${String(q.name)}` : ""}`,
+            })}
           </span>
         </span>
       )}
@@ -110,7 +109,10 @@ function EvidenceRef({ ev, refId, counter }: { ev?: Evidence; refId: string; cou
 }
 
 function CauseView({ cause, rank, inv }: { cause: Cause; rank: number; inv: Investigation }) {
+  const { t } = useI18n();
   const byRef = new Map(inv.evidence.map((e) => [e.ref, e]));
+  const level = cause.confidence_label as "high" | "medium" | "low";
+  const pct = Math.round(cause.confidence * 100);
   return (
     <li className="space-y-1">
       <div className="flex items-start justify-between gap-3">
@@ -119,9 +121,9 @@ function CauseView({ cause, rank, inv }: { cause: Cause; rank: number; inv: Inve
         </span>
         <span
           className={cn("shrink-0 rounded px-1.5 py-px text-[11px] font-bold", CONFIDENCE[cause.confidence_label])}
-          aria-label={`${cause.confidence_label} confidence, ${Math.round(cause.confidence * 100)} percent`}
+          aria-label={t("ai.confidence", { label: t(`ai.confidenceWord.${level}`), pct })}
         >
-          {cause.confidence_label.toUpperCase()} · {Math.round(cause.confidence * 100)}%
+          {t(`ai.confidenceLabel.${level}`)} · {pct}%
         </span>
       </div>
       <p className="text-sm text-fg-muted">{cause.reasoning}</p>
@@ -133,7 +135,7 @@ function CauseView({ cause, rank, inv }: { cause: Cause; rank: number; inv: Inve
           <EvidenceRef key={`c-${r}`} refId={r} ev={byRef.get(r)} counter />
         ))}
       </div>
-      {cause.how_to_verify && <p className="text-xs text-fg-subtle">Verify: {cause.how_to_verify}</p>}
+      {cause.how_to_verify && <p className="text-xs text-fg-subtle">{t("ai.verify", { how: cause.how_to_verify })}</p>}
     </li>
   );
 }
@@ -151,12 +153,13 @@ export function AnalysisView({
   onDecide: (proposalId: string, approve: boolean) => void;
   deciding?: string | null;
 }) {
+  const { t, ago } = useI18n();
   const a = inv.result!;
   const proposals = new Map(inv.proposals.map((p) => [p.id, p]));
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center gap-2 text-xs text-fg-subtle">
-        <span>Hypotheses — not confirmed · {timeAgo(inv.created_at)}</span>
+        <span>{t("ai.hypotheses", { ago: ago(inv.created_at) })}</span>
         {inv.is_demo_provider ? <DemoAnalyzerTag /> : <span className="font-mono">{inv.model}</span>}
       </div>
       <div>
@@ -164,7 +167,7 @@ export function AnalysisView({
         {a.impact && <p className="mt-1 text-sm text-fg-muted">{a.impact}</p>}
       </div>
       <section aria-labelledby="causes">
-        <h3 id="causes" className="mb-2 text-sm font-semibold">Probable causes</h3>
+        <h3 id="causes" className="mb-2 text-sm font-semibold">{t("ai.causes")}</h3>
         <ol className="space-y-4">
           {a.probable_causes.map((c, i) => (
             <CauseView key={c.cause} cause={c} rank={i + 1} inv={inv} />
@@ -173,7 +176,7 @@ export function AnalysisView({
       </section>
       {a.recommended_actions.length > 0 && (
         <section aria-labelledby="actions">
-          <h3 id="actions" className="mb-2 text-sm font-semibold">Recommended next steps</h3>
+          <h3 id="actions" className="mb-2 text-sm font-semibold">{t("ai.nextSteps")}</h3>
           <ul className="space-y-3">
             {a.recommended_actions.map((act) => {
               const p = act.proposal_id ? proposals.get(act.proposal_id) : undefined;
@@ -183,14 +186,14 @@ export function AnalysisView({
                 <li key={act.action} className="text-sm">
                   <div>{act.action}</div>
                   <div className="flex flex-wrap items-center gap-2 text-xs">
-                    <span className={risk.className}>{risk.label}</span>
+                    <span className={risk.className}>{t(risk.label)}</span>
                     {p && p.status !== "proposed" && (
                       <span className="text-fg-subtle">
-                        · {p.status === "approved" ? "Approved (not executed by DevPulse)" : "Rejected"}
+                        · {p.status === "approved" ? t("ai.approvedNotRun") : t("ai.rejected")}
                       </span>
                     )}
                     {p?.status === "proposed" && act.risk === "destructive" && !isAdmin && (
-                      <span className="text-fg-subtle">· An admin must decide</span>
+                      <span className="text-fg-subtle">· {t("ai.adminMustDecide")}</span>
                     )}
                   </div>
                   {mayDecide && (
@@ -200,19 +203,14 @@ export function AnalysisView({
                         variant="secondary"
                         loading={deciding === p.id}
                         onClick={() => {
-                          if (
-                            window.confirm(
-                              `Approve “${p.description}”?\n\nThis records your decision on the incident. ` +
-                                "DevPulse does not run it: your team carries it out.",
-                            )
-                          )
+                          if (window.confirm(t("ai.confirmApprove", { description: p.description })))
                             onDecide(p.id, true);
                         }}
                       >
-                        Approve
+                        {t("ai.approve")}
                       </Button>
                       <Button size="sm" variant="ghost" disabled={deciding === p.id} onClick={() => onDecide(p.id, false)}>
-                        Reject
+                        {t("ai.reject")}
                       </Button>
                     </div>
                   )}
@@ -224,7 +222,7 @@ export function AnalysisView({
       )}
       {a.data_gaps.length > 0 && (
         <section aria-labelledby="gaps">
-          <h3 id="gaps" className="mb-1 text-sm font-semibold">What DevPulse could not see</h3>
+          <h3 id="gaps" className="mb-1 text-sm font-semibold">{t("ai.gaps")}</h3>
           <ul className="list-disc space-y-0.5 pl-5 text-xs text-fg-muted">
             {a.data_gaps.map((g) => (
               <li key={g}>{g}</li>
@@ -233,7 +231,7 @@ export function AnalysisView({
         </section>
       )}
       {(a.adjustments ?? []).map((adj) => (
-        <p key={adj} className="text-xs text-fg-subtle">Adjusted: {adj}</p>
+        <p key={adj} className="text-xs text-fg-subtle">{t("ai.adjusted", { text: adj })}</p>
       ))}
       {a.limitations && <p className="text-xs italic text-fg-subtle">{a.limitations}</p>}
     </div>
@@ -242,6 +240,7 @@ export function AnalysisView({
 
 function Chat({ orgId, inv, canAct }: { orgId: string; inv: Investigation; canAct: boolean }) {
   const qc = useQueryClient();
+  const { t, locale } = useI18n();
   const [question, setQuestion] = useState("");
   const [clientId, setClientId] = useState<string | null>(null);
   const messages = useQuery({
@@ -253,6 +252,7 @@ function Chat({ orgId, inv, canAct }: { orgId: string; inv: Investigation; canAc
       api.post<AskOut>(`orgs/${orgId}/ai/investigations/${inv.id}/messages`, {
         question: vars.question,
         client_id: vars.clientId,
+        language: locale, // answers come back in the asker's language
       }),
     onSuccess: () => {
       setQuestion("");
@@ -270,11 +270,9 @@ function Chat({ orgId, inv, canAct }: { orgId: string; inv: Investigation; canAc
 
   return (
     <section aria-labelledby="ask" className="space-y-3 border-t border-line pt-4">
-      <h3 id="ask" className="text-sm font-semibold">Ask a follow-up</h3>
+      <h3 id="ask" className="text-sm font-semibold">{t("ai.ask")}</h3>
       {visible.length === 0 && !ask.isPending && (
-        <p className="text-xs text-fg-subtle">
-          e.g. “When did errors start?” Answers cite evidence. Copilot can only read data, never change anything.
-        </p>
+        <p className="text-xs text-fg-subtle">{t("ai.askHint")}</p>
       )}
       <ul className="space-y-2">
         {visible.map((m) => (
@@ -287,7 +285,7 @@ function Chat({ orgId, inv, canAct }: { orgId: string; inv: Investigation; canAc
           >
             {m.role === "tool" ? (
               <>
-                Looked up {m.tool_name?.replaceAll("_", " ")} → {m.evidence_refs.join(", ")}
+                {t("ai.lookedUp", { tool: m.tool_name?.replaceAll("_", " ") ?? "", refs: m.evidence_refs.join(", ") })}
               </>
             ) : (
               <>
@@ -303,9 +301,13 @@ function Chat({ orgId, inv, canAct }: { orgId: string; inv: Investigation; canAc
             )}
           </li>
         ))}
-        {ask.isPending && <li className="text-xs text-fg-subtle" aria-live="polite">Looking into it…</li>}
+        {ask.isPending && <li className="text-xs text-fg-subtle" aria-live="polite">{t("ai.thinking")}</li>}
       </ul>
-      {ask.isError && <Alert>{aiErrorMessage(ask.error instanceof ApiError ? ask.error.problem.code : null, ask.error.message)}</Alert>}
+      {ask.isError && (
+        <Alert>
+          {aiErrorMessage(ask.error instanceof ApiError ? ask.error.problem.code : null, errorText(ask.error, t), t)}
+        </Alert>
+      )}
       {canAct && (
         <form method="post"
           className="flex gap-2"
@@ -319,16 +321,16 @@ function Chat({ orgId, inv, canAct }: { orgId: string; inv: Investigation; canAc
             ask.mutate({ question: q, clientId: id });
           }}
         >
-          <label htmlFor="ai-question" className="sr-only">Follow-up question</label>
+          <label htmlFor="ai-question" className="sr-only">{t("ai.question")}</label>
           <input
             id="ai-question"
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
             maxLength={2000}
-            placeholder="Ask a follow-up question"
+            placeholder={t("ai.questionPlaceholder")}
             className="min-h-10 flex-1 rounded-md border border-line bg-canvas px-3 text-sm"
           />
-          <Button type="submit" loading={ask.isPending}>Ask</Button>
+          <Button type="submit" loading={ask.isPending}>{t("ai.askButton")}</Button>
         </form>
       )}
     </section>
@@ -348,6 +350,7 @@ export function AiPanel({
   isAdmin: boolean;
 }) {
   const qc = useQueryClient();
+  const { t, locale } = useI18n();
   const key = ["orgs", orgId, "incident-ai", incidentRef];
   const latest = useQuery({
     queryKey: key,
@@ -358,7 +361,9 @@ export function AiPanel({
     refetchInterval: (q) => (q.state.data && ACTIVE.has(q.state.data.status) ? 3000 : 30_000),
   });
   const start = useMutation({
-    mutationFn: () => api.post<Investigation>(`orgs/${orgId}/incidents/${incidentRef}/investigations`),
+    // The analysis is written in the language of the person who asked for it.
+    mutationFn: () =>
+      api.post<Investigation>(`orgs/${orgId}/incidents/${incidentRef}/investigations`, { language: locale }),
     onSettled: () => qc.invalidateQueries({ queryKey: key }),
   });
   const decide = useMutation({
@@ -374,42 +379,39 @@ export function AiPanel({
 
   const inv = latest.data;
   const startError =
-    start.error instanceof ApiError ? aiErrorMessage(start.error.problem.code, start.error.message) : null;
+    start.error instanceof ApiError ? aiErrorMessage(start.error.problem.code, errorText(start.error, t), t) : null;
 
   return (
     <section aria-labelledby="ai-analysis" className="rounded-lg border border-line bg-surface p-6">
       <div className="mb-4 flex items-center justify-between gap-2">
-        <h2 id="ai-analysis" className="font-semibold">AI analysis</h2>
+        <h2 id="ai-analysis" className="font-semibold">{t("ai.analysis")}</h2>
         {inv && !ACTIVE.has(inv.status) && canAct && (
           <Button size="sm" variant="ghost" loading={start.isPending} onClick={() => start.mutate()}>
-            Run again
+            {t("ai.runAgain")}
           </Button>
         )}
       </div>
       {startError && <Alert className="mb-4">{startError}</Alert>}
       {latest.isPending ? (
-        <div className="h-24 animate-pulse rounded-md bg-raised" role="status" aria-busy aria-label="Loading AI analysis" />
+        <div className="h-24 animate-pulse rounded-md bg-raised" role="status" aria-busy aria-label={t("ai.loading")} />
       ) : latest.isError ? (
         <Alert>
-          Couldn&apos;t load the AI analysis.{" "}
-          <Button variant="ghost" size="sm" onClick={() => latest.refetch()}>Retry</Button>
+          {t("ai.loadError")}{" "}
+          <Button variant="ghost" size="sm" onClick={() => latest.refetch()}>{t("common.retry")}</Button>
         </Alert>
       ) : !inv ? (
         <div className="space-y-3">
-          <p className="text-sm text-fg-muted">
-            Copilot reads this incident&apos;s metrics, logs, deployments and similar past incidents, then suggests
-            probable causes, each with the evidence behind it.
-          </p>
+          <p className="text-sm text-fg-muted">{t("ai.intro2")}</p>
           {canAct && (
             <Button loading={start.isPending} onClick={() => start.mutate()}>
-              Investigate with AI
+              {t("ai.investigate")}
             </Button>
           )}
         </div>
       ) : ACTIVE.has(inv.status) ? (
         <p className="flex items-center gap-2 text-sm" aria-live="polite">
           <span aria-hidden className="size-3.5 animate-spin rounded-full border-2 border-current border-r-transparent" />
-          {PROGRESS[inv.status]}
+          {t(PROGRESS[inv.status])}
         </p>
       ) : inv.status === "succeeded" && inv.result ? (
         <div className="space-y-5">
@@ -420,16 +422,16 @@ export function AiPanel({
             deciding={decide.isPending ? decide.variables?.proposalId : null}
             onDecide={(proposalId, approve) => decide.mutate({ invId: inv.id, proposalId, approve })}
           />
-          {decide.error && <Alert>{decide.error.message}</Alert>}
+          {decide.error && <Alert>{errorText(decide.error, t)}</Alert>}
           <div className="flex items-center gap-2 text-xs text-fg-subtle">
-            Was this helpful?
+            {t("ai.helpful")}
             <Button
               size="sm"
               variant={inv.my_feedback === true ? "secondary" : "ghost"}
               aria-pressed={inv.my_feedback === true}
               onClick={() => feedback.mutate({ invId: inv.id, helpful: true })}
             >
-              Yes
+              {t("common.yes")}
             </Button>
             <Button
               size="sm"
@@ -437,16 +439,16 @@ export function AiPanel({
               aria-pressed={inv.my_feedback === false}
               onClick={() => feedback.mutate({ invId: inv.id, helpful: false })}
             >
-              No
+              {t("common.no")}
             </Button>
           </div>
           <Chat orgId={orgId} inv={inv} canAct={canAct} />
         </div>
       ) : (
         <div className="space-y-2">
-          <p className="font-medium">Analysis unavailable</p>
-          <p className="text-sm text-fg-muted">{aiErrorMessage(inv.error_code, inv.error_detail)}</p>
-          <p className="text-xs text-fg-subtle">Incident actions are not affected.</p>
+          <p className="font-medium">{t("ai.unavailable")}</p>
+          <p className="text-sm text-fg-muted">{aiErrorMessage(inv.error_code, inv.error_detail, t)}</p>
+          <p className="text-xs text-fg-subtle">{t("ai.actionsUnaffected")}</p>
         </div>
       )}
     </section>

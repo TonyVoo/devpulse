@@ -6,6 +6,7 @@ import '../../../app/providers.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/network/org_api.dart';
 import '../../../core/result/failure.dart';
+import '../../../l10n/l10n.dart';
 import '../../offline/live_sync.dart';
 import '../../ops_repositories.dart';
 import '../domain/investigation.dart';
@@ -49,8 +50,10 @@ class ApiAiRepository implements AiRepository {
   Future<Investigation> get(String id) async => Investigation.fromJson(await _api.get('ai/investigations/$id'));
 
   @override
-  Future<Investigation> start(String incidentRef) async =>
-      Investigation.fromJson(await _api.command('incidents/$incidentRef/investigations'));
+  Future<Investigation> start(String incidentRef) async => Investigation.fromJson(
+    // Written in the language of the person who asked (the app's current language).
+    await _api.command('incidents/$incidentRef/investigations', body: {'language': l10n.localeName}),
+  );
 
   @override
   Future<List<AiMessage>> messages(String id) async => [
@@ -61,7 +64,7 @@ class ApiAiRepository implements AiRepository {
   Future<AskResult> ask(String id, String question, String clientId) async {
     final body = await _api.command(
       'ai/investigations/$id/messages',
-      body: {'question': question, 'client_id': clientId},
+      body: {'question': question, 'client_id': clientId, 'language': l10n.localeName},
     );
     return AskResult(
       [for (final m in body['messages'] as List<dynamic>) AiMessage.fromJson(m as Map<String, dynamic>)],

@@ -1,0 +1,683 @@
+{
+  "@@locale": "en",
+  "appTitle": "DevPulse",
+  "retry": "Retry",
+  "tryAgain": "Try again",
+  "cancel": "Cancel",
+  "done": "Done",
+  "all": "All",
+  "view": "View",
+  "loading": "Loading",
+  "loadingEllipsis": "Loading…",
+  "couldNotLoad": "Couldn't load",
+  "couldNotLoadThis": "Couldn't load this",
+  "youreOffline": "You're offline",
+  "unknown": "Unknown",
+  "you": "You",
+  "someone": "Someone",
+  "demo": "DEMO",
+  "inProgressLabel": "{label}, in progress",
+  "@inProgressLabel": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "requestRef": "Ref: {id}",
+  "@requestRef": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
+  "pageNotFound": "Page not found: {path}",
+  "@pageNotFound": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "justNow": "just now",
+  "minutesAgo": "{n}m ago",
+  "@minutesAgo": {
+    "placeholders": {
+      "n": {
+        "type": "num"
+      }
+    }
+  },
+  "hoursAgo": "{n}h ago",
+  "@hoursAgo": {
+    "placeholders": {
+      "n": {
+        "type": "num"
+      }
+    }
+  },
+  "daysAgo": "{n}d ago",
+  "@daysAgo": {
+    "placeholders": {
+      "n": {
+        "type": "num"
+      }
+    }
+  },
+  "healthHealthy": "Healthy",
+  "healthDegraded": "Degraded",
+  "healthCritical": "Critical",
+  "healthUnknown": "Unknown",
+  "healthSemantics": "Health: {label}",
+  "@healthSemantics": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "severitySemantics": "Severity {n}",
+  "@severitySemantics": {
+    "placeholders": {
+      "n": {
+        "type": "num"
+      }
+    }
+  },
+  "statusTriggered": "Triggered",
+  "statusAcknowledged": "Acknowledged",
+  "statusResolved": "Resolved",
+  "roleOwner": "Owner",
+  "roleAdmin": "Admin",
+  "roleEngineer": "Engineer",
+  "roleViewer": "Viewer",
+  "noDataInRange": "No data in this range",
+  "navOverview": "Overview",
+  "navServices": "Services",
+  "navIncidents": "Incidents",
+  "navCopilot": "Copilot",
+  "navSettings": "Settings",
+  "offlineBanner": "Offline · showing data saved on this device",
+  "pendingChanges": "{n, plural, =1{1 change waiting to sync} other{{n} changes waiting to sync}}",
+  "@pendingChanges": {
+    "placeholders": {
+      "n": {
+        "type": "num"
+      }
+    }
+  },
+  "changeNotApplied": "A change couldn't be applied: {message}",
+  "@changeNotApplied": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "signIn": "Sign in",
+  "createYourAccount": "Create your account",
+  "createAccount": "Create account",
+  "name": "Name",
+  "workEmail": "Work email",
+  "password": "Password",
+  "passwordHint": "At least 12 characters.",
+  "passwordTooShort": "Use at least 12 characters.",
+  "invalidEmail": "Enter a valid email address.",
+  "checkFields": "Check the highlighted fields.",
+  "goToRegister": "New to DevPulse? Create an account",
+  "goToLogin": "Already have an account? Sign in",
+  "restoringSession": "Restoring your session",
+  "sessionEnded": "Your session has ended. Sign in again.",
+  "errNetwork": "Can't reach DevPulse. Check your connection.",
+  "errInsecure": "Can't establish a secure connection.",
+  "errSlow": "The response took too long to process.",
+  "errCancelled": "Request cancelled",
+  "errTooMany": "Too many attempts. Wait a few minutes and try again.",
+  "errServer": "DevPulse is having trouble right now. Try again shortly.",
+  "errGeneric": "Something went wrong. Try again.",
+  "errInvalidCredentials": "Email or password is incorrect",
+  "errEmailTaken": "An account with this email already exists",
+  "errVersionMismatch": "This was changed by someone else. Reload and try again.",
+  "errInvalidTransition": "This action isn't possible in the incident's current status.",
+  "errMaxEscalation": "Already at the highest escalation level.",
+  "errSlugTaken": "That name is already taken. Try another.",
+  "organizations": "Organizations",
+  "offlineOrgs": "You're offline. Showing your last known organizations.",
+  "yourOrganizations": "Your organizations",
+  "current": "Current",
+  "createFirstOrg": "Create your first organization",
+  "createAnotherOrg": "Create another organization",
+  "orgIntro": "Each organization keeps its own services, incidents and members.",
+  "orgName": "Organization name",
+  "orgNameLength": "Use 2–120 characters.",
+  "createOrg": "Create organization",
+  "noServicesTitle": "No services connected yet",
+  "noServicesBody": "Create a service and an ingest key on the web dashboard, then send telemetry. Health, latency and incidents will show up here.",
+  "criticalOpen": "{n, plural, =1{1 critical incident open} other{{n} critical incidents open}}",
+  "@criticalOpen": {
+    "placeholders": {
+      "n": {
+        "type": "num"
+      }
+    }
+  },
+  "overviewStale": "Offline · showing the last overview saved on this device",
+  "noTelemetryWindow": "No telemetry received in the selected window — try a longer one.",
+  "requests": "Requests",
+  "errorRate": "Error rate",
+  "avgLatency": "Avg latency",
+  "p95Latency": "p95 latency",
+  "approx": "approx.",
+  "requestVolume": "Request volume",
+  "requestVolumeSemantics": "Request volume chart, {count} requests in this window",
+  "@requestVolumeSemantics": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "recentIncidents": "Recent incidents",
+  "noIncidents": "No incidents",
+  "allQuiet": "All quiet.",
+  "recentDeployments": "Recent deployments",
+  "noDeploymentsYet": "No deployments yet",
+  "sendFromCi": "Send them from CI or connect GitHub.",
+  "servicesCount": "{n, plural, =1{service} other{services}}",
+  "@servicesCount": {
+    "placeholders": {
+      "n": {
+        "type": "num"
+      }
+    }
+  },
+  "healthCountSemantics": "{n} {label}",
+  "@healthCountSemantics": {
+    "placeholders": {
+      "n": {
+        "type": "num"
+      },
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "deployments": "Deployments",
+  "deploymentsEmptyBody": "Send deployment events from CI with an ingest key, or connect GitHub on the web dashboard.",
+  "searchServices": "Search services",
+  "noServicesYet": "No services yet",
+  "noMatchingServices": "No matching services",
+  "servicesEmptyBody": "Add a service and an ingest key from the web dashboard, then its health shows up here.",
+  "tryDifferentSearch": "Try a different search or clear the filters.",
+  "noDataYet": "no data yet",
+  "noDataYetCap": "No data yet",
+  "seenAgo": "seen {ago}",
+  "@seenAgo": {
+    "placeholders": {
+      "ago": {
+        "type": "String"
+      }
+    }
+  },
+  "seenAgoCap": "Seen {ago}",
+  "@seenAgoCap": {
+    "placeholders": {
+      "ago": {
+        "type": "String"
+      }
+    }
+  },
+  "serviceMeta": "{slug} · {environment} · tier {tier}",
+  "@serviceMeta": {
+    "placeholders": {
+      "slug": {
+        "type": "String"
+      },
+      "environment": {
+        "type": "String"
+      },
+      "tier": {
+        "type": "String"
+      }
+    }
+  },
+  "service": "Service",
+  "metricsError": "Couldn't load metrics",
+  "latencyP95": "Latency p95",
+  "cpu": "CPU",
+  "chartSemantics": "{title} chart",
+  "@chartSemantics": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "openIncidents": "Open incidents",
+  "noOpenIncidents": "No open incidents",
+  "noDeploymentsRecorded": "No deployments recorded",
+  "tabOpen": "Open",
+  "mine": "Mine",
+  "noOpenIncidentsAllClear": "No open incidents — all clear",
+  "noIncidentsMatch": "No incidents match",
+  "incidentsEmptyBody": "Incidents opened by alert rules or by your team will appear here.",
+  "tryDifferentFilter": "Try a different status or severity filter.",
+  "loadOlderFailed": "Couldn't load — retry",
+  "loadOlder": "Load older incidents",
+  "waitingToSync": "Waiting to sync",
+  "incidentTileSemantics": "{severity} {key}, {title}, {status}, started {ago}",
+  "@incidentTileSemantics": {
+    "placeholders": {
+      "severity": {
+        "type": "String"
+      },
+      "key": {
+        "type": "String"
+      },
+      "title": {
+        "type": "String"
+      },
+      "status": {
+        "type": "String"
+      },
+      "ago": {
+        "type": "String"
+      }
+    }
+  },
+  "incidentNotFound": "Incident not found",
+  "incidentNotFoundBody": "It may belong to another organization.",
+  "offlineSaved": "You're offline. The change is saved and will be sent automatically.",
+  "resolveIncidentQ": "Resolve incident?",
+  "resolutionNoteOptional": "Resolution note (optional)",
+  "resolve": "Resolve",
+  "acknowledge": "Acknowledge",
+  "assignToMe": "Assign to me",
+  "escalate": "Escalate",
+  "reopen": "Reopen",
+  "escalatedTimes": "Escalated ×{n}",
+  "@escalatedTimes": {
+    "placeholders": {
+      "n": {
+        "type": "num"
+      }
+    }
+  },
+  "pendingAction": "Your \"{action}\" is waiting to be sent.",
+  "@pendingAction": {
+    "placeholders": {
+      "action": {
+        "type": "String"
+      }
+    }
+  },
+  "startedAgo": "started {ago}",
+  "@startedAgo": {
+    "placeholders": {
+      "ago": {
+        "type": "String"
+      }
+    }
+  },
+  "ownerName": "owner {name}",
+  "@ownerName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "resolution": "Resolution: {note}",
+  "@resolution": {
+    "placeholders": {
+      "note": {
+        "type": "String"
+      }
+    }
+  },
+  "timelineStale": "Showing the timeline saved on this device.",
+  "relatedDeployments": "Possibly related deployments",
+  "correlationSemantics": "Correlation {pct} percent, {kind}",
+  "@correlationSemantics": {
+    "placeholders": {
+      "pct": {
+        "type": "String"
+      },
+      "kind": {
+        "type": "String"
+      }
+    }
+  },
+  "timingOnly": "Suspected from timing only — not a confirmed cause.",
+  "timeline": "Timeline",
+  "timelineError": "Couldn't load the timeline",
+  "comments": "Comments",
+  "noComments": "No comments yet.",
+  "waitingToSend": "waiting to send",
+  "addComment": "Add a comment",
+  "sendComment": "Send comment",
+  "correlationSuspected": "suspected",
+  "correlationRuledOut": "ruled out",
+  "correlationConfirmed": "confirmed",
+  "conflictNotApplied": "Your \"{action}\" was not applied: someone else changed this incident first. Showing the latest.",
+  "@conflictNotApplied": {
+    "placeholders": {
+      "action": {
+        "type": "String"
+      }
+    }
+  },
+  "showingLatest": "{message}. Showing the latest.",
+  "@showingLatest": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "evOpenedByRule": "Opened by alert “{rule}”",
+  "@evOpenedByRule": {
+    "placeholders": {
+      "rule": {
+        "type": "String"
+      }
+    }
+  },
+  "evOpenedBy": "Opened by {who}",
+  "@evOpenedBy": {
+    "placeholders": {
+      "who": {
+        "type": "String"
+      }
+    }
+  },
+  "evAcknowledged": "{who} acknowledged",
+  "@evAcknowledged": {
+    "placeholders": {
+      "who": {
+        "type": "String"
+      }
+    }
+  },
+  "evResolved": "{who} resolved",
+  "@evResolved": {
+    "placeholders": {
+      "who": {
+        "type": "String"
+      }
+    }
+  },
+  "evResolvedNote": "{who} resolved: {note}",
+  "@evResolvedNote": {
+    "placeholders": {
+      "who": {
+        "type": "String"
+      },
+      "note": {
+        "type": "String"
+      }
+    }
+  },
+  "evReopened": "{who} reopened",
+  "@evReopened": {
+    "placeholders": {
+      "who": {
+        "type": "String"
+      }
+    }
+  },
+  "evAssigned": "{who} assigned {name}",
+  "@evAssigned": {
+    "placeholders": {
+      "who": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "evUnassigned": "{who} unassigned",
+  "@evUnassigned": {
+    "placeholders": {
+      "who": {
+        "type": "String"
+      }
+    }
+  },
+  "evEscalated": "{who} escalated to level {level}",
+  "@evEscalated": {
+    "placeholders": {
+      "who": {
+        "type": "String"
+      },
+      "level": {
+        "type": "String"
+      }
+    }
+  },
+  "evSeverityChanged": "{who} changed severity to {severity}",
+  "@evSeverityChanged": {
+    "placeholders": {
+      "who": {
+        "type": "String"
+      },
+      "severity": {
+        "type": "String"
+      }
+    }
+  },
+  "evCommented": "{who} commented",
+  "@evCommented": {
+    "placeholders": {
+      "who": {
+        "type": "String"
+      }
+    }
+  },
+  "evAlertAttached": "Alert “{rule}” fired again",
+  "@evAlertAttached": {
+    "placeholders": {
+      "rule": {
+        "type": "String"
+      }
+    }
+  },
+  "evAlertResolved": "Alert “{rule}” recovered",
+  "@evAlertResolved": {
+    "placeholders": {
+      "rule": {
+        "type": "String"
+      }
+    }
+  },
+  "evDeploymentCorrelated": "Deployment {version} may be related",
+  "@evDeploymentCorrelated": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "evProposalApproved": "{who} approved the AI-proposed step “{description}”",
+  "@evProposalApproved": {
+    "placeholders": {
+      "who": {
+        "type": "String"
+      },
+      "description": {
+        "type": "String"
+      }
+    }
+  },
+  "evProposalRejected": "{who} rejected the AI-proposed step “{description}”",
+  "@evProposalRejected": {
+    "placeholders": {
+      "who": {
+        "type": "String"
+      },
+      "description": {
+        "type": "String"
+      }
+    }
+  },
+  "evAiReady": "AI analysis ready",
+  "evAiUnavailable": "AI analysis unavailable",
+  "evAiUpdated": "AI analysis updated",
+  "aiCopilot": "AI Copilot",
+  "noInvestigations": "No investigations yet",
+  "noInvestigationsBody": "Open an incident and tap \"Investigate with AI\". Copilot gathers metrics, logs and deployments and suggests probable causes with the evidence behind them.",
+  "analysisReady": "Analysis ready",
+  "triggerAuto": "Automatic",
+  "triggerRequested": "Requested",
+  "progressQueued": "Waiting for a worker…",
+  "progressCollecting": "Collecting metrics, logs and deployments…",
+  "progressAnalyzing": "Analysing the evidence…",
+  "aiAnalysis": "AI analysis",
+  "runAgain": "Run again",
+  "analysisStale": "Showing the analysis saved on this device.",
+  "aiLoadError": "Couldn't load the AI analysis",
+  "aiIntro": "Copilot reads this incident's metrics, logs, deployments and similar past incidents, then suggests probable causes, each with the evidence behind it.",
+  "investigateWithAi": "Investigate with AI",
+  "investigateOffline": "Investigate (needs a connection)",
+  "analysisUnavailable": "Analysis unavailable",
+  "actionsUnaffected": "Incident actions are not affected.",
+  "hypotheses": "Hypotheses — not confirmed · {ago}",
+  "@hypotheses": {
+    "placeholders": {
+      "ago": {
+        "type": "String"
+      }
+    }
+  },
+  "probableCauses": "Probable causes",
+  "nextSteps": "Recommended next steps",
+  "couldNotSee": "What DevPulse could not see",
+  "adjusted": "Adjusted: {text}",
+  "@adjusted": {
+    "placeholders": {
+      "text": {
+        "type": "String"
+      }
+    }
+  },
+  "askFollowUp": "Ask a follow-up",
+  "helpful": "Helpful",
+  "notHelpful": "Not helpful",
+  "feedbackThanks": "Thanks, your feedback helps tune the investigator.",
+  "verify": "Verify: {how}",
+  "@verify": {
+    "placeholders": {
+      "how": {
+        "type": "String"
+      }
+    }
+  },
+  "approvedNotRun": "· Approved (not executed by DevPulse)",
+  "rejected": "· Rejected",
+  "approve": "Approve",
+  "reject": "Reject",
+  "adminMustDecide": "An admin must decide on destructive actions.",
+  "approveQ": "Approve this action?",
+  "approveBody": "“{description}”\n\nApproving records your decision on the incident. DevPulse does not run it: your team carries it out.",
+  "@approveBody": {
+    "placeholders": {
+      "description": {
+        "type": "String"
+      }
+    }
+  },
+  "confidenceHigh": "high",
+  "confidenceMedium": "medium",
+  "confidenceLow": "low",
+  "confidenceSemantics": "{label} confidence, {pct} percent",
+  "@confidenceSemantics": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      },
+      "pct": {
+        "type": "String"
+      }
+    }
+  },
+  "riskReadOnly": "Read-only",
+  "riskDestructive": "Destructive · admin approval",
+  "riskSensitive": "Changes a system · needs approval",
+  "demoAnalyzer": "DEMO ANALYZER · NOT AN LLM",
+  "against": "{ref} (against)",
+  "@against": {
+    "placeholders": {
+      "ref": {
+        "type": "String"
+      }
+    }
+  },
+  "evidenceComputed": "Computed by DevPulse from stored {kind} data, not by the AI.",
+  "@evidenceComputed": {
+    "placeholders": {
+      "kind": {
+        "type": "String"
+      }
+    }
+  },
+  "evidenceSource": "Source: {source}",
+  "@evidenceSource": {
+    "placeholders": {
+      "source": {
+        "type": "String"
+      }
+    }
+  },
+  "askCopilot": "Ask Copilot",
+  "askHint": "Ask about this incident, e.g. \"When did errors start?\" or \"Was this seen before?\". Answers cite evidence; Copilot can only read data, never change anything.",
+  "lookingIntoIt": "Looking into it…",
+  "questionHint": "Ask a follow-up question",
+  "needsConnection": "Needs a connection",
+  "sendQuestion": "Send question",
+  "lookedUp": "Looked up {tool} → {refs}",
+  "@lookedUp": {
+    "placeholders": {
+      "tool": {
+        "type": "String"
+      },
+      "refs": {
+        "type": "String"
+      }
+    }
+  },
+  "aiDisabled": "AI analysis is turned off for this organization. An admin can enable it in Settings → AI on the web.",
+  "aiBudget": "This month's AI budget is used up. An admin can raise it on the web.",
+  "aiUnconfigured": "No AI provider is configured on this DevPulse server.",
+  "aiNoEvidence": "DevPulse has no telemetry for this incident, so there's nothing to analyse.",
+  "aiInvalidOutput": "The AI's answer failed validation and was discarded.",
+  "aiRefused": "The AI model declined to analyse this incident.",
+  "aiTimeout": "The analysis took too long.",
+  "aiUnavailable": "The AI provider is unavailable right now. Try again in a minute.",
+  "aiStale": "The analysis was interrupted.",
+  "aiAlreadyRunning": "An analysis is already running for this incident.",
+  "aiFailed": "The analysis failed.",
+  "signOutQ": "Sign out?",
+  "signOutBody": "Data saved on this device for your account will be removed.",
+  "signOut": "Sign out",
+  "profile": "Profile",
+  "organization": "Organization",
+  "noneSelected": "None selected",
+  "yourRole": "Your role: {role}",
+  "@yourRole": {
+    "placeholders": {
+      "role": {
+        "type": "String"
+      }
+    }
+  },
+  "appearance": "Appearance",
+  "themeSystem": "System",
+  "themeDark": "Dark",
+  "themeLight": "Light",
+  "language": "Language",
+  "languageSystem": "System",
+  "account": "Account",
+  "settingsFooter": "Notification preferences and security settings arrive with push notifications (Phase 3)."
+}

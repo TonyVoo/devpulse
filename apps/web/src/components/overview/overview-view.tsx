@@ -4,12 +4,15 @@ import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useState } from "react";
 
-import { fmt as chartFmt, type Marker, TimeSeriesChart, toPoints } from "@/components/charts/time-series";
+import { type Marker, TimeSeriesChart, toPoints } from "@/components/charts/time-series";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Alert, Card, EmptyState } from "@/components/ui/card";
-import { DemoTag, HealthPill, IncidentStatusBadge, SeverityChip, timeAgo } from "@/components/ui/status";
+import { DemoTag, HealthPill, IncidentStatusBadge, SeverityChip } from "@/components/ui/status";
 import { api } from "@/lib/api-client";
 import type { components } from "@/lib/api-types";
+import { useI18n } from "@/lib/i18n/client";
+import { errorText } from "@/lib/i18n/errors";
+import { type Fmt, makeFmt } from "@/lib/i18n/translate";
 import { cn } from "@/lib/utils";
 
 type Overview = components["schemas"]["OverviewOut"];
@@ -21,15 +24,16 @@ const WINDOWS: { value: Window; label: string }[] = [
   { value: "7d", label: "7d" },
 ];
 
-export function kpi(n: number | null | undefined, kind: "count" | "pct" | "ms"): string {
+export function kpi(n: number | null | undefined, kind: "count" | "pct" | "ms", fmt: Fmt = makeFmt("en")): string {
   if (n === null || n === undefined) return "—";
-  if (kind === "pct") return chartFmt.pct(n);
-  if (kind === "ms") return chartFmt.ms(n);
-  return chartFmt.count(n);
+  if (kind === "pct") return fmt.pct(n);
+  if (kind === "ms") return fmt.ms(n);
+  return fmt.count(n);
 }
 
 /** Org overview: KPIs, request volume with deploys, health and recent activity. Live (30 s). */
 export function OverviewView({ orgId }: { orgId: string }) {
+  const { t, fmt, ago } = useI18n();
   const [window, setWindow] = useState<Window>("24h");
   const q = useQuery({
     queryKey: ["orgs", orgId, "overview", window],
@@ -40,13 +44,13 @@ export function OverviewView({ orgId }: { orgId: string }) {
   const base = `/o/${orgId}`;
 
   if (q.isPending) {
-    return <div className="h-64 animate-pulse rounded-lg bg-raised" role="status" aria-busy aria-label="Loading overview" />;
+    return <div className="h-64 animate-pulse rounded-lg bg-raised" role="status" aria-busy aria-label={t("overview.loading")} />;
   }
   if (q.isError) {
     return (
       <Alert>
-        Couldn&apos;t load the overview: {q.error.message}{" "}
-        <Button variant="ghost" size="sm" onClick={() => q.refetch()}>Retry</Button>
+        {t("overview.loadError", { error: errorText(q.error, t) })}{" "}
+        <Button variant="ghost" size="sm" onClick={() => q.refetch()}>{t("common.retry")}</Button>
       </Alert>
     );
   }
@@ -54,11 +58,11 @@ export function OverviewView({ orgId }: { orgId: string }) {
   if (o.services_total === 0) {
     return (
       <EmptyState
-        title="No services connected yet"
-        description="Add a service and an ingest key, then send telemetry. Health, latency and incidents will appear here."
+        title={t("overview.emptyTitle")}
+        description={t("overview.emptyBody")}
         action={
           <Link href={`${base}/services`} className={buttonVariants({ variant: "secondary" })}>
-            Add a service
+            {t("overview.addService")}
           </Link>
         }
       />
@@ -67,7 +71,7 @@ export function OverviewView({ orgId }: { orgId: string }) {
 
   const open = Object.values(o.open_incidents_by_severity).reduce((a, b) => a + (b ?? 0), 0);
   const urgent = (o.open_incidents_by_severity.sev1 ?? 0) + (o.open_incidents_by_severity.sev2 ?? 0);
-  const label = window === "1h" ? "last hour" : window === "24h" ? "last 24 hours" : "last 7 days";
+  const label = t(window === "1h" ? "overview.lastHour" : window === "24h" ? "overview.last24h" : "overview.last7d");
   // Bucket size per window (matches the API's request series).
   const stepMs = { "1h": 60_000, "24h": 1_800_000, "7d": 21_600_000 }[window];
   const points = toPoints(o.request_series, stepMs);
@@ -78,16 +82,16 @@ export function OverviewView({ orgId }: { orgId: string }) {
     .map((d) => ({ t: new Date(d.started_at).getTime(), label: d.version, tone: "deploy" as const }));
 
   const cards: { label: string; value: string; href: string; tone?: string }[] = [
-    { label: `Requests (${window})`, value: kpi(o.totals.requests, "count"), href: `${base}/services` },
-    { label: "Error rate", value: kpi(o.totals.error_rate, "pct"), href: `${base}/services` },
-    { label: "Avg latency", value: kpi(o.totals.latency_avg_ms, "ms"), href: `${base}/services` },
-    { label: "Open incidents", value: String(open), href: `${base}/incidents`, tone: urgent ? "text-critical" : undefined },
+    { label: t("overview.requests", { window }), value: kpi(o.totals.requests, "count", fmt), href: `${base}/services` },
+    { label: t("overview.errorRate"), value: kpi(o.totals.error_rate, "pct", fmt), href: `${base}/services` },
+    { label: t("overview.avgLatency"), value: kpi(o.totals.latency_avg_ms, "ms", fmt), href: `${base}/services` },
+    { label: t("overview.openIncidents"), value: String(open), href: `${base}/incidents`, tone: urgent ? "text-critical" : undefined },
   ];
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div role="radiogroup" aria-label="Time window" className="flex gap-1">
+        <div role="radiogroup" aria-label={t("overview.window")} className="flex gap-1">
           {WINDOWS.map((w) => (
             <button
               key={w.value}
@@ -104,20 +108,20 @@ export function OverviewView({ orgId }: { orgId: string }) {
           ))}
         </div>
         <p className="text-xs text-fg-subtle" aria-live="polite">
-          Updated {timeAgo(o.generated_at)} · refreshes every 30 s
+          {t("overview.updated", { ago: ago(o.generated_at) })}
         </p>
       </div>
 
       {urgent > 0 && (
         <Alert>
-          {urgent} critical or major incident{urgent === 1 ? " is" : "s are"} open.{" "}
+          {urgent === 1 ? t("overview.urgentOne") : t("overview.urgentMany", { n: urgent })}{" "}
           <Link href={`${base}/incidents`} className="font-medium underline underline-offset-2">
-            View incidents
+            {t("overview.viewIncidents")}
           </Link>
         </Alert>
       )}
 
-      <section aria-label={`Key numbers, ${label}`} className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <section aria-label={t("overview.keyNumbers", { window: label })} className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {cards.map((c) => (
           <Link
             key={c.label}
@@ -132,9 +136,9 @@ export function OverviewView({ orgId }: { orgId: string }) {
 
       <Card className="min-w-0 p-4">
         <TimeSeriesChart
-          title={`Requests per interval, ${label}`}
+          title={t("overview.requestsChart", { window: label })}
           points={points}
-          format={chartFmt.count}
+          format={fmt.count}
           markers={markers}
           domain={[domainEnd - span, domainEnd]}
           height={220}
@@ -143,7 +147,7 @@ export function OverviewView({ orgId }: { orgId: string }) {
 
       <section className="grid gap-4 lg:grid-cols-3">
         <Card className="min-w-0 p-4">
-          <h2 className="mb-3 text-sm font-semibold">Service health</h2>
+          <h2 className="mb-3 text-sm font-semibold">{t("overview.serviceHealth")}</h2>
           <ul className="space-y-1 text-sm">
             {(["critical", "degraded", "healthy", "unknown"] as const).map((h) => (
               <li key={h}>
@@ -156,9 +160,9 @@ export function OverviewView({ orgId }: { orgId: string }) {
           </ul>
         </Card>
         <Card className="min-w-0 p-4 lg:col-span-2">
-          <h2 className="mb-3 text-sm font-semibold">Recent incidents</h2>
+          <h2 className="mb-3 text-sm font-semibold">{t("overview.recentIncidents")}</h2>
           {o.recent_incidents.length === 0 ? (
-            <p className="text-sm text-fg-muted">No incidents. All clear.</p>
+            <p className="text-sm text-fg-muted">{t("overview.noIncidents")}</p>
           ) : (
             <ul className="space-y-1 text-sm">
               {o.recent_incidents.map((i) => (
@@ -176,9 +180,9 @@ export function OverviewView({ orgId }: { orgId: string }) {
           )}
         </Card>
         <Card className="min-w-0 p-4 lg:col-span-3">
-          <h2 className="mb-3 text-sm font-semibold">Recent deployments</h2>
+          <h2 className="mb-3 text-sm font-semibold">{t("overview.recentDeployments")}</h2>
           {o.recent_deployments.length === 0 ? (
-            <p className="text-sm text-fg-muted">No deployments recorded.</p>
+            <p className="text-sm text-fg-muted">{t("overview.noDeployments")}</p>
           ) : (
             <ul className="space-y-1 text-sm">
               {o.recent_deployments.slice(0, 6).map((d) => (
@@ -188,7 +192,7 @@ export function OverviewView({ orgId }: { orgId: string }) {
                       <span className="font-mono">{d.version}</span> <span className="text-fg-muted">{d.service_name}</span>
                     </span>
                     {d.is_demo && <DemoTag />}
-                    <span className="shrink-0 text-xs text-fg-subtle">{timeAgo(d.started_at)}</span>
+                    <span className="shrink-0 text-xs text-fg-subtle">{ago(d.started_at)}</span>
                   </Link>
                 </li>
               ))}

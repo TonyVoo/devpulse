@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/design_system/tokens.dart';
 import '../../../core/design_system/widgets/dp_widgets.dart';
 import '../../../core/result/failure.dart';
+import '../../../l10n/l10n.dart';
 import 'session_controller.dart';
 
 class SplashScreen extends ConsumerWidget {
@@ -30,14 +31,14 @@ class SplashScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: DpSpace.lg),
                   DpButton(
-                    label: 'Try again',
+                    label: context.l10n.tryAgain,
                     variant: DpButtonVariant.secondary,
                     onPressed: () => ref.read(sessionControllerProvider.notifier).retry(),
                   ),
                 ] else
-                  const SizedBox.square(
+                  SizedBox.square(
                     dimension: 24,
-                    child: CircularProgressIndicator(strokeWidth: 2, semanticsLabel: 'Restoring your session'),
+                    child: CircularProgressIndicator(strokeWidth: 2, semanticsLabel: context.l10n.restoringSession),
                   ),
               ],
             ),

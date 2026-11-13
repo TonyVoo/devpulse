@@ -2,8 +2,11 @@ import type { Metadata } from "next";
 
 import { OverviewView } from "@/components/overview/overview-view";
 import { getMe } from "@/lib/server-api";
+import { getT } from "@/lib/i18n/server";
 
-export const metadata: Metadata = { title: "Overview" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT())("overview.title") };
+}
 
 export default async function OrgOverview({ params }: PageProps<"/o/[orgId]">) {
   const { orgId } = await params;

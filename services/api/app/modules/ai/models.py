@@ -93,6 +93,8 @@ class AISettings(Timestamps, Base):
     )
     # None = never investigate automatically.
     auto_investigate_min_severity: Mapped[Severity | None] = mapped_column(severity_enum)
+    # Language of automatic runs (manual runs use the requester's UI language).
+    language: Mapped[str] = mapped_column(String(8), default="en", server_default="en")
     data_redaction: Mapped[dict[str, Any]] = mapped_column(
         JSONB,
         default=lambda: {"emails": True, "ips": True, "secrets": True},
@@ -130,6 +132,8 @@ class AIInvestigation(UUIDPk, Timestamps, Base):
     provider: Mapped[str] = mapped_column(String(32))
     model: Mapped[str] = mapped_column(String(80))
     prompt_version: Mapped[str] = mapped_column(String(32))
+    # Language the model writes in (summary, causes, answers); evidence stays as computed.
+    language: Mapped[str] = mapped_column(String(8), default="en", server_default="en")
     context_hash: Mapped[str | None] = mapped_column(String(64))
     result: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
     data_gaps: Mapped[list[str]] = mapped_column(JSONB, default=list, server_default="[]")

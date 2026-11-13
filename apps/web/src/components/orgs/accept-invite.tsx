@@ -7,12 +7,15 @@ import { Button } from "@/components/ui/button";
 import { Alert, Card } from "@/components/ui/card";
 import { api, ApiError } from "@/lib/api-client";
 import type { components } from "@/lib/api-types";
+import { useI18n } from "@/lib/i18n/client";
+import { errorText } from "@/lib/i18n/errors";
 
 type Accepted = components["schemas"]["InvitationAcceptOut"];
 
 /** Joining is an explicit click, never automatic on page load. */
 export function AcceptInvite({ token }: { token: string }) {
   const router = useRouter();
+  const { t } = useI18n();
   const accept = useMutation({
     mutationFn: () => api.post<Accepted>(`invitations/${encodeURIComponent(token)}/accept`),
     onSuccess: (r) => {
@@ -23,21 +26,19 @@ export function AcceptInvite({ token }: { token: string }) {
   const code = accept.error instanceof ApiError ? accept.error.problem.code : null;
   return (
     <Card className="space-y-4">
-      <h1 className="text-xl font-semibold">You&apos;ve been invited to an organization</h1>
-      <p className="text-sm text-fg-muted">
-        The invitation must match the email address you&apos;re signed in with.
-      </p>
+      <h1 className="text-xl font-semibold">{t("invite.title")}</h1>
+      <p className="text-sm text-fg-muted">{t("invite.body")}</p>
       {accept.isError && (
         <Alert>
           {code === "invitation.already_member"
-            ? "You're already a member of this organization."
+            ? t("invite.alreadyMember")
             : code === "invitation.invalid"
-              ? "This invitation is invalid, expired, revoked, or meant for a different email address."
-              : accept.error.message}
+              ? t("invite.invalid")
+              : errorText(accept.error, t)}
         </Alert>
       )}
       <Button onClick={() => accept.mutate()} loading={accept.isPending}>
-        Join organization
+        {t("invite.join")}
       </Button>
     </Card>
   );

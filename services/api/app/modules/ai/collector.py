@@ -477,9 +477,51 @@ def add_incident_evidence(
 # -------------------------------------------------------------------------- pipeline
 
 
+# What the collector could not see, in the run's language (shown to people as-is and given
+# to the model; identifiers are filled in).
+_GAPS: dict[str, dict[str, str]] = {
+    "en": {
+        "no_service": "The incident is not linked to a service, so no metrics, logs or "
+        "deployments could be collected.",
+        "no_metrics": "No metrics were ingested for {svc} between {start} and {end}.",
+        "no_baseline": "No baseline for some {svc} metrics: there is no data in the hour before "
+        "{start}, so changes can't be compared with normal behaviour.",
+        "metrics_capped": "Only the first {n} of {total} metrics were included.",
+        "only_info_logs": "No warning or error logs from {svc} in the incident window "
+        "(info logs exist).",
+        "no_logs": "No logs were ingested for {svc} in the incident window.",
+        "no_deploys": "No deployments of {svc} were recorded in the 24h before the incident "
+        "(or deployment tracking is not connected).",
+        "no_dependencies": "Service dependencies are not modelled in DevPulse; upstream causes "
+        "can only be inferred from this service's own logs and metrics.",
+    },
+    "vi": {
+        "no_service": "Sự cố chưa gắn với dịch vụ nào nên không thu thập được chỉ số, log hay "
+        "lượt triển khai.",
+        "no_metrics": "Không có chỉ số nào của {svc} được ghi nhận từ {start} đến {end}.",
+        "no_baseline": "Một số chỉ số của {svc} không có mức nền: không có dữ liệu trong một giờ "
+        "trước {start}, nên không so sánh được với trạng thái bình thường.",
+        "metrics_capped": "Chỉ đưa vào {n} trên {total} chỉ số đầu tiên.",
+        "only_info_logs": "Không có log cảnh báo hay lỗi nào từ {svc} trong khoảng thời gian sự "
+        "cố (chỉ có log info).",
+        "no_logs": "Không có log nào của {svc} được ghi nhận trong khoảng thời gian sự cố.",
+        "no_deploys": "Không ghi nhận lượt triển khai nào của {svc} trong 24 giờ trước sự cố "
+        "(hoặc chưa kết nối theo dõi triển khai).",
+        "no_dependencies": "DevPulse chưa mô hình hóa các phụ thuộc giữa dịch vụ; nguyên nhân "
+        "phía trên chỉ có thể suy ra từ log và chỉ số của chính dịch vụ này.",
+    },
+}
+
+
 async def collect(
-    session: AsyncSession, inc: Incident, redact: Redactor, *, now: datetime | None = None
+    session: AsyncSession,
+    inc: Incident,
+    redact: Redactor,
+    *,
+    now: datetime | None = None,
+    language: str = "en",
 ) -> Collected:
+    gaps = _GAPS.get(language, _GAPS["en"])
     now = now or datetime.now(UTC)
     reg = EvidenceRegistry()
     out = Collected(registry=reg)
@@ -493,10 +535,7 @@ async def collect(
         else None
     )
     if service is None:
-        out.data_gaps.append(
-            "The incident is not linked to a service, so no metrics, logs or deployments "
-            "could be collected."
-        )
+        out.data_gaps.append(gaps["no_service"])
         return out
     out.service = service
     w = incident_window(inc, now)
@@ -522,32 +561,25 @@ async def collect(
         )
     if added == 0:
         out.data_gaps.append(
-            f"No metrics were ingested for {service.slug} between {fmt_time(w.baseline_start)} "
-            f"and {fmt_time(w.end)}."
+            gaps["no_metrics"].format(
+                svc=service.slug, start=fmt_time(w.baseline_start), end=fmt_time(w.end)
+            )
         )
     elif any(
         e.kind == EvidenceKind.METRIC and e.excerpt.get("baseline") is None for e in reg.items
     ):
-        out.data_gaps.append(
-            f"No baseline for some {service.slug} metrics: there is no data in the hour before "
-            f"{fmt_time(w.start)}, so changes can't be compared with normal behaviour."
-        )
+        out.data_gaps.append(gaps["no_baseline"].format(svc=service.slug, start=fmt_time(w.start)))
     if added and len(specs) > MAX_METRICS:
-        out.data_gaps.append(f"Only the first {MAX_METRICS} of {len(specs)} metrics were included.")
+        out.data_gaps.append(gaps["metrics_capped"].format(n=MAX_METRICS, total=len(specs)))
 
     groups = await add_log_evidence(
         session, reg, redact, org_id=inc.org_id, service=service, start=w.start, end=w.end
     )
     if groups == 0:
         if await any_logs(session, inc.org_id, service.id, w.start, w.end):
-            out.data_gaps.append(
-                f"No warning or error logs from {service.slug} in the incident window "
-                "(info logs exist)."
-            )
+            out.data_gaps.append(gaps["only_info_logs"].format(svc=service.slug))
         else:
-            out.data_gaps.append(
-                f"No logs were ingested for {service.slug} in the incident window."
-            )
+            out.data_gaps.append(gaps["no_logs"].format(svc=service.slug))
 
     deps = await add_deployment_evidence(
         session,
@@ -560,10 +592,7 @@ async def collect(
         incident=inc,
     )
     if deps == 0:
-        out.data_gaps.append(
-            f"No deployments of {service.slug} were recorded in the 24h before the incident "
-            "(or deployment tracking is not connected)."
-        )
+        out.data_gaps.append(gaps["no_deploys"].format(svc=service.slug))
 
     await add_similar_incidents(
         session,
@@ -574,8 +603,5 @@ async def collect(
         exclude=inc.id,
         before=inc.started_at,
     )
-    out.data_gaps.append(
-        "Service dependencies are not modelled in DevPulse; upstream causes can only be "
-        "inferred from this service's own logs and metrics."
-    )
+    out.data_gaps.append(gaps["no_dependencies"])
     return out

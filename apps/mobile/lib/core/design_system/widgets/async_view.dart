@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../result/failure.dart';
 import '../tokens.dart';
 import 'dp_widgets.dart';
@@ -28,7 +29,7 @@ class AsyncView<T> extends StatelessWidget {
               child: DpBanner(
                 message: Failure.from(value.error!).message,
                 tone: Failure.from(value.error!) is NetworkFailure ? DpBannerTone.warning : DpBannerTone.error,
-                action: TextButton(onPressed: onRetry, child: const Text('Retry')),
+                action: TextButton(onPressed: onRetry, child: Text(context.l10n.retry)),
               ),
             ),
             Expanded(child: data(current)),
@@ -41,9 +42,9 @@ class AsyncView<T> extends StatelessWidget {
       final f = Failure.from(value.error!);
       return DpEmptyState(
         icon: f is NetworkFailure ? Icons.cloud_off_outlined : Icons.error_outline,
-        title: f is NetworkFailure ? "You're offline" : "Couldn't load this",
-        description: f.requestId == null ? f.message : '${f.message}\nRef: ${f.requestId}',
-        action: DpButton(label: 'Try again', variant: DpButtonVariant.secondary, onPressed: onRetry),
+        title: f is NetworkFailure ? context.l10n.youreOffline : context.l10n.couldNotLoadThis,
+        description: f.requestId == null ? f.message : '${f.message}\n${context.l10n.requestRef(f.requestId!)}',
+        action: DpButton(label: context.l10n.tryAgain, variant: DpButtonVariant.secondary, onPressed: onRetry),
       );
     }
     return skeleton ?? const SkeletonList();
@@ -84,7 +85,7 @@ class _SkeletonListState extends State<SkeletonList> with SingleTickerProviderSt
   Widget build(BuildContext context) {
     final p = context.dp;
     return Semantics(
-      label: 'Loading',
+      label: context.l10n.loading,
       child: FadeTransition(
         opacity: Tween<double>(begin: 0.45, end: 1).animate(_c),
         child: ListView.builder(
